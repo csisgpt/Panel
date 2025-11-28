@@ -15,24 +15,24 @@ const navItems = [
   { href: "/settings", label: "تنظیمات", icon: Settings }
 ];
 
-export function Sidebar({ className }: { className?: string }) {
+export function Sidebar({ className, onNavigate }: { className?: string; onNavigate?: () => void }) {
   const pathname = usePathname();
   const { logout } = useAuth();
 
   return (
-    <aside className={cn("flex h-full w-64 flex-col border-l bg-card/95 px-4 py-6 shadow-xl", className)}>
+    <aside className={cn("flex h-full w-72 flex-col border-l bg-card/95 px-4 py-6 shadow-xl", className)}>
       <div className="mb-8 flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground">پنل مدیریت مالی</p>
           <p className="text-lg font-semibold">تاهساب | Panel</p>
         </div>
       </div>
-      <nav className="space-y-1">
+      <nav className="space-y-1 overflow-y-auto pb-6">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = pathname.startsWith(item.href);
           return (
-            <Link key={item.href} href={item.href}>
+            <Link key={item.href} href={item.href} onClick={onNavigate}>
               <div
                 className={cn(
                   "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition",
@@ -46,7 +46,7 @@ export function Sidebar({ className }: { className?: string }) {
           );
         })}
       </nav>
-      <div className="mt-auto">
+      <div className="mt-auto pt-4">
         <Button variant="outline" className="flex w-full items-center justify-center gap-2" onClick={logout}>
           <LogOut className="h-4 w-4" />
           <span>خروج</span>

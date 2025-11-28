@@ -30,14 +30,14 @@ export default function AccountsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">حساب‌ها</h1>
           <p className="text-sm text-muted-foreground">مرور حساب‌های مشتریان</p>
         </div>
       </div>
       <Card className="p-4">
-        <div className="grid max-w-3xl grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <Select value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
             <option value="all">همه مشتریان</option>
             {customerList.map((c) => (
@@ -54,32 +54,34 @@ export default function AccountsPage() {
           </Select>
         </div>
       </Card>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>مشتری</TableHead>
-            <TableHead>نام حساب</TableHead>
-            <TableHead>نوع</TableHead>
-            <TableHead>مانده کل</TableHead>
-            <TableHead>وضعیت</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filtered.map((acc) => (
-            <TableRow key={acc.id} className="cursor-pointer" onClick={() => router.push(`/accounts/${acc.id}`)}>
-              <TableCell>{customerList.find((c) => c.id === acc.customerId)?.name}</TableCell>
-              <TableCell className="font-medium">{acc.name}</TableCell>
-              <TableCell>{acc.type === "MAIN" ? "اصلی" : acc.type === "MARGIN" ? "مارجین" : "پس‌انداز"}</TableCell>
-              <TableCell>{acc.totalBalance.toLocaleString("fa-IR")} ریال</TableCell>
-              <TableCell>
-                <Badge variant={acc.status === "ACTIVE" ? "success" : acc.status === "BLOCKED" ? "warning" : "outline"}>
-                  {acc.status === "ACTIVE" ? "فعال" : acc.status === "BLOCKED" ? "مسدود" : "غیرفعال"}
-                </Badge>
-              </TableCell>
+      <div className="overflow-x-auto rounded-2xl border bg-card shadow-sm">
+        <Table className="min-w-[720px]">
+          <TableHeader>
+            <TableRow>
+              <TableHead>مشتری</TableHead>
+              <TableHead>نام حساب</TableHead>
+              <TableHead>نوع</TableHead>
+              <TableHead>مانده کل</TableHead>
+              <TableHead>وضعیت</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((acc) => (
+              <TableRow key={acc.id} className="cursor-pointer" onClick={() => router.push(`/accounts/${acc.id}`)}>
+                <TableCell>{customerList.find((c) => c.id === acc.customerId)?.name}</TableCell>
+                <TableCell className="font-medium">{acc.name}</TableCell>
+                <TableCell>{acc.type === "MAIN" ? "اصلی" : acc.type === "MARGIN" ? "مارجین" : "پس‌انداز"}</TableCell>
+                <TableCell>{acc.totalBalance.toLocaleString("fa-IR")} ریال</TableCell>
+                <TableCell>
+                  <Badge variant={acc.status === "ACTIVE" ? "success" : acc.status === "BLOCKED" ? "warning" : "outline"}>
+                    {acc.status === "ACTIVE" ? "فعال" : acc.status === "BLOCKED" ? "مسدود" : "غیرفعال"}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
