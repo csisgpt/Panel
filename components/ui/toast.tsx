@@ -21,29 +21,23 @@ const toastVariants = cva(
   }
 );
 
-/**
- * این همون پروپ‌تایپی‌ه که توی use-toast و Toaster استفاده می‌کنیم.
- * مهم: به جای React.HTMLAttributes، از Omit استفاده می‌کنیم تا
- * پراپرتی title از HTMLAttributes حذف بشه و ما بتونیم title رو به شکل ReactNode تعریف کنیم.
- */
-export interface ToastProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, "title">,
-    VariantProps<typeof toastVariants> {
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  // اینا برای محتوای Toast هستن، نه atributoهای HTML
-  title?: React.ReactNode;
-  description?: React.ReactNode;
-  action?: ToastActionElement;
+// این پروپ‌ها فقط برای خود Toast wrapper هستن؛
+// عمداً HTMLAttributes رو extend نمی‌کنیم که title قاطی نشه.
+export interface ToastProps extends VariantProps<typeof toastVariants> {
+  id?: string;
+  className?: string;
+  children?: React.ReactNode;
+  [key: string]: any; // بقیه چیزها مثل open, onOpenChange, title, description, action فقط حمل می‌شن، به <div> پاس داده نمی‌شن
 }
 
 const Toast = React.forwardRef<HTMLDivElement, ToastProps>(
-  ({ className, variant, ...props }, ref) => (
+  ({ className, variant, children }, ref) => (
     <div
       ref={ref}
       className={cn(toastVariants({ variant }), className)}
-      {...props}
-    />
+    >
+      {children}
+    </div>
   )
 );
 Toast.displayName = "Toast";
@@ -94,4 +88,4 @@ ToastClose.displayName = "ToastClose";
 
 export type ToastActionElement = React.ReactNode;
 
-export { Toast, ToastTitle, ToastDescription, ToastClose, toastVariants };
+export { Toast, ToastTitle, ToastDescription, ToastClose };
