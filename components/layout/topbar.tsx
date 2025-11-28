@@ -2,7 +2,6 @@
 
 import { Search, Sun, Moon, Menu } from "lucide-react";
 import { useTheme } from "next-themes";
-import { usePathname } from "next/navigation";
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
 import { Avatar } from "../ui/avatar";
@@ -12,20 +11,12 @@ import { Button } from "../ui/button";
 interface TopbarProps {
   onMenuClick?: () => void;
   userName?: string;
+  pageTitle?: string;
+  badge?: string;
 }
 
-const titles: Record<string, string> = {
-  "/dashboard": "داشبورد",
-  "/customers": "مشتریان",
-  "/accounts": "حساب‌ها",
-  "/transactions": "تراکنش‌ها",
-  "/settings": "تنظیمات"
-};
-
-export function Topbar({ onMenuClick, userName }: TopbarProps) {
+export function Topbar({ onMenuClick, userName, pageTitle, badge }: TopbarProps) {
   const { setTheme, theme } = useTheme();
-  const pathname = usePathname();
-  const pageTitle = Object.entries(titles).find(([key]) => pathname.startsWith(key))?.[1] ?? "پنل";
 
   return (
     <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
@@ -37,10 +28,10 @@ export function Topbar({ onMenuClick, userName }: TopbarProps) {
             </Button>
             <div className="flex flex-col gap-1">
               <p className="text-xs text-muted-foreground">نمای کلی</p>
-              <p className="text-lg font-semibold">{pageTitle}</p>
+              <p className="text-lg font-semibold">{pageTitle ?? "پنل"}</p>
             </div>
             <Badge className="ml-1" variant="outline">
-              محیط نمایشی
+              {badge ?? "محیط نمایشی"}
             </Badge>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">

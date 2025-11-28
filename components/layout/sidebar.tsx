@@ -1,21 +1,28 @@
 'use client';
 
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Home, Users, CreditCard, Receipt, Settings, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Button } from "../ui/button";
 import { useAuth } from "@/lib/auth-context";
 
-const navItems = [
-  { href: "/dashboard", label: "داشبورد", icon: Home },
-  { href: "/customers", label: "مشتریان", icon: Users },
-  { href: "/accounts", label: "حساب‌ها", icon: CreditCard },
-  { href: "/transactions", label: "تراکنش‌ها", icon: Receipt },
-  { href: "/settings", label: "تنظیمات", icon: Settings }
-];
+export interface NavItem {
+  href: string;
+  label: string;
+  icon?: React.ElementType;
+}
 
-export function Sidebar({ className, onNavigate }: { className?: string; onNavigate?: () => void }) {
+interface SidebarProps {
+  className?: string;
+  onNavigate?: () => void;
+  title?: string;
+  subtitle?: string;
+  navItems: NavItem[];
+}
+
+export function Sidebar({ className, onNavigate, title, subtitle, navItems }: SidebarProps) {
   const pathname = usePathname();
   const { logout } = useAuth();
 
@@ -23,8 +30,8 @@ export function Sidebar({ className, onNavigate }: { className?: string; onNavig
     <aside className={cn("flex h-full w-72 flex-col border-l bg-card/95 px-4 py-6 shadow-xl", className)}>
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <p className="text-xs text-muted-foreground">پنل مدیریت مالی</p>
-          <p className="text-lg font-semibold">تاهساب | Panel</p>
+          <p className="text-xs text-muted-foreground">{subtitle ?? "پنل مدیریت"}</p>
+          <p className="text-lg font-semibold">{title ?? "Gold Panel"}</p>
         </div>
       </div>
       <nav className="space-y-1 overflow-y-auto pb-6">
@@ -39,7 +46,7 @@ export function Sidebar({ className, onNavigate }: { className?: string; onNavig
                   active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/70"
                 )}
               >
-                <Icon className="h-5 w-5" />
+                {Icon ? <Icon className="h-5 w-5" /> : null}
                 {item.label}
               </div>
             </Link>
