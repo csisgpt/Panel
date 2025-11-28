@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState } from "react";
-import { customers, accounts } from "@/lib/mock-data";
+import { useEffect, useMemo, useState } from "react";
+import { Customer, Account, getMockAccounts, getMockCustomers } from "@/lib/mock-data";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -11,23 +11,30 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 const statusLabels: Record<string, string> = {
-  active: "فعال",
-  inactive: "غیرفعال",
-  blocked: "مسدود"
+  ACTIVE: "فعال",
+  INACTIVE: "غیرفعال",
+  BLOCKED: "مسدود"
 };
 
 export default function CustomersPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
+  const [customerList, setCustomerList] = useState<Customer[]>([]);
+  const [accountList, setAccountList] = useState<Account[]>([]);
   const router = useRouter();
 
+  useEffect(() => {
+    getMockCustomers().then(setCustomerList);
+    getMockAccounts().then(setAccountList);
+  }, []);
+
   const filtered = useMemo(() => {
-    return customers.filter((c) => {
+    return customerList.filter((c) => {
       const matchesQuery = c.name.includes(query) || c.phone.includes(query);
       const matchesStatus = status === "all" ? true : c.status === status;
       return matchesQuery && matchesStatus;
     });
-  }, [query, status]);
+  }, [customerList, query, status]);
 
   return (
     <div className="space-y-4">
@@ -66,9 +73,9 @@ export default function CustomersPage() {
               <TableCell className="font-medium">{c.name}</TableCell>
               <TableCell>{c.phone}</TableCell>
               <TableCell>{c.nationalId}</TableCell>
-              <TableCell>{accounts.filter((a) => a.customerId === c.id).length}</TableCell>
+              <TableCell>{accountList.filter((a) => a.customerId === c.id).length}</TableCell>
               <TableCell>
-                <Badge variant={c.status === "active" ? "success" : c.status === "inactive" ? "outline" : "destructive"}>
+                <Badge variant={c.status === "ACTIVE" ? "success" : c.status === "INACTIVE" ? "outline" : "destructive"}>
                   {statusLabels[c.status]}
                 </Badge>
               </TableCell>

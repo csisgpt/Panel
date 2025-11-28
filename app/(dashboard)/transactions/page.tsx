@@ -1,20 +1,49 @@
 'use client';
 
-import { transactions, customers, accounts } from "@/lib/mock-data";
+import { useEffect, useMemo, useState } from "react";
+import {
+  getMockTransactions,
+  getMockCustomers,
+  getMockAccounts,
+  Transaction,
+  Customer,
+  Account,
+  TransactionType
+} from "@/lib/mock-data";
 import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
 
 export default function TransactionsPage() {
   const [customerId, setCustomerId] = useState("all");
+  const [accountId, setAccountId] = useState("all");
+  const [type, setType] = useState<TransactionType | "all">("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [transactionList, setTransactionList] = useState<Transaction[]>([]);
+  const [customerList, setCustomerList] = useState<Customer[]>([]);
+  const [accountList, setAccountList] = useState<Account[]>([]);
   const router = useRouter();
 
+  useEffect(() => {
+    getMockTransactions().then(setTransactionList);
+    getMockCustomers().then(setCustomerList);
+    getMockAccounts().then(setAccountList);
+  }, []);
+
   const filtered = useMemo(() => {
-    return transactions.filter((t) => (customerId === "all" ? true : t.customerId === customerId));
-  }, [customerId]);
+    return transactionList.filter((t) => {
+      const byCustomer = customerId === "all" ? true : t.customerId === customerId;
+      const byAccount = accountId === "all" ? true : t.accountId === accountId;
+      const byType = type === "all" ? true : t.type === type;
+      const afterFrom = dateFrom ? new Date(t.createdAt) >= new Date(dateFrom) : true;
+      const beforeTo = dateTo ? new Date(t.createdAt) <= new Date(dateTo) : true;
+      return byCustomer && byAccount && byType && afterFrom && beforeTo;
+    });
+  }, [accountId, customerId, dateFrom, dateTo, transactionList, type]);
 
   return (
     <div className="space-y-4">
@@ -23,15 +52,33 @@ export default function TransactionsPage() {
         <p className="text-sm text-muted-foreground">پیگیری تراکنش‌ها و وضعیت‌ها</p>
       </div>
       <Card className="p-4">
-        <div className="grid max-w-md grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3 lg:grid-cols-5">
           <Select value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
             <option value="all">همه مشتریان</option>
-            {customers.map((c) => (
+            {customerList.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>
             ))}
           </Select>
+          <Select value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+            <option value="all">همه حساب‌ها</option>
+            {accountList.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </Select>
+          <Select value={type} onChange={(e) => setType(e.target.value as TransactionType | "all")}> 
+            <option value="all">همه انواع</option>
+            <option value="DEPOSIT">واریز</option>
+            <option value="WITHDRAW">برداشت</option>
+            <option value="BUY_GOLD">خرید طلا</option>
+            <option value="SELL_GOLD">فروش طلا</option>
+            <option value="FEE">کارمزد</option>
+          </Select>
+          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} placeholder="از تاریخ" />
+          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} placeholder="تا تاریخ" />
         </div>
       </Card>
       <Table>
@@ -49,13 +96,23 @@ export default function TransactionsPage() {
           {filtered.map((t) => (
             <TableRow key={t.id} className="cursor-pointer" onClick={() => router.push(`/transactions/${t.id}`)}>
               <TableCell className="font-mono text-xs">{t.id}</TableCell>
-              <TableCell>{customers.find((c) => c.id === t.customerId)?.name}</TableCell>
-              <TableCell>{accounts.find((a) => a.id === t.accountId)?.accountName}</TableCell>
-              <TableCell>{t.type}</TableCell>
+              <TableCell>{customerList.find((c) => c.id === t.customerId)?.name}</TableCell>
+              <TableCell>{accountList.find((a) => a.id === t.accountId)?.name}</TableCell>
+              <TableCell>{
+                t.type === "DEPOSIT"
+                  ? "واریز"
+                  : t.type === "WITHDRAW"
+                    ? "برداشت"
+                    : t.type === "BUY_GOLD"
+                      ? "خرید طلا"
+                      : t.type === "SELL_GOLD"
+                        ? "فروش طلا"
+                        : "کارمزد"
+              }</TableCell>
               <TableCell>{t.amount.toLocaleString("fa-IR")} ریال</TableCell>
               <TableCell>
-                <Badge variant={t.status === "success" ? "success" : t.status === "pending" ? "warning" : "destructive"}>
-                  {t.status}
+                <Badge variant={t.status === "SUCCESS" ? "success" : t.status === "PENDING" ? "warning" : "destructive"}>
+                  {t.status === "SUCCESS" ? "موفق" : t.status === "PENDING" ? "در انتظار" : "ناموفق"}
                 </Badge>
               </TableCell>
             </TableRow>

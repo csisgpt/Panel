@@ -1,7 +1,15 @@
 'use client';
 
 import { useParams } from "next/navigation";
-import { accounts, customers, transactions } from "@/lib/mock-data";
+import { useEffect, useState } from "react";
+import {
+  getMockAccount,
+  getMockCustomers,
+  getMockTransactions,
+  Account,
+  Customer,
+  Transaction
+} from "@/lib/mock-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,9 +17,20 @@ import { TransactionTable } from "@/components/transactions/transaction-table";
 
 export default function AccountDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const account = accounts.find((a) => a.id === id);
-  const customer = customers.find((c) => c.id === account?.customerId);
-  const accountTransactions = transactions.filter((t) => t.accountId === id);
+  const [account, setAccount] = useState<Account | undefined>();
+  const [customer, setCustomer] = useState<Customer | undefined>();
+  const [accountTransactions, setAccountTransactions] = useState<Transaction[]>([]);
+
+  useEffect(() => {
+    if (!id) return;
+    getMockAccount(id).then((data) => {
+      setAccount(data);
+      if (data) {
+        getMockCustomers().then((customers) => setCustomer(customers.find((c) => c.id === data.customerId)));
+      }
+    });
+    getMockTransactions({ accountId: id }).then(setAccountTransactions);
+  }, [id]);
 
   if (!account) return <div>حساب یافت نشد</div>;
 
@@ -21,10 +40,12 @@ export default function AccountDetailPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-xl">{account.accountName}</CardTitle>
+              <CardTitle className="text-xl">{account.name}</CardTitle>
               <p className="text-sm text-muted-foreground">مشتری: {customer?.name}</p>
             </div>
-            <Badge variant={account.status === "active" ? "success" : "destructive"}>{account.status}</Badge>
+            <Badge variant={account.status === "ACTIVE" ? "success" : account.status === "BLOCKED" ? "warning" : "outline"}>
+              {account.status === "ACTIVE" ? "فعال" : account.status === "BLOCKED" ? "مسدود" : "غیرفعال"}
+            </Badge>
           </div>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
@@ -34,9 +55,9 @@ export default function AccountDetailPage() {
         </CardContent>
       </Card>
       <div className="flex gap-3">
-        <Button>واریز</Button>
-        <Button variant="outline">برداشت</Button>
-        <Button variant="secondary">ثبت تراکنش دستی</Button>
+        <Button onClick={() => alert("این فقط محیط نمایشی است")}>واریز</Button>
+        <Button variant="outline" onClick={() => alert("این فقط محیط نمایشی است")}>برداشت</Button>
+        <Button variant="secondary" onClick={() => alert("این فقط محیط نمایشی است")}>ثبت تراکنش دستی</Button>
       </div>
       <div className="rounded-2xl border bg-card p-4 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
