@@ -38,6 +38,49 @@ import {
   WithdrawStatus,
 } from "@/lib/types/backend";
 
+export enum RemittanceStatus {
+  PENDING = "PENDING",
+  SENT = "SENT",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
+}
+
+export interface Remittance {
+  id: string;
+  customerId: string;
+  fromAccountId: string;
+  toAccountId: string;
+  amount: number;
+  status: RemittanceStatus;
+  description?: string;
+  createdAt: string;
+}
+
+export type TahesabLogLevel = "info" | "warn" | "error";
+
+export interface TahesabLog {
+  id: string;
+  time: string;
+  level: TahesabLogLevel;
+  message: string;
+  entityRef?: string;
+}
+
+export interface TahesabMapping {
+  id: string;
+  internalAccount: string;
+  tahesabCode: string;
+  type: "HOUSE" | "CLIENT";
+  status: "ACTIVE" | "DISABLED";
+}
+
+export interface RiskSettingsConfig {
+  globalMaxExposure: number;
+  maxExposurePerClient: number;
+  maxOpenTradesPerClient: number;
+  updatedAt: string;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -1192,4 +1235,129 @@ export async function getMockSystemStatus(): Promise<SystemStatus> {
 export async function updateMockSystemStatus(partial: Partial<SystemStatus>) {
   mockSystemStatus = { ...mockSystemStatus, ...partial, lastSyncAt: partial.lastSyncAt ?? new Date().toISOString() };
   return getMockSystemStatus();
+}
+
+// ---------------------------------------------------------------------------
+// Tahesab Logs & Mapping
+// ---------------------------------------------------------------------------
+
+let mockTahesabLogs: TahesabLog[] = [
+  {
+    id: "log-1",
+    time: daysAgo(1),
+    level: "info",
+    message: "همگام‌سازی موفق کاربران",
+    entityRef: "users",
+  },
+  {
+    id: "log-2",
+    time: daysAgo(2),
+    level: "warn",
+    message: "تاخیر در پاسخ تاهساب برای تراکنش‌ها",
+    entityRef: "transactions",
+  },
+  {
+    id: "log-3",
+    time: daysAgo(3),
+    level: "error",
+    message: "عدم تطابق موجودی حساب داخلی با تاهساب",
+    entityRef: "acc-house-irr",
+  },
+];
+
+let mockTahesabMappings: TahesabMapping[] = [
+  { id: "map-1", internalAccount: "حساب خانه ریالی", tahesabCode: "TH-1001", type: "HOUSE", status: "ACTIVE" },
+  { id: "map-2", internalAccount: "مشتری علی رضایی - ریالی", tahesabCode: "TH-4302", type: "CLIENT", status: "ACTIVE" },
+  { id: "map-3", internalAccount: "مشتری سارا کریمی - طلا ۷۵۰", tahesabCode: "TH-7845", type: "CLIENT", status: "DISABLED" },
+];
+
+export async function getMockTahesabLogs(): Promise<TahesabLog[]> {
+  await simulateDelay();
+  return [...mockTahesabLogs].sort((a, b) => (a.time > b.time ? -1 : 1));
+}
+
+export async function getMockTahesabMappings(): Promise<TahesabMapping[]> {
+  await simulateDelay();
+  return [...mockTahesabMappings];
+}
+
+export async function updateMockTahesabMapping(id: string, partial: Partial<TahesabMapping>): Promise<TahesabMapping> {
+  const idx = mockTahesabMappings.findIndex((m) => m.id === id);
+  if (idx === -1) throw new Error("Mapping not found");
+  mockTahesabMappings[idx] = { ...mockTahesabMappings[idx], ...partial };
+  return mockTahesabMappings[idx];
+}
+
+// ---------------------------------------------------------------------------
+// Risk Settings
+// ---------------------------------------------------------------------------
+
+let mockRiskSettings: RiskSettingsConfig = {
+  globalMaxExposure: 120000000000,
+  maxExposurePerClient: 35000000000,
+  maxOpenTradesPerClient: 25,
+  updatedAt: isoNow,
+};
+
+export async function getMockRiskSettings(): Promise<RiskSettingsConfig> {
+  await simulateDelay();
+  return { ...mockRiskSettings };
+}
+
+export async function updateMockRiskSettings(partial: Partial<RiskSettingsConfig>): Promise<RiskSettingsConfig> {
+  mockRiskSettings = { ...mockRiskSettings, ...partial, updatedAt: new Date().toISOString() };
+  return getMockRiskSettings();
+}
+
+// ---------------------------------------------------------------------------
+// Remittances (Trader)
+// ---------------------------------------------------------------------------
+
+let mockRemittances: Remittance[] = [
+  {
+    id: "rem-1",
+    customerId: "u-client",
+    fromAccountId: "acc-1",
+    toAccountId: "acc-house-irr",
+    amount: 12000000,
+    status: RemittanceStatus.PENDING,
+    description: "انتقال برای تسویه خرید طلا",
+    createdAt: daysAgo(2),
+  },
+  {
+    id: "rem-2",
+    customerId: "u-client-2",
+    fromAccountId: "acc-8",
+    toAccountId: "acc-house-irr",
+    amount: 8500000,
+    status: RemittanceStatus.SENT,
+    description: "واریز کمیسیون معاملات",
+    createdAt: daysAgo(3),
+  },
+  {
+    id: "rem-3",
+    customerId: "u-client-3",
+    fromAccountId: "acc-11",
+    toAccountId: "acc-1",
+    amount: 4200000,
+    status: RemittanceStatus.COMPLETED,
+    description: "بازگشت اضافه برداشت",
+    createdAt: daysAgo(5),
+  },
+];
+
+export async function getMockRemittances(): Promise<Remittance[]> {
+  await simulateDelay();
+  return [...mockRemittances].sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
+}
+
+export async function createMockRemittance(remittance: Omit<Remittance, "id" | "createdAt">): Promise<Remittance> {
+  await simulateDelay(300);
+  const newRemittance: Remittance = {
+    ...remittance,
+    id: `rem-${mockRemittances.length + 1}`,
+    createdAt: new Date().toISOString(),
+  };
+  mockRemittances = [newRemittance, ...mockRemittances];
+  return newRemittance;
 }
