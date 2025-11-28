@@ -29,6 +29,8 @@ import {
   UpdateUserDto,
   WithdrawRequest,
   WithdrawStatus,
+  UserRole,
+  UserStatus,
 } from "@/lib/types/backend";
 
 const now = new Date().toISOString();
@@ -41,8 +43,8 @@ const mockUsers: BackendUser[] = [
     fullName: "مدیر سامانه",
     mobile: "09120000000",
     email: "admin@gold.test",
-    role: "ADMIN",
-    status: "ACTIVE",
+    role: UserRole.ADMIN,
+    status: UserStatus.ACTIVE,
   },
   {
     id: "u-trader",
@@ -51,8 +53,8 @@ const mockUsers: BackendUser[] = [
     fullName: "معامله‌گر نمونه",
     mobile: "09121111111",
     email: "trader@gold.test",
-    role: "TRADER",
-    status: "ACTIVE",
+    role: UserRole.TRADER,
+    status: UserStatus.ACTIVE,
   },
   {
     id: "u-client",
@@ -61,8 +63,8 @@ const mockUsers: BackendUser[] = [
     fullName: "مشتری تستی",
     mobile: "09122222222",
     email: "client@gold.test",
-    role: "CLIENT",
-    status: "PENDING_APPROVAL",
+    role: UserRole.CLIENT,
+    status: UserStatus.PENDING_APPROVAL,
   },
 ];
 
@@ -319,11 +321,12 @@ export async function createMockUser(dto: CreateUserDto): Promise<BackendUser> {
     mobile: dto.mobile,
     email: dto.email,
     role: dto.role,
-    status: "ACTIVE",
+    status: UserStatus.ACTIVE,
   };
   mockUsers.push(user);
   return user;
 }
+
 
 export async function updateMockUser(id: string, dto: UpdateUserDto): Promise<BackendUser> {
   const user = mockUsers.find((u) => u.id === id);
