@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
 import * as React from "react";
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
-const TOAST_LIMIT = 1;
+const TOAST_LIMIT = 3;
 const TOAST_REMOVE_DELAY = 1000;
 
 type ToasterToast = ToastProps & {
@@ -82,6 +82,8 @@ const reducer = (state: State, action: Action): State => {
         ...state,
         toasts: state.toasts.filter((t) => t.id !== action.toastId)
       };
+    default:
+      return state;
   }
 };
 
@@ -128,7 +130,7 @@ export function useToast() {
       const index = listeners.indexOf(setState);
       if (index > -1) listeners.splice(index, 1);
     };
-  }, [state]);
+  }, []);
 
   return {
     ...state,
