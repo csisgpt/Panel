@@ -544,6 +544,26 @@ let mockAccountTx: AccountTx[] = [
     refId: "t-6",
     createdById: "u-trader-3",
   },
+  {
+    id: "tx-8",
+    createdAt: daysAgo(3),
+    accountId: "acc-2",
+    delta: "10.5",
+    type: AccountTxType.TRADE_CREDIT,
+    refType: TxRefType.TRADE,
+    refId: "t-2",
+    createdById: "u-trader",
+  },
+  {
+    id: "tx-9",
+    createdAt: daysAgo(2),
+    accountId: "acc-7",
+    delta: "3",
+    type: AccountTxType.TRADE_CREDIT,
+    refType: TxRefType.TRADE,
+    refId: "t-6",
+    createdById: "u-trader-3",
+  },
 ];
 
 export async function getMockAccounts(): Promise<Account[]> {
