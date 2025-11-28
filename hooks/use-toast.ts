@@ -108,7 +108,7 @@ export function toast({ ...props }: ToastProps) {
       ...props,
       id,
       open: true,
-      onOpenChange: (open) => {
+      onOpenChange: (open:boolean) => {
         if (!open) dismiss();
       }
     }
