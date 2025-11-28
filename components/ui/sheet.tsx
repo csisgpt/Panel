@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
 import * as React from "react";
+
 import { cn } from "@/lib/utils";
 
 interface SheetProps {
@@ -10,14 +11,27 @@ interface SheetProps {
 }
 
 export function Sheet({ open, onOpenChange, children }: SheetProps) {
-  return open ? (
+  React.useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onOpenChange(false);
+      }
+    };
+
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onOpenChange]);
+
+  if (!open) return null;
+
+  return (
     <div className="fixed inset-0 z-50 flex">
-      <div className="h-full w-72 translate-x-0 bg-card shadow-2xl transition-transform">
+      <div className="h-full w-72 translate-x-0 bg-card shadow-2xl transition-transform" aria-modal>
         {children}
       </div>
-      <div className="flex-1 bg-black/40" onClick={() => onOpenChange(false)} />
+      <button className="flex-1 bg-black/40" onClick={() => onOpenChange(false)} aria-label="Close sidebar" />
     </div>
-  ) : null;
+  );
 }
 
 export function SheetHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

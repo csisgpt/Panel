@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
 import * as React from "react";
+
 import { cn } from "@/lib/utils";
 
 interface DropdownMenuProps {
@@ -10,14 +11,26 @@ interface DropdownMenuProps {
 
 export function DropdownMenu({ trigger, items }: DropdownMenuProps) {
   const [open, setOpen] = React.useState(false);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
-    <div className="relative inline-block text-right">
-      <div onClick={() => setOpen((o) => !o)} className="cursor-pointer">
+    <div ref={menuRef} className="relative inline-block text-right">
+      <button type="button" onClick={() => setOpen((o) => !o)} className="cursor-pointer">
         {trigger}
-      </div>
+      </button>
       {open && (
-        <div className="absolute left-0 z-50 mt-2 w-48 rounded-xl border bg-card p-2 shadow-lg">
+        <div className="absolute left-0 z-50 mt-2 w-48 overflow-hidden rounded-xl border bg-card p-2 shadow-lg">
           {items.map((item) => (
             <button
               key={item.label}
@@ -25,9 +38,7 @@ export function DropdownMenu({ trigger, items }: DropdownMenuProps) {
                 item.onSelect?.();
                 setOpen(false);
               }}
-              className={cn(
-                "w-full rounded-lg px-3 py-2 text-sm text-right transition hover:bg-muted",
-              )}
+              className={cn("w-full rounded-lg px-3 py-2 text-sm text-right transition hover:bg-muted")}
             >
               {item.label}
             </button>
