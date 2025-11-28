@@ -1,3 +1,7 @@
+// lib/mock-data.ts
+// Mock layer aligned with backend types (Gold-nest).
+// All monetary / decimal fields are strings, all dates are ISO strings.
+
 import {
   Account,
   AccountTx,
@@ -26,16 +30,34 @@ import {
   Trade,
   TradeSide,
   TradeStatus,
+  TxRefType,
   UpdateUserDto,
-  WithdrawRequest,
-  WithdrawStatus,
   UserRole,
   UserStatus,
+  WithdrawRequest,
+  WithdrawStatus,
 } from "@/lib/types/backend";
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 const now = new Date().toISOString();
 
-const mockUsers: BackendUser[] = [
+function createId(prefix: string): string {
+  return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+async function simulateDelay(ms = 250) {
+  if (typeof window === "undefined") return;
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ---------------------------------------------------------------------------
+// Users
+// ---------------------------------------------------------------------------
+
+let mockUsers: BackendUser[] = [
   {
     id: "u-admin",
     createdAt: now,
@@ -68,251 +90,31 @@ const mockUsers: BackendUser[] = [
   },
 ];
 
-const mockInstruments: Instrument[] = [
-  {
-    id: "ins-gold",
-    createdAt: now,
-    updatedAt: now,
-    code: "GOLD-GRAM",
-    name: "طلا ۱۸ عیار",
-    type: InstrumentType.GOLD,
-    unit: InstrumentUnit.GRAM_750_EQ,
-  },
-  {
-    id: "ins-coin",
-    createdAt: now,
-    updatedAt: now,
-    code: "SEKE-ROBE",
-    name: "ربع سکه",
-    type: InstrumentType.COIN,
-    unit: InstrumentUnit.PIECE,
-  },
-  {
-    id: "ins-fiat",
-    createdAt: now,
-    updatedAt: now,
-    code: "IRR",
-    name: "ریال ایران",
-    type: InstrumentType.FIAT,
-    unit: InstrumentUnit.CURRENCY,
-  },
-];
-
-const mockInstrumentPrices: InstrumentPrice[] = [
-  {
-    id: "p1",
-    createdAt: now,
-    instrumentId: "ins-gold",
-    buyPrice: "36500000",
-    sellPrice: "36000000",
-    source: "نرخ بازار",
-    instrument: mockInstruments[0],
-  },
-  {
-    id: "p2",
-    createdAt: now,
-    instrumentId: "ins-coin",
-    buyPrice: "151000000",
-    sellPrice: "149500000",
-    source: "نرخ بازار",
-    instrument: mockInstruments[1],
-  },
-];
-
-const mockAccounts: Account[] = [
-  {
-    id: "acc-1",
-    createdAt: now,
-    updatedAt: now,
-    userId: "u-trader",
-    instrumentId: "ins-fiat",
-    balance: "1250000000",
-    blockedBalance: "50000000",
-    minBalance: "0",
-    instrument: mockInstruments[2],
-    user: mockUsers[1],
-  },
-  {
-    id: "acc-2",
-    createdAt: now,
-    updatedAt: now,
-    userId: "u-client",
-    instrumentId: "ins-fiat",
-    balance: "425000000",
-    blockedBalance: "0",
-    minBalance: "0",
-    instrument: mockInstruments[2],
-    user: mockUsers[2],
-  },
-  {
-    id: "acc-house",
-    createdAt: now,
-    updatedAt: now,
-    userId: null,
-    instrumentId: "ins-fiat",
-    balance: "9300000000",
-    blockedBalance: "0",
-    minBalance: "0",
-    instrument: mockInstruments[2],
-    user: null,
-  },
-];
-
-const mockTrades: Trade[] = [
-  {
-    id: "t-1",
-    createdAt: now,
-    updatedAt: now,
-    clientId: "u-trader",
-    instrumentId: "ins-gold",
-    side: TradeSide.BUY,
-    status: TradeStatus.APPROVED,
-    settlementMethod: SettlementMethod.WALLET,
-    quantity: "120",
-    pricePerUnit: "36000000",
-    totalAmount: "4320000000",
-    clientNote: "خرید سریع برای تحویل فردا",
-    approvedAt: now,
-    approvedById: "u-admin",
-    client: mockUsers[1],
-    instrument: mockInstruments[0],
-    approvedBy: mockUsers[0],
-  },
-  {
-    id: "t-2",
-    createdAt: now,
-    updatedAt: now,
-    clientId: "u-client",
-    instrumentId: "ins-coin",
-    side: TradeSide.SELL,
-    status: TradeStatus.PENDING,
-    settlementMethod: SettlementMethod.EXTERNAL,
-    quantity: "3",
-    pricePerUnit: "150000000",
-    totalAmount: "450000000",
-    client: mockUsers[2],
-    instrument: mockInstruments[1],
-  },
-];
-
-const mockDeposits: DepositRequest[] = [
-  {
-    id: "d-1",
-    createdAt: now,
-    updatedAt: now,
-    userId: "u-client",
-    amount: "200000000",
-    method: "کارت به کارت",
-    status: DepositStatus.APPROVED,
-    refNo: "REF-2001",
-    processedAt: now,
-    processedById: "u-admin",
-    user: mockUsers[2],
-  },
-];
-
-const mockWithdrawals: WithdrawRequest[] = [
-  {
-    id: "w-1",
-    createdAt: now,
-    updatedAt: now,
-    userId: "u-trader",
-    amount: "50000000",
-    status: WithdrawStatus.PENDING,
-    bankName: "بانک ملت",
-    iban: "IR000700000000000000000000",
-    note: "برداشت هفتگی",
-    user: mockUsers[1],
-  },
-];
-
-const mockGoldLots: GoldLot[] = [
-  {
-    id: "gl-1",
-    createdAt: now,
-    updatedAt: now,
-    userId: "u-trader",
-    grossWeight: "52.3",
-    karat: 18,
-    equivGram750: "50",
-    status: GoldLotStatus.IN_VAULT,
-    note: "شمش امانی مشتری",
-    user: mockUsers[1],
-  },
-];
-
-const mockFiles: FileMeta[] = [
-  {
-    id: "file-1",
-    createdAt: now,
-    uploadedById: "u-admin",
-    storageKey: "mock/file-1",
-    fileName: "رسید-واریز.pdf",
-    mimeType: "application/pdf",
-    sizeBytes: 12000,
-    label: "رسید",
-  },
-];
-
-const mockAttachments: Attachment[] = [
-  {
-    id: "att-1",
-    createdAt: now,
-    fileId: "file-1",
-    entityType: AttachmentEntityType.DEPOSIT,
-    entityId: "d-1",
-    purpose: "رسید",
-    file: mockFiles[0],
-  },
-];
-
-const mockAccountTx: AccountTx[] = [
-  {
-    id: "tx-1",
-    createdAt: now,
-    accountId: "acc-1",
-    delta: "-50000000",
-    type: AccountTxType.WITHDRAW,
-    refType: "WITHDRAW",
-    refId: "w-1",
-  },
-  {
-    id: "tx-2",
-    createdAt: now,
-    accountId: "acc-2",
-    delta: "200000000",
-    type: AccountTxType.DEPOSIT,
-    refType: "DEPOSIT",
-    refId: "d-1",
-  },
-];
-
-const mockSystemStatus: SystemStatus = {
-  tahesabOnline: true,
-  lastSyncAt: now,
-};
-
-function createId(prefix: string) {
-  return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
 export async function mockLogin(dto: LoginDto): Promise<LoginResponse> {
-  const user = mockUsers.find((u) => u.mobile === dto.mobile);
-  if (!user) {
-    throw new Error("کاربر یافت نشد");
-  }
-  return { accessToken: createId("token"), user };
+  await simulateDelay();
+  const user =
+    mockUsers.find((u) => u.mobile === dto.mobile) ?? mockUsers[0];
+
+  return {
+    accessToken: `mock-token-${user.id}`,
+    user,
+  };
 }
 
 export async function getMockUsers(): Promise<BackendUser[]> {
+  await simulateDelay();
   return [...mockUsers];
 }
 
 export async function getMockUser(id: string): Promise<BackendUser | null> {
+  await simulateDelay();
   return mockUsers.find((u) => u.id === id) ?? null;
 }
 
-export async function createMockUser(dto: CreateUserDto): Promise<BackendUser> {
+export async function createMockUser(
+  dto: CreateUserDto
+): Promise<BackendUser> {
+  await simulateDelay();
   const user: BackendUser = {
     id: createId("u"),
     createdAt: new Date().toISOString(),
@@ -327,66 +129,294 @@ export async function createMockUser(dto: CreateUserDto): Promise<BackendUser> {
   return user;
 }
 
-
-export async function updateMockUser(id: string, dto: UpdateUserDto): Promise<BackendUser> {
-  const user = mockUsers.find((u) => u.id === id);
-  if (!user) throw new Error("کاربر یافت نشد");
-  Object.assign(user, dto, { updatedAt: new Date().toISOString() });
-  return user;
+export async function updateMockUser(
+  id: string,
+  dto: UpdateUserDto
+): Promise<BackendUser> {
+  await simulateDelay();
+  const idx = mockUsers.findIndex((u) => u.id === id);
+  if (idx === -1) {
+    throw new Error("User not found");
+  }
+  const current = mockUsers[idx];
+  const updated: BackendUser = {
+    ...current,
+    ...dto,
+    updatedAt: new Date().toISOString(),
+  };
+  mockUsers[idx] = updated;
+  return updated;
 }
 
+// ---------------------------------------------------------------------------
+// Instruments & Prices
+// ---------------------------------------------------------------------------
+
+const mockInstruments: Instrument[] = [
+  {
+    id: "ins-irr",
+    createdAt: now,
+    updatedAt: now,
+    code: "IRR",
+    name: "ریال ایران",
+    type: InstrumentType.FIAT,
+    unit: InstrumentUnit.CURRENCY,
+  },
+  {
+    id: "ins-gold-750",
+    createdAt: now,
+    updatedAt: now,
+    code: "GOLD_750_EQ",
+    name: "طلای ۱۸ عیار معادل ۷۵۰",
+    type: InstrumentType.GOLD,
+    unit: InstrumentUnit.GRAM_750_EQ,
+  },
+  {
+    id: "ins-emami",
+    createdAt: now,
+    updatedAt: now,
+    code: "SEKE_EMAMI",
+    name: "سکه امامی",
+    type: InstrumentType.COIN,
+    unit: InstrumentUnit.PIECE,
+  },
+];
+
+let mockInstrumentPrices: InstrumentPrice[] = [
+  {
+    id: "pr-irr",
+    createdAt: now,
+    instrumentId: "ins-irr",
+    buyPrice: "1",
+    sellPrice: "1",
+    source: "mock",
+    instrument: mockInstruments[0],
+  },
+  {
+    id: "pr-gold-750",
+    createdAt: now,
+    instrumentId: "ins-gold-750",
+    buyPrice: "36000000",
+    sellPrice: "36500000",
+    source: "mock",
+    instrument: mockInstruments[1],
+  },
+  {
+    id: "pr-emami",
+    createdAt: now,
+    instrumentId: "ins-emami",
+    buyPrice: "420000000",
+    sellPrice: "425000000",
+    source: "mock",
+    instrument: mockInstruments[2],
+  },
+];
+
+export async function getMockInstruments(): Promise<Instrument[]> {
+  await simulateDelay();
+  return [...mockInstruments];
+}
+
+export async function getMockInstrumentPrices(): Promise<InstrumentPrice[]> {
+  await simulateDelay();
+  return [...mockInstrumentPrices];
+}
+
+// ---------------------------------------------------------------------------
+// Accounts & AccountTx
+// ---------------------------------------------------------------------------
+
+let mockAccounts: Account[] = [
+  {
+    id: "acc-1",
+    createdAt: now,
+    updatedAt: now,
+    userId: "u-client",
+    instrumentId: "ins-irr",
+    balance: "150000000",
+    blockedBalance: "0",
+    minBalance: "0",
+    instrument: mockInstruments[0],
+    user: mockUsers.find((u) => u.id === "u-client"),
+  },
+  {
+    id: "acc-2",
+    createdAt: now,
+    updatedAt: now,
+    userId: "u-client",
+    instrumentId: "ins-gold-750",
+    balance: "100.25",
+    blockedBalance: "0",
+    minBalance: "0",
+    instrument: mockInstruments[1],
+    user: mockUsers.find((u) => u.id === "u-client"),
+  },
+  {
+    id: "acc-house-irr",
+    createdAt: now,
+    updatedAt: now,
+    userId: null,
+    instrumentId: "ins-irr",
+    balance: "100000000000",
+    blockedBalance: "0",
+    minBalance: "0",
+    instrument: mockInstruments[0],
+    user: null,
+  },
+];
+
+let mockAccountTx: AccountTx[] = [
+  {
+    id: "tx-1",
+    createdAt: now,
+    accountId: "acc-1",
+    delta: "-50000000",
+    type: AccountTxType.WITHDRAW,
+    refType: TxRefType.WITHDRAW,
+    refId: "w-1",
+    createdById: "u-admin",
+  },
+  {
+    id: "tx-2",
+    createdAt: now,
+    accountId: "acc-1",
+    delta: "200000000",
+    type: AccountTxType.DEPOSIT,
+    refType: TxRefType.DEPOSIT,
+    refId: "d-1",
+    createdById: "u-admin",
+  },
+];
+
 export async function getMockAccounts(): Promise<Account[]> {
+  await simulateDelay();
   return [...mockAccounts];
 }
 
-export async function getMockAccountsByUser(userId: string | null): Promise<Account[]> {
-  return mockAccounts.filter((acc) => acc.userId === userId);
+export async function getMockAccountsByUser(
+  userId: string | "house"
+): Promise<Account[]> {
+  await simulateDelay();
+  if (userId === "house") {
+    return mockAccounts.filter((a) => a.userId === null);
+  }
+  return mockAccounts.filter((a) => a.userId === userId);
 }
 
-export async function getMockAccountTx(): Promise<AccountTx[]> {
-  return [...mockAccountTx];
+export async function getMockAccountTx(accountId: string): Promise<AccountTx[]> {
+  await simulateDelay();
+  return mockAccountTx.filter((tx) => tx.accountId === accountId);
 }
+
+// ---------------------------------------------------------------------------
+// Trades
+// ---------------------------------------------------------------------------
+
+let mockTrades: Trade[] = [
+  {
+    id: "t-1",
+    createdAt: now,
+    updatedAt: now,
+    clientId: "u-client",
+    instrumentId: "ins-gold-750",
+    side: TradeSide.BUY,
+    status: TradeStatus.APPROVED,
+    settlementMethod: SettlementMethod.WALLET,
+    quantity: "10",
+    pricePerUnit: "36000000",
+    totalAmount: "360000000",
+    clientNote: "خرید تستی",
+    adminNote: "اوکی",
+    approvedAt: now,
+    approvedById: "u-admin",
+    rejectedAt: null,
+    rejectReason: null,
+    client: mockUsers.find((u) => u.id === "u-client")!,
+    instrument: mockInstruments[1],
+  },
+];
 
 export async function getMockTrades(): Promise<Trade[]> {
+  await simulateDelay();
   return [...mockTrades];
 }
 
-export async function getMockTradeById(id: string): Promise<Trade> {
-  const trade = mockTrades.find((t) => t.id === id);
-  if (!trade) throw new Error("معامله یافت نشد");
-  return trade;
+export async function getMockTradeById(id: string): Promise<Trade | null> {
+  await simulateDelay();
+  return mockTrades.find((t) => t.id === id) ?? null;
 }
 
-export async function createMockTrade(dto: CreateTradeDto): Promise<Trade> {
-  const instrument = mockInstruments.find((i) => i.code === dto.instrumentCode);
-  if (!instrument) throw new Error("ابزار نامعتبر است");
-  const totalAmount = (Number(dto.quantity) * Number(dto.pricePerUnit)).toString();
+export async function createMockTrade(
+  dto: CreateTradeDto
+): Promise<Trade> {
+  await simulateDelay();
+
+  const instrument =
+    mockInstruments.find((ins) => ins.code === dto.instrumentCode) ??
+    mockInstruments[1];
+
+  const quantity = Number(dto.quantity || "0");
+  const price = Number(dto.pricePerUnit || "0");
+  const total = quantity * price;
+
   const trade: Trade = {
     id: createId("t"),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    clientId: "u-trader",
+    clientId: "u-client", // in real app: current user id
     instrumentId: instrument.id,
     side: dto.side,
     status: TradeStatus.PENDING,
     settlementMethod: dto.settlementMethod,
     quantity: dto.quantity,
     pricePerUnit: dto.pricePerUnit,
-    totalAmount,
+    totalAmount: total.toString(),
     clientNote: dto.clientNote,
-    client: mockUsers.find((u) => u.id === "u-trader"),
+    adminNote: null,
+    approvedAt: null,
+    approvedById: null,
+    rejectedAt: null,
+    rejectReason: null,
+    client: mockUsers.find((u) => u.id === "u-client")!,
     instrument,
   };
+
   mockTrades.unshift(trade);
   return trade;
 }
 
+// ---------------------------------------------------------------------------
+// Deposits
+// ---------------------------------------------------------------------------
+
+let mockDeposits: DepositRequest[] = [
+  {
+    id: "d-1",
+    createdAt: now,
+    updatedAt: now,
+    userId: "u-client",
+    amount: "200000000",
+    method: "bank-transfer",
+    status: DepositStatus.APPROVED,
+    refNo: "DEP001",
+    note: "واریز اولیه",
+    processedAt: now,
+    processedById: "u-admin",
+    accountTxId: "tx-2",
+    user: mockUsers.find((u) => u.id === "u-client")!,
+  },
+];
+
 export async function getMockDeposits(): Promise<DepositRequest[]> {
+  await simulateDelay();
   return [...mockDeposits];
 }
 
-export async function createMockDeposit(dto: CreateDepositDto): Promise<DepositRequest> {
-  const deposit: DepositRequest = {
+export async function createMockDeposit(
+  dto: CreateDepositDto
+): Promise<DepositRequest> {
+  await simulateDelay();
+  const dep: DepositRequest = {
     id: createId("d"),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -396,18 +426,48 @@ export async function createMockDeposit(dto: CreateDepositDto): Promise<DepositR
     status: DepositStatus.PENDING,
     refNo: dto.refNo,
     note: dto.note,
-    user: mockUsers.find((u) => u.id === dto.userId),
+    processedAt: null,
+    processedById: null,
+    accountTxId: null,
+    user: mockUsers.find((u) => u.id === dto.userId)!,
   };
-  mockDeposits.unshift(deposit);
-  return deposit;
+  mockDeposits.unshift(dep);
+  return dep;
 }
 
+// ---------------------------------------------------------------------------
+// Withdrawals
+// ---------------------------------------------------------------------------
+
+let mockWithdrawals: WithdrawRequest[] = [
+  {
+    id: "w-1",
+    createdAt: now,
+    updatedAt: now,
+    userId: "u-client",
+    amount: "50000000",
+    status: WithdrawStatus.APPROVED,
+    bankName: "بانک ملی",
+    iban: "IR1234...",
+    cardNumber: "603799...",
+    note: "برداشت تستی",
+    processedAt: now,
+    processedById: "u-admin",
+    accountTxId: "tx-1",
+    user: mockUsers.find((u) => u.id === "u-client")!,
+  },
+];
+
 export async function getMockWithdrawals(): Promise<WithdrawRequest[]> {
+  await simulateDelay();
   return [...mockWithdrawals];
 }
 
-export async function createMockWithdrawal(dto: CreateWithdrawalDto): Promise<WithdrawRequest> {
-  const withdraw: WithdrawRequest = {
+export async function createMockWithdrawal(
+  dto: CreateWithdrawalDto
+): Promise<WithdrawRequest> {
+  await simulateDelay();
+  const w: WithdrawRequest = {
     id: createId("w"),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -418,49 +478,118 @@ export async function createMockWithdrawal(dto: CreateWithdrawalDto): Promise<Wi
     iban: dto.iban,
     cardNumber: dto.cardNumber,
     note: dto.note,
-    user: mockUsers.find((u) => u.id === dto.userId),
+    processedAt: null,
+    processedById: null,
+    accountTxId: null,
+    user: mockUsers.find((u) => u.id === dto.userId)!,
   };
-  mockWithdrawals.unshift(withdraw);
-  return withdraw;
+  mockWithdrawals.unshift(w);
+  return w;
 }
 
+// ---------------------------------------------------------------------------
+// Gold Lots
+// ---------------------------------------------------------------------------
+
+let mockGoldLots: GoldLot[] = [
+  {
+    id: "g-1",
+    createdAt: now,
+    updatedAt: now,
+    userId: "u-client",
+    grossWeight: "150.50",
+    karat: 750,
+    equivGram750: "150.50",
+    status: GoldLotStatus.IN_VAULT,
+    note: "آبشده تستی",
+    user: mockUsers.find((u) => u.id === "u-client")!,
+  },
+];
+
 export async function getMockGoldLots(): Promise<GoldLot[]> {
+  await simulateDelay();
   return [...mockGoldLots];
 }
 
-export async function createMockGoldLot(dto: CreateGoldLotDto): Promise<GoldLot> {
-  const goldLot: GoldLot = {
-    id: createId("gl"),
+export async function createMockGoldLot(
+  dto: CreateGoldLotDto
+): Promise<GoldLot> {
+  await simulateDelay();
+  const lot: GoldLot = {
+    id: createId("g"),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     userId: dto.userId,
     grossWeight: dto.grossWeight,
     karat: dto.karat,
-    equivGram750: (Number(dto.grossWeight) * (dto.karat / 24)).toFixed(2),
+    equivGram750: dto.grossWeight, // simple mock
     status: GoldLotStatus.IN_VAULT,
     note: dto.note,
-    user: mockUsers.find((u) => u.id === dto.userId),
+    user: mockUsers.find((u) => u.id === dto.userId)!,
   };
-  mockGoldLots.unshift(goldLot);
-  return goldLot;
+  mockGoldLots.unshift(lot);
+  return lot;
 }
 
-export async function getMockInstrumentPrices(): Promise<InstrumentPrice[]> {
-  return [...mockInstrumentPrices];
-}
+// ---------------------------------------------------------------------------
+// Files & Attachments
+// ---------------------------------------------------------------------------
 
-export async function getMockInstruments(): Promise<Instrument[]> {
-  return [...mockInstruments];
-}
+let mockFiles: FileMeta[] = [
+  {
+    id: "file-1",
+    createdAt: now,
+    uploadedById: "u-client",
+    storageKey: "mock://file-1",
+    fileName: "receipt-1.jpg",
+    mimeType: "image/jpeg",
+    sizeBytes: 120_000,
+    label: "رسید واریز",
+  },
+];
+
+let mockAttachments: Attachment[] = [
+  {
+    id: "att-1",
+    createdAt: now,
+    fileId: "file-1",
+    entityType: AttachmentEntityType.DEPOSIT,
+    entityId: "d-1",
+    purpose: "receipt",
+    file: mockFiles[0],
+  },
+];
 
 export async function getMockFiles(): Promise<FileMeta[]> {
+  await simulateDelay();
   return [...mockFiles];
 }
 
-export async function getMockAttachments(): Promise<Attachment[]> {
-  return [...mockAttachments];
+export async function getMockAttachments(
+  entityType?: AttachmentEntityType,
+  entityId?: string
+): Promise<Attachment[]> {
+  await simulateDelay();
+  let result = [...mockAttachments];
+  if (entityType) {
+    result = result.filter((a) => a.entityType === entityType);
+  }
+  if (entityId) {
+    result = result.filter((a) => a.entityId === entityId);
+  }
+  return result;
 }
 
+// ---------------------------------------------------------------------------
+// System Status (Tahesab connection mock)
+// ---------------------------------------------------------------------------
+
+let mockSystemStatus: SystemStatus = {
+  tahesabOnline: true,
+  lastSyncAt: now,
+};
+
 export async function getMockSystemStatus(): Promise<SystemStatus> {
-  return mockSystemStatus;
+  await simulateDelay();
+  return { ...mockSystemStatus };
 }
