@@ -106,9 +106,13 @@ export async function getMockUsers(): Promise<BackendUser[]> {
   return [...mockUsers];
 }
 
-export async function getMockUser(id: string): Promise<BackendUser | null> {
+export async function getMockUser(id: string): Promise<BackendUser> {
   await simulateDelay();
-  return mockUsers.find((u) => u.id === id) ?? null;
+  const user = mockUsers.find((u) => u.id === id);
+  if (!user) {
+    throw new Error("User not found");
+  }
+  return user;
 }
 
 export async function createMockUser(
@@ -341,9 +345,13 @@ export async function getMockTrades(): Promise<Trade[]> {
   return [...mockTrades];
 }
 
-export async function getMockTradeById(id: string): Promise<Trade | null> {
+export async function getMockTradeById(id: string): Promise<Trade> {
   await simulateDelay();
-  return mockTrades.find((t) => t.id === id) ?? null;
+  const trade = mockTrades.find((t) => t.id === id);
+  if (!trade) {
+    throw new Error("Trade not found");
+  }
+  return trade;
 }
 
 export async function createMockTrade(
