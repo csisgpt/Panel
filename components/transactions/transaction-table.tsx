@@ -25,31 +25,33 @@ export function TransactionTable({ data = mockTransactions.slice(0, 8) }: { data
   const router = useRouter();
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>شناسه</TableHead>
-          <TableHead>مشتری</TableHead>
-          <TableHead>نوع</TableHead>
-          <TableHead>مبلغ</TableHead>
-          <TableHead>وضعیت</TableHead>
-          <TableHead>تاریخ</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {data.map((tx) => (
-          <TableRow key={tx.id} className="cursor-pointer" onClick={() => router.push(`/transactions/${tx.id}`)}>
-            <TableCell className="font-mono text-xs">{tx.id}</TableCell>
-            <TableCell>{mockCustomers.find((c) => c.id === tx.customerId)?.name}</TableCell>
-            <TableCell>{typeLabel[tx.type]}</TableCell>
-            <TableCell>{tx.amount.toLocaleString("fa-IR")}</TableCell>
-            <TableCell>
-              <Badge variant={statusMap[tx.status].variant}>{statusMap[tx.status].label}</Badge>
-            </TableCell>
-            <TableCell>{format(new Date(tx.createdAt), "PPP", { locale: faIR })}</TableCell>
+    <div className="overflow-x-auto">
+      <Table className="min-w-[720px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>شناسه</TableHead>
+            <TableHead>مشتری</TableHead>
+            <TableHead>نوع</TableHead>
+            <TableHead>مبلغ</TableHead>
+            <TableHead>وضعیت</TableHead>
+            <TableHead>تاریخ</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {data.map((tx) => (
+            <TableRow key={tx.id} className="cursor-pointer" onClick={() => router.push(`/transactions/${tx.id}`)}>
+              <TableCell className="font-mono text-xs">{tx.id}</TableCell>
+              <TableCell>{mockCustomers.find((c) => c.id === tx.customerId)?.name}</TableCell>
+              <TableCell>{typeLabel[tx.type]}</TableCell>
+              <TableCell>{tx.amount.toLocaleString("fa-IR")}</TableCell>
+              <TableCell>
+                <Badge variant={statusMap[tx.status].variant}>{statusMap[tx.status].label}</Badge>
+              </TableCell>
+              <TableCell>{format(new Date(tx.createdAt), "PPP", { locale: faIR })}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
