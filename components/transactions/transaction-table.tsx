@@ -1,19 +1,27 @@
 'use client';
 
 import { useRouter } from "next/navigation";
-import { transactions, customers } from "@/lib/mock-data";
+import { mockTransactions, mockCustomers, Transaction } from "@/lib/mock-data";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Badge } from "../ui/badge";
 import { format } from "date-fns";
 import { faIR } from "date-fns/locale";
 
-const statusMap: Record<string, { label: string; variant: "success" | "warning" | "destructive" | "default" }> = {
-  success: { label: "موفق", variant: "success" },
-  pending: { label: "در انتظار", variant: "warning" },
-  failed: { label: "ناموفق", variant: "destructive" }
+const statusMap: Record<Transaction["status"], { label: string; variant: "success" | "warning" | "destructive" | "default" }> = {
+  SUCCESS: { label: "موفق", variant: "success" },
+  PENDING: { label: "در انتظار", variant: "warning" },
+  FAILED: { label: "ناموفق", variant: "destructive" }
 };
 
-export function TransactionTable({ data = transactions.slice(0, 5) }: { data?: typeof transactions }) {
+const typeLabel: Record<Transaction["type"], string> = {
+  DEPOSIT: "واریز",
+  WITHDRAW: "برداشت",
+  BUY_GOLD: "خرید طلا",
+  SELL_GOLD: "فروش طلا",
+  FEE: "کارمزد"
+};
+
+export function TransactionTable({ data = mockTransactions.slice(0, 8) }: { data?: Transaction[] }) {
   const router = useRouter();
 
   return (
@@ -32,8 +40,8 @@ export function TransactionTable({ data = transactions.slice(0, 5) }: { data?: t
         {data.map((tx) => (
           <TableRow key={tx.id} className="cursor-pointer" onClick={() => router.push(`/transactions/${tx.id}`)}>
             <TableCell className="font-mono text-xs">{tx.id}</TableCell>
-            <TableCell>{customers.find((c) => c.id === tx.customerId)?.name}</TableCell>
-            <TableCell>{tx.type}</TableCell>
+            <TableCell>{mockCustomers.find((c) => c.id === tx.customerId)?.name}</TableCell>
+            <TableCell>{typeLabel[tx.type]}</TableCell>
             <TableCell>{tx.amount.toLocaleString("fa-IR")}</TableCell>
             <TableCell>
               <Badge variant={statusMap[tx.status].variant}>{statusMap[tx.status].label}</Badge>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Home, Users, CreditCard, Receipt, Settings } from "lucide-react";
+import { Home, Users, CreditCard, Receipt, Settings, LogOut } from "lucide-react";
 import { Button } from "../ui/button";
 import { useAuth } from "@/lib/auth-context";
 
@@ -20,11 +20,11 @@ export function Sidebar({ className }: { className?: string }) {
   const { logout } = useAuth();
 
   return (
-    <aside className={cn("flex h-full w-64 flex-col border-l bg-card px-4 py-6", className)}>
+    <aside className={cn("flex h-full w-64 flex-col border-l bg-card/95 px-4 py-6 shadow-xl", className)}>
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <p className="text-xs text-muted-foreground">پنل مدیریت</p>
-          <p className="text-lg font-semibold">پنل مدیریت مالی</p>
+          <p className="text-xs text-muted-foreground">پنل مدیریت مالی</p>
+          <p className="text-lg font-semibold">تاهساب | Panel</p>
         </div>
       </div>
       <nav className="space-y-1">
@@ -47,8 +47,9 @@ export function Sidebar({ className }: { className?: string }) {
         })}
       </nav>
       <div className="mt-auto">
-        <Button variant="outline" className="w-full" onClick={logout}>
-          خروج
+        <Button variant="outline" className="flex w-full items-center justify-center gap-2" onClick={logout}>
+          <LogOut className="h-4 w-4" />
+          <span>خروج</span>
         </Button>
       </div>
     </aside>

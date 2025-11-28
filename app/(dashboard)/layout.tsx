@@ -21,16 +21,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!isAuthenticated) return null;
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <div className="hidden lg:block">
-        <Sidebar />
+    <div className="flex min-h-screen bg-muted/30">
+      <div className="fixed inset-y-0 right-0 hidden w-72 border-l bg-card/90 backdrop-blur lg:flex">
+        <Sidebar className="h-full" />
       </div>
+
       <Sheet open={open} onOpenChange={setOpen}>
         <Sidebar className="w-72" />
       </Sheet>
-      <div className="flex flex-1 flex-col">
+
+      <div className="flex min-h-screen flex-1 lg:mr-72">
         <Topbar onMenuClick={() => setOpen(true)} userName={user?.name} />
-        <main className="flex-1 px-4 py-6 lg:px-8">{children}</main>
+        <main className="flex-1 pb-8">
+          <div className="mx-auto w-full max-w-6xl px-4 py-6 lg:px-10">{children}</div>
+        </main>
       </div>
     </div>
   );
