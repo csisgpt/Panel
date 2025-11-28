@@ -1,7 +1,11 @@
-import { apiGet } from "./client";
-import { isMockMode } from "./config";
-import { getMockAccountTx, getMockAccounts, getMockAccountsByUser } from "@/lib/mock-data";
 import { Account, AccountTx } from "@/lib/types/backend";
+import { isMockMode } from "./config";
+import { apiGet } from "./client";
+import {
+  getMockAccounts,
+  getMockAccountsByUser,
+  getMockAccountTx,
+} from "@/lib/mock-data";
 
 export async function getAccounts(): Promise<Account[]> {
   if (isMockMode()) return getMockAccounts();
@@ -13,7 +17,11 @@ export async function getMyAccounts(): Promise<Account[]> {
   return apiGet<Account[]>("/accounts/my");
 }
 
-export async function getAccountTransactions(): Promise<AccountTx[]> {
-  if (isMockMode()) return getMockAccountTx();
-  return apiGet<AccountTx[]>("/account-transactions");
+export async function getAccountTransactions(
+  accountId: string
+): Promise<AccountTx[]> {
+  if (isMockMode()) {
+    return getMockAccountTx(accountId);
+  }
+  return apiGet<AccountTx[]>(`/accounts/${accountId}/transactions`);
 }
