@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getUsers } from "@/lib/api/users";
 import { getDeposits } from "@/lib/api/deposits";
 import { getWithdrawals } from "@/lib/api/withdrawals";
-import { getTrades } from "@/lib/api/trades";
+import { getTrade } from "@/lib/api/trades";
 import { getSystemStatus } from "@/lib/api/system";
 import { BackendUser, DepositRequest, Trade, WithdrawRequest, UserStatus, TradeStatus } from "@/lib/types/backend";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +26,7 @@ export default function AdminDashboardPage() {
         setLoading(true);
         const [u, t, d, w, status] = await Promise.all([
           getUsers(),
-          getTrades(),
+          getTrade(),
           getDeposits(),
           getWithdrawals(),
           getSystemStatus(),
