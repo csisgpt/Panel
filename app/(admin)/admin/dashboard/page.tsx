@@ -4,9 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 import { getUsers } from "@/lib/api/users";
 import { getDeposits } from "@/lib/api/deposits";
 import { getWithdrawals } from "@/lib/api/withdrawals";
-import { getTrade } from "@/lib/api/trades";
+import { getTrades } from "@/lib/api/trades";
 import { getSystemStatus } from "@/lib/api/system";
-import { BackendUser, DepositRequest, Trade, WithdrawRequest, UserStatus, TradeStatus } from "@/lib/types/backend";
+import {
+  BackendUser,
+  DepositRequest,
+  Trade,
+  WithdrawRequest,
+  UserStatus,
+  TradeStatus,
+  DepositStatus,
+  WithdrawStatus,
+} from "@/lib/types/backend";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,7 +35,7 @@ export default function AdminDashboardPage() {
         setLoading(true);
         const [u, t, d, w, status] = await Promise.all([
           getUsers(),
-          getTrade(),
+          getTrades(),
           getDeposits(),
           getWithdrawals(),
           getSystemStatus(),
@@ -52,10 +61,10 @@ export default function AdminDashboardPage() {
     const last24h = trades.filter((t) => Date.now() - new Date(t.createdAt).getTime() < 24 * 3600 * 1000).length;
     const last7d = trades.filter((t) => Date.now() - new Date(t.createdAt).getTime() < 7 * 24 * 3600 * 1000).length;
     const totalApprovedDeposit = deposits
-      .filter((d) => d.status === "APPROVED")
+      .filter((d) => d.status === DepositStatus.APPROVED)
       .reduce((sum, d) => sum + Number(d.amount), 0);
     const totalApprovedWithdraw = withdrawals
-      .filter((w) => w.status === "APPROVED")
+      .filter((w) => w.status === WithdrawStatus.APPROVED)
       .reduce((sum, w) => sum + Number(w.amount), 0);
 
     return [
@@ -68,9 +77,12 @@ export default function AdminDashboardPage() {
     ];
   }, [users, trades, deposits, withdrawals]);
 
-  const latestTrades = trades.slice(0, 5);
-  const latestDeposits = deposits.slice(0, 5);
-  const latestWithdrawals = withdrawals.slice(0, 5);
+  const sortByDateDesc = <T extends { createdAt: string }>(items: T[]) =>
+    [...items].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const latestTrades = sortByDateDesc(trades).slice(0, 5);
+  const latestDeposits = sortByDateDesc(deposits).slice(0, 5);
+  const latestWithdrawals = sortByDateDesc(withdrawals).slice(0, 5);
 
   if (loading) {
     return (
