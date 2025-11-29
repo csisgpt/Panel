@@ -27,6 +27,13 @@ import {
   LoginResponse,
   SettlementMethod,
   SystemStatus,
+  TahesabAssetType,
+  TahesabBalanceRecord,
+  TahesabDocumentDetail,
+  TahesabDocumentStatus,
+  TahesabDocumentSummary,
+  TahesabDocumentType,
+  TahesabSyncStatus,
   Trade,
   TradeSide,
   TradeStatus,
@@ -1385,6 +1392,223 @@ export async function updateMockTahesabMapping(id: string, partial: Partial<Tahe
   if (idx === -1) throw new Error("Mapping not found");
   mockTahesabMappings[idx] = { ...mockTahesabMappings[idx], ...partial };
   return mockTahesabMappings[idx];
+}
+
+// ---------------------------------------------------------------------------
+// Tahesab Sync, Balances & Documents
+// ---------------------------------------------------------------------------
+
+const mockTahesabSyncStatus: TahesabSyncStatus = {
+  connected: true,
+  lastSyncedAt: daysAgo(0.5),
+  lastSuccessfulSyncAt: daysAgo(1),
+  nextScheduledAt: new Date(now.getTime() + 1000 * 60 * 20).toISOString(),
+  queueLength: 2,
+  pendingSince: daysAgo(0.2),
+};
+
+const mockTahesabBalances: TahesabBalanceRecord[] = [
+  {
+    id: "bal-1",
+    customerId: "u-client",
+    customerName: "زهرا رضایی",
+    tahesabAccountCode: "TH-4302",
+    assetType: "GOLD",
+    balanceInternal: 9.5,
+    balanceTahesab: 9.2,
+    difference: 0.3,
+    lastSyncedAt: daysAgo(1),
+  },
+  {
+    id: "bal-2",
+    customerId: "u-client-2",
+    customerName: "رضا کریمی",
+    tahesabAccountCode: "TH-7845",
+    assetType: "COIN",
+    balanceInternal: 5,
+    balanceTahesab: 5,
+    difference: 0,
+    lastSyncedAt: daysAgo(2),
+  },
+  {
+    id: "bal-3",
+    customerId: "u-client-3",
+    customerName: "سارا احمدی",
+    tahesabAccountCode: "TH-8891",
+    assetType: "CURRENCY",
+    balanceInternal: 95000000,
+    balanceTahesab: 92000000,
+    difference: 3000000,
+    lastSyncedAt: daysAgo(0.7),
+  },
+  {
+    id: "bal-4",
+    tahesabAccountCode: "TH-HOUSE-IRR",
+    assetType: "CURRENCY",
+    balanceInternal: 3500000000,
+    balanceTahesab: 3495000000,
+    difference: 5000000,
+    lastSyncedAt: daysAgo(0.3),
+  },
+];
+
+const mockTahesabDocuments: TahesabDocumentSummary[] = [
+  {
+    id: "doc-1",
+    documentNumber: "TS-1001",
+    date: daysAgo(2),
+    customerId: "u-client",
+    tahesabAccountCode: "TH-4302",
+    type: TahesabDocumentType.BUY,
+    status: TahesabDocumentStatus.POSTED,
+    totalAmount: 360000000,
+    totalWeight: 10,
+    internalEntityRef: { type: "trade", id: "t-1" },
+  },
+  {
+    id: "doc-2",
+    documentNumber: "TS-1002",
+    date: daysAgo(1),
+    customerId: "u-client",
+    tahesabAccountCode: "TH-4302",
+    type: TahesabDocumentType.SELL,
+    status: TahesabDocumentStatus.PENDING,
+    totalAmount: 310250000,
+    totalWeight: 8.5,
+    internalEntityRef: { type: "trade", id: "t-2" },
+  },
+  {
+    id: "doc-3",
+    documentNumber: "TS-1003",
+    date: daysAgo(4),
+    customerId: "u-client-2",
+    tahesabAccountCode: "TH-7845",
+    type: TahesabDocumentType.DEPOSIT,
+    status: TahesabDocumentStatus.POSTED,
+    totalAmount: 120000000,
+    totalWeight: undefined,
+    internalEntityRef: { type: "deposit", id: "dep-1" },
+  },
+  {
+    id: "doc-4",
+    documentNumber: "TS-1004",
+    date: daysAgo(3),
+    tahesabAccountCode: "TH-REMIT-1",
+    type: TahesabDocumentType.REMITTANCE,
+    status: TahesabDocumentStatus.POSTED,
+    totalAmount: 50000000,
+    internalEntityRef: { type: "remittance", id: "rem-1" },
+  },
+];
+
+const mockTahesabDocumentDetails: Record<string, TahesabDocumentDetail> = {
+  "doc-1": {
+    ...mockTahesabDocuments[0],
+    lines: [
+      {
+        lineId: "doc-1-1",
+        assetType: "GOLD",
+        instrumentName: "طلا ۱۸ عیار",
+        weight: 10,
+        unitPrice: 36000000,
+        tax: 0,
+        discount: 0,
+        amount: 360000000,
+      },
+    ],
+  },
+  "doc-2": {
+    ...mockTahesabDocuments[1],
+    lines: [
+      {
+        lineId: "doc-2-1",
+        assetType: "GOLD",
+        instrumentName: "طلا ۱۸ عیار",
+        weight: 8.5,
+        unitPrice: 36500000,
+        tax: 0,
+        discount: 0,
+        amount: 310250000,
+      },
+    ],
+  },
+  "doc-3": {
+    ...mockTahesabDocuments[2],
+    lines: [
+      {
+        lineId: "doc-3-1",
+        assetType: "CURRENCY",
+        instrumentName: "ریال",
+        quantity: 1,
+        unitPrice: 120000000,
+        amount: 120000000,
+        tax: 0,
+      },
+    ],
+  },
+  "doc-4": {
+    ...mockTahesabDocuments[3],
+    lines: [
+      {
+        lineId: "doc-4-1",
+        assetType: "CURRENCY",
+        instrumentName: "ریال",
+        quantity: 1,
+        unitPrice: 50000000,
+        amount: 50000000,
+      },
+    ],
+  },
+};
+
+export async function getMockTahesabSyncStatus(): Promise<TahesabSyncStatus> {
+  await simulateDelay();
+  return { ...mockTahesabSyncStatus };
+}
+
+export async function getMockTahesabBalances(): Promise<TahesabBalanceRecord[]> {
+  await simulateDelay();
+  return [...mockTahesabBalances];
+}
+
+export async function getMockTahesabBalancesByCustomer(customerId: string): Promise<TahesabBalanceRecord[]> {
+  await simulateDelay();
+  return mockTahesabBalances.filter((b) => b.customerId === customerId);
+}
+
+export async function getMockTahesabDocuments(
+  params?: Partial<{
+    type: TahesabDocumentType;
+    status: TahesabDocumentStatus;
+    customerId: string;
+    dateFrom: string;
+    dateTo: string;
+  }>
+): Promise<TahesabDocumentSummary[]> {
+  await simulateDelay();
+  return mockTahesabDocuments.filter((doc) => {
+    const matchesType = params?.type ? doc.type === params.type : true;
+    const matchesStatus = params?.status ? doc.status === params.status : true;
+    const matchesCustomer = params?.customerId ? doc.customerId === params.customerId : true;
+    const matchesFrom = params?.dateFrom ? new Date(doc.date) >= new Date(params.dateFrom) : true;
+    const matchesTo = params?.dateTo ? new Date(doc.date) <= new Date(params.dateTo) : true;
+    return matchesType && matchesStatus && matchesCustomer && matchesFrom && matchesTo;
+  });
+}
+
+export async function getMockTahesabDocumentById(id: string): Promise<TahesabDocumentDetail> {
+  await simulateDelay();
+  const detail = mockTahesabDocumentDetails[id];
+  if (!detail) throw new Error("Document not found");
+  return detail;
+}
+
+export async function getMockTahesabDocumentsByRef(
+  refType: "trade" | "deposit" | "withdrawal" | "remittance",
+  refId: string
+): Promise<TahesabDocumentSummary[]> {
+  await simulateDelay();
+  return mockTahesabDocuments.filter((doc) => doc.internalEntityRef?.type === refType && doc.internalEntityRef.id === refId);
 }
 
 // ---------------------------------------------------------------------------
