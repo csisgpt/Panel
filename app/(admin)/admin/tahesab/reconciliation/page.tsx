@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getTahesabBalances, getTahesabDocumentsByInternalRef } from "@/lib/api/tahesab";
-import { TahesabBalanceRecord } from "@/lib/types/backend";
+import { getTahesabBalances, getTahesabDocumentById, getTahesabDocumentsByInternalRef } from "@/lib/api/tahesab";
+import { TahesabBalanceRecord, TahesabDocumentDetail } from "@/lib/types/backend";
 import { useToast } from "@/hooks/use-toast";
 import { TahesabDocumentDetailsDialog } from "@/components/tahesab/tahesab-document-details-dialog";
 
@@ -21,7 +21,8 @@ export default function TahesabReconciliationPage() {
   const [query, setQuery] = useState("");
   const [assetType, setAssetType] = useState<string>("ALL");
   const [onlyMismatch, setOnlyMismatch] = useState(false);
-  const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+  const [selectedDoc, setSelectedDoc] = useState<TahesabDocumentDetail | null>(null);
   const [relatedDocs, setRelatedDocs] = useState<{ id: string; label: string }[]>([]);
   const { toast } = useToast();
 
@@ -56,8 +57,26 @@ export default function TahesabReconciliationPage() {
         toast({ title: "دریافت سندهای مرتبط با خطا مواجه شد", variant: "destructive" });
       }
     }
-    if (record.customerId) setSelectedDoc(null);
+    if (record.customerId) setSelectedDocId(null);
   };
+
+  useEffect(() => {
+    const loadSelected = async () => {
+      if (!selectedDocId) {
+        setSelectedDoc(null);
+        return;
+      }
+
+      try {
+        const detail = await getTahesabDocumentById(selectedDocId);
+        setSelectedDoc(detail);
+      } catch (err) {
+        setSelectedDoc(null);
+      }
+    };
+
+    loadSelected();
+  }, [selectedDocId]);
 
   if (loading) {
     return (
@@ -179,7 +198,7 @@ export default function TahesabReconciliationPage() {
                     {relatedDocs.map((doc) => (
                       <div key={doc.id} className="flex items-center justify-between rounded-lg border p-2">
                         <div className="text-sm font-semibold">{doc.label}</div>
-                        <Button size="sm" variant="outline" onClick={() => setSelectedDoc(doc.id)}>
+                        <Button size="sm" variant="outline" onClick={() => setSelectedDocId(doc.id)}>
                           مشاهده جزئیات
                         </Button>
                       </div>
@@ -192,7 +211,7 @@ export default function TahesabReconciliationPage() {
         ]}
       />
 
-      <TahesabDocumentDetailsDialog documentId={selectedDoc} open={Boolean(selectedDoc)} onOpenChange={(o) => !o && setSelectedDoc(null)} />
+      <TahesabDocumentDetailsDialog document={selectedDoc} open={Boolean(selectedDocId)} onOpenChange={(o) => !o && setSelectedDocId(null)} />
     </div>
   );
 }

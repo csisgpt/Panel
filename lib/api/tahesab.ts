@@ -78,6 +78,13 @@ export async function getTahesabDocumentById(id: string): Promise<TahesabDocumen
   return apiGet<TahesabDocumentDetail>(`/tahesab/documents/${id}`);
 }
 
+export async function getTahesabDocumentsByRef(
+  refType: "trade" | "deposit" | "withdrawal" | "remittance",
+  refId: string
+): Promise<TahesabDocumentSummary[]> {
+  return getTahesabDocumentsByInternalRef(refType, refId);
+}
+
 export async function getTahesabDocumentsByInternalRef(
   refType: "trade" | "deposit" | "withdrawal" | "remittance",
   refId: string
