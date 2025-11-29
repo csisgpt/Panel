@@ -1,6 +1,6 @@
 "use client";
 
-import { Position, Trade } from "@/lib/types/backend";
+import { Instrument, Trade } from "@/lib/types/backend";
 import {
   Dialog,
   DialogContent,
@@ -10,8 +10,17 @@ import {
 import { Badge } from "../ui/badge";
 import { ScrollArea } from "../ui/scroll-area";
 
+type PositionLike = {
+  instrumentId: string;
+  instrument?: Instrument;
+  netQuantity?: number | string | null;
+  averagePrice?: number | string | null;
+  markPrice?: number | string | null;
+  unrealizedPnl?: number | string | null;
+};
+
 interface Props {
-  position: Position | null;
+  position: PositionLike | null;
   trades: Trade[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
