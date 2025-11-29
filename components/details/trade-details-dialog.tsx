@@ -164,7 +164,7 @@ export function TradeDetailsDialog({ trade, open, onOpenChange }: Props) {
               <div className="rounded-lg border p-3">
                 <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
                   <span>مشتری / حساب</span>
-                  <Badge variant="outline">{trade.client?.accountCode ?? "--"}</Badge>
+                  <Badge variant="outline">{trade.clientId}</Badge>
                 </div>
                 <div className="font-semibold">{trade.client?.fullName ?? "--"}</div>
                 <div className="text-[11px] text-muted-foreground">{trade.client?.mobile}</div>
