@@ -1,6 +1,7 @@
 "use client";
 
-import { Remittance, RemittanceStatus } from "@/lib/types/backend";
+import { BackendUser } from "@/lib/types/backend";
+import { Remittance, RemittanceStatus } from "@/lib/mock-data";
 import {
   Dialog,
   DialogContent,
@@ -10,14 +11,26 @@ import {
 import { Badge } from "../ui/badge";
 import { ScrollArea } from "../ui/scroll-area";
 
+type WithOptionalAccount = {
+  iban?: string | null;
+  instrument?: { name?: string | null } | null;
+};
+
+type RemittanceWithRefs = Remittance & {
+  customer?: BackendUser | null;
+  fromAccount?: WithOptionalAccount | null;
+  toAccount?: WithOptionalAccount | null;
+};
+
 const remittanceStatusMap: Record<RemittanceStatus, { label: string; variant: "default" | "secondary" | "success" | "warning" | "destructive" | "outline" }> = {
   [RemittanceStatus.PENDING]: { label: "در انتظار", variant: "warning" },
-  [RemittanceStatus.COMPLETED]: { label: "انجام شده", variant: "success" },
-  [RemittanceStatus.CANCELLED]: { label: "لغو شده", variant: "secondary" },
+  [RemittanceStatus.SENT]: { label: "ارسال شده", variant: "secondary" },
+  [RemittanceStatus.COMPLETED]: { label: "تسویه شده", variant: "success" },
+  [RemittanceStatus.FAILED]: { label: "ناموفق", variant: "destructive" },
 };
 
 interface Props {
-  remittance: Remittance | null;
+  remittance: RemittanceWithRefs | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -35,19 +48,19 @@ export function RemittanceDetailsDialog({ remittance, open, onOpenChange }: Prop
             <div className="space-y-3 text-sm">
               <div className="rounded-lg border p-3">
                 <div className="text-xs text-muted-foreground">مشتری</div>
-                <div className="font-semibold">{remittance.client?.fullName ?? "--"}</div>
-                <div className="text-[11px] text-muted-foreground">{remittance.client?.mobile}</div>
+                <div className="font-semibold">{remittance.customer?.fullName ?? "--"}</div>
+                <div className="text-[11px] text-muted-foreground">{remittance.customer?.mobile}</div>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-lg border p-3">
                   <div className="text-xs text-muted-foreground">حساب مبدا</div>
-                  <div className="font-semibold">{remittance.fromAccount?.iban ?? "--"}</div>
+                  <div className="font-semibold">{remittance.fromAccount?.iban ?? remittance.fromAccountId ?? "--"}</div>
                   <div className="text-[11px] text-muted-foreground">{remittance.fromAccount?.instrument?.name}</div>
                 </div>
                 <div className="rounded-lg border p-3">
                   <div className="text-xs text-muted-foreground">حساب مقصد</div>
-                  <div className="font-semibold">{remittance.toAccount?.iban ?? "--"}</div>
+                  <div className="font-semibold">{remittance.toAccount?.iban ?? remittance.toAccountId ?? "--"}</div>
                   <div className="text-[11px] text-muted-foreground">{remittance.toAccount?.instrument?.name}</div>
                 </div>
               </div>
