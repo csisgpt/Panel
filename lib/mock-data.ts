@@ -81,6 +81,21 @@ export interface RiskSettingsConfig {
   updatedAt: string;
 }
 
+export interface PricingLog {
+  id: string;
+  createdAt: string;
+  userId: string;
+  description: string;
+  affectedInstrumentIds: string[];
+}
+
+export interface AdminUiSettings {
+  theme: "light" | "dark" | "system";
+  language: "fa";
+  dateFormat: "jalali" | "gregorian";
+  showExperimentalFeatures: boolean;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -1236,6 +1251,70 @@ export async function getMockAttachments(
     result = result.filter((a) => a.entityId === entityId);
   }
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// Pricing logs
+// ---------------------------------------------------------------------------
+
+let mockPricingLogs: PricingLog[] = [
+  {
+    id: "pl-1",
+    createdAt: daysAgo(3),
+    userId: "u-admin",
+    description: "به‌روزرسانی قیمت خرید طلای ۷۵۰ به دلیل افزایش بازار جهانی",
+    affectedInstrumentIds: ["ins-gold-750"],
+  },
+  {
+    id: "pl-2",
+    createdAt: daysAgo(1),
+    userId: "u-ops",
+    description: "کاهش ۱٪ قیمت سکه امامی جهت متعادل‌سازی سفارشات",
+    affectedInstrumentIds: ["ins-emami"],
+  },
+  {
+    id: "pl-3",
+    createdAt: isoNow,
+    userId: "u-admin",
+    description: "همگام‌سازی قیمت‌ها با منبع ثانویه و تثبیت اسپرد",
+    affectedInstrumentIds: ["ins-gold-750", "ins-emami"],
+  },
+];
+
+export async function getMockPricingLogs(): Promise<PricingLog[]> {
+  await simulateDelay();
+  return [...mockPricingLogs];
+}
+
+export async function addMockPricingLog(
+  log: Omit<PricingLog, "id" | "createdAt">
+): Promise<void> {
+  await simulateDelay();
+  mockPricingLogs.unshift({ ...log, id: createId("pl"), createdAt: new Date().toISOString() });
+}
+
+// ---------------------------------------------------------------------------
+// Admin UI Settings
+// ---------------------------------------------------------------------------
+
+let adminUiSettings: AdminUiSettings = {
+  theme: "light",
+  language: "fa",
+  dateFormat: "jalali",
+  showExperimentalFeatures: false,
+};
+
+export async function getAdminUiSettings(): Promise<AdminUiSettings> {
+  await simulateDelay();
+  return { ...adminUiSettings };
+}
+
+export async function updateAdminUiSettings(
+  patch: Partial<AdminUiSettings>
+): Promise<AdminUiSettings> {
+  await simulateDelay();
+  adminUiSettings = { ...adminUiSettings, ...patch };
+  return { ...adminUiSettings };
 }
 
 // ---------------------------------------------------------------------------
