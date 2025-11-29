@@ -14,6 +14,7 @@ const depositStatusMap: Record<DepositStatus, { label: string; variant: "default
   [DepositStatus.PENDING]: { label: "در انتظار", variant: "warning" },
   [DepositStatus.APPROVED]: { label: "تایید شده", variant: "success" },
   [DepositStatus.REJECTED]: { label: "رد شده", variant: "destructive" },
+  [DepositStatus.CANCELLED]: { label: "لغو شده", variant: "secondary" },
 };
 
 const withdrawStatusMap: Record<WithdrawStatus, { label: string; variant: "default" | "secondary" | "success" | "warning" | "destructive" | "outline" }> = {
