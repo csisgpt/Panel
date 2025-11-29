@@ -95,15 +95,18 @@ export function TradeDetailsDialog({ trade, open, onOpenChange, footer }: Props)
                   </div>
                 </div>
                 <div className="rounded-lg border p-3">
-                  <div className="text-xs text-muted-foreground">تسویه</div>
-                  <div className="font-semibold">{trade.settlementDate ? new Date(trade.settlementDate).toLocaleDateString("fa-IR") : "--"}</div>
+                  <div className="text-xs text-muted-foreground">روش تسویه</div>
+                  <div className="font-semibold">{trade.settlementMethod ? trade.settlementMethod : "--"}</div>
                 </div>
               </div>
 
-              {trade.notes && (
+              {(trade.clientNote || trade.adminNote) && (
                 <div className="rounded-lg border p-3">
                   <div className="text-xs text-muted-foreground">توضیحات</div>
-                  <div className="text-muted-foreground">{trade.notes}</div>
+                  <div className="text-muted-foreground space-y-1">
+                    {trade.clientNote && <div>یادداشت مشتری: {trade.clientNote}</div>}
+                    {trade.adminNote && <div>یادداشت ادمین: {trade.adminNote}</div>}
+                  </div>
                 </div>
               )}
             </div>

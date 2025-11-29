@@ -1,7 +1,8 @@
 "use client";
 
 import type { BackendUser } from "@/lib/types/backend";
-import type { Remittance, RemittanceStatus } from "@/lib/mock-data";
+import { RemittanceStatus } from "@/lib/mock-data";
+import type { Remittance } from "@/lib/mock-data";
 import {
   Dialog,
   DialogContent,
