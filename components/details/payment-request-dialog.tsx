@@ -94,10 +94,10 @@ export function PaymentRequestDialog({ deposit, withdraw, open, onOpenChange }: 
                 </div>
               </div>
 
-              {request.description && (
+              {request.note && (
                 <div className="rounded-lg border p-3">
                   <div className="text-xs text-muted-foreground">توضیحات</div>
-                  <div className="text-muted-foreground">{request.description}</div>
+                  <div className="text-muted-foreground">{request.note}</div>
                 </div>
               )}
             </div>
