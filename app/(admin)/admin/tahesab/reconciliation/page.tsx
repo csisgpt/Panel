@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getTahesabBalances, getTahesabDocumentsByInternalRef } from "@/lib/api/tahesab";
 import { TahesabBalanceRecord } from "@/lib/types/backend";
@@ -144,46 +144,53 @@ export default function TahesabReconciliationPage() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="internal" className="space-y-3">
-        <TabsList>
-          <TabsTrigger value="internal">جزئیات داخلی</TabsTrigger>
-          <TabsTrigger value="tahesab">سندهای تاهساب</TabsTrigger>
-        </TabsList>
-        <TabsContent value="internal">
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle>جزئیات انتخاب شده</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              برای مشاهده جزئیات حساب روی ردیف کلیک کنید.
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="tahesab">
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle>سندهای مرتبط</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="max-h-64 space-y-2">
-                {relatedDocs.length === 0 && (
-                  <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
-                    سندی انتخاب نشده است
-                  </div>
-                )}
-                {relatedDocs.map((doc) => (
-                  <div key={doc.id} className="flex items-center justify-between rounded-lg border p-2">
-                    <div className="text-sm font-semibold">{doc.label}</div>
-                    <Button size="sm" variant="outline" onClick={() => setSelectedDoc(doc.id)}>
-                      مشاهده جزئیات
-                    </Button>
-                  </div>
-                ))}
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <Tabs
+        defaultValue="internal"
+        items={[
+          {
+            value: "internal",
+            label: "جزئیات داخلی",
+            content: (
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle>جزئیات انتخاب شده</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                  برای مشاهده جزئیات حساب روی ردیف کلیک کنید.
+                </CardContent>
+              </Card>
+            ),
+          },
+          {
+            value: "tahesab",
+            label: "سندهای تاهساب",
+            content: (
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle>سندهای مرتبط</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="max-h-64 space-y-2">
+                    {relatedDocs.length === 0 && (
+                      <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
+                        سندی انتخاب نشده است
+                      </div>
+                    )}
+                    {relatedDocs.map((doc) => (
+                      <div key={doc.id} className="flex items-center justify-between rounded-lg border p-2">
+                        <div className="text-sm font-semibold">{doc.label}</div>
+                        <Button size="sm" variant="outline" onClick={() => setSelectedDoc(doc.id)}>
+                          مشاهده جزئیات
+                        </Button>
+                      </div>
+                    ))}
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            ),
+          },
+        ]}
+      />
 
       <TahesabDocumentDetailsDialog documentId={selectedDoc} open={Boolean(selectedDoc)} onOpenChange={(o) => !o && setSelectedDoc(null)} />
     </div>
