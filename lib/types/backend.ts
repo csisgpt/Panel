@@ -77,6 +77,26 @@ export enum WithdrawStatus {
   CANCELLED = "CANCELLED",
 }
 
+export enum TahesabDocumentType {
+  BUY = "BUY",
+  SELL = "SELL",
+  REMITTANCE = "REMITTANCE",
+  DEPOSIT = "DEPOSIT",
+  WITHDRAW = "WITHDRAW",
+  ADJUSTMENT = "ADJUSTMENT",
+  FEE = "FEE",
+  TAX = "TAX",
+}
+
+export enum TahesabDocumentStatus {
+  POSTED = "POSTED",
+  PENDING = "PENDING",
+  FAILED = "FAILED",
+  CANCELLED = "CANCELLED",
+}
+
+export type TahesabAssetType = "GOLD" | "COIN" | "CURRENCY" | "SILVER" | "PLATINUM";
+
 export enum GoldLotStatus {
   IN_VAULT = "IN_VAULT",
   SOLD = "SOLD",
@@ -327,4 +347,70 @@ export interface UpdateUserDto {
   password?: string;
   role?: UserRole;
   status?: UserStatus;
+}
+
+export interface TahesabDocumentLine {
+  lineId: string;
+  assetType: TahesabAssetType;
+  instrumentName?: string;
+  weight?: number;
+  quantity?: number;
+  unitPrice?: number;
+  tax?: number;
+  discount?: number;
+  amount: number;
+  note?: string;
+}
+
+export interface TahesabDocumentSummary {
+  id: string;
+  documentNumber: string;
+  date: string;
+  customerId?: string;
+  tahesabAccountCode?: string;
+  type: TahesabDocumentType;
+  status: TahesabDocumentStatus;
+  totalAmount: number;
+  totalWeight?: number;
+  internalEntityRef?: {
+    type: "trade" | "deposit" | "withdrawal" | "remittance";
+    id: string;
+  } | null;
+}
+
+export interface TahesabDocumentDetail extends TahesabDocumentSummary {
+  lines: TahesabDocumentLine[];
+  rawPayload?: Record<string, unknown>;
+}
+
+export interface TahesabBalanceRecord {
+  id: string;
+  customerId?: string;
+  customerName?: string;
+  tahesabAccountCode: string;
+  assetType: TahesabAssetType;
+  balanceInternal: number;
+  balanceTahesab: number;
+  difference: number;
+  lastSyncedAt: string;
+}
+
+export interface TahesabSyncStatus {
+  connected: boolean;
+  lastSyncedAt: string;
+  lastSuccessfulSyncAt?: string;
+  nextScheduledAt?: string;
+  queueLength?: number;
+  pendingSince?: string;
+  errorMessage?: string | null;
+}
+
+export interface TahesabSyncLogEntry {
+  id: string;
+  time: string;
+  operation: string;
+  status: "success" | "error" | "pending";
+  message: string;
+  internalEntityRef?: TahesabDocumentSummary["internalEntityRef"];
+  tahesabDocumentId?: string;
 }

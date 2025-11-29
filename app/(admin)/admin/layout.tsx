@@ -2,11 +2,26 @@
 
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Sidebar, NavItem } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { Sheet } from "@/components/ui/sheet";
-import { Shield, Users, Tags, FileStack, Cog, Activity, Link as LinkIcon, NotepadText, Layers } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import {
+  Shield,
+  Users,
+  Tags,
+  FileStack,
+  Cog,
+  Activity,
+  Link as LinkIcon,
+  NotepadText,
+  Layers,
+  LayoutDashboard,
+  FileText,
+  Scale,
+} from "lucide-react";
 
 const adminNav: NavItem[] = [
   { href: "/admin/dashboard", label: "داشبورد", icon: Shield },
@@ -14,8 +29,11 @@ const adminNav: NavItem[] = [
   { href: "/admin/instruments", label: "ابزارها", icon: Tags },
   { href: "/admin/pricing", label: "قیمت‌گذاری", icon: NotepadText },
   { href: "/admin/pricing/logs", label: "گزارش قیمت", icon: Activity },
+  { href: "/admin/tahesab/overview", label: "مرور ته‌حساب", icon: LayoutDashboard },
   { href: "/admin/tahesab/connection", label: "اتصال تاهساب", icon: LinkIcon },
   { href: "/admin/tahesab/mapping", label: "نگاشت", icon: Layers },
+  { href: "/admin/tahesab/reconciliation", label: "مغایرت‌ها", icon: Scale },
+  { href: "/admin/tahesab/documents", label: "سندهای تاهساب", icon: FileText },
   { href: "/admin/tahesab/logs", label: "گزارش تاهساب", icon: FileStack },
   { href: "/admin/risk/settings", label: "تنظیمات ریسک", icon: Cog },
   { href: "/admin/risk/monitor", label: "پایش ریسک", icon: Activity },
@@ -29,14 +47,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !isAdmin) {
       router.replace("/login");
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, isAdmin, router]);
 
-  if (!isAuthenticated) return null;
-  if (!isAdmin) {
-    return <div className="flex min-h-screen items-center justify-center">دسترسی ندارید</div>;
+  if (!isAuthenticated || !isAdmin) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted/30 px-6" dir="rtl">
+        <div className="max-w-md space-y-4 rounded-lg border bg-card p-6 text-center shadow-sm">
+          <p className="text-lg font-semibold">دسترسی محدود</p>
+          <p className="text-sm text-muted-foreground">برای مشاهده پنل ادمین ابتدا وارد حساب کاربری خود شوید.</p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Button asChild variant="default">
+              <Link href="/login">بازگشت به صفحه ورود</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
