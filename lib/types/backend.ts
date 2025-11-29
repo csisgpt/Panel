@@ -190,6 +190,8 @@ export interface Trade {
   clientNote?: string | null;
   adminNote?: string | null;
 
+  settlementDate?: string | null;
+
   approvedAt?: string | null;
   approvedById?: string | null;
 
