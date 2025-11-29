@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Sidebar, NavItem } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
@@ -43,16 +42,28 @@ const adminNav: NavItem[] = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isAdmin, user } = useAuth();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.replace("/login");
-    }
-  }, [isAuthenticated, router]);
-
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted/30 px-6" dir="rtl">
+        <div className="max-w-md space-y-4 rounded-lg border bg-card p-6 text-center shadow-sm">
+          <p className="text-lg font-semibold">ابتدا وارد شوید</p>
+          <p className="text-sm text-muted-foreground">
+            برای دسترسی به بخش ادمین باید وارد سامانه شوید. از یکی از گزینه‌های زیر استفاده کنید.
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Button asChild variant="default">
+              <Link href="/login">بازگشت به صفحه ورود</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/trader/dashboard">مشاهده پنل معامله‌گر</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (!isAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-muted/30 px-6" dir="rtl">
