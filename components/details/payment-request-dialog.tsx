@@ -55,10 +55,21 @@ export function PaymentRequestDialog({ deposit, withdraw, open, onOpenChange }: 
                 <div className="text-[11px] text-muted-foreground">{request.user?.mobile}</div>
               </div>
 
-              <div className="rounded-lg border p-3">
-                <div className="text-xs text-muted-foreground">حساب مرتبط</div>
-                <div className="font-semibold">{request.account?.instrument?.name ?? "--"}</div>
-                <div className="text-[11px] text-muted-foreground">{request.account?.iban}</div>
+              <div className="rounded-lg border p-3 space-y-1">
+                <div className="text-xs text-muted-foreground">
+                  {mode === "DEPOSIT" ? "روش پرداخت" : "حساب/بانک مقصد"}
+                </div>
+                {mode === "DEPOSIT" ? (
+                  <div className="space-y-1">
+                    <div className="font-semibold">{deposit?.method ?? "--"}</div>
+                    <div className="text-[11px] text-muted-foreground">شماره پیگیری: {deposit?.refNo ?? "--"}</div>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <div className="font-semibold">{withdraw?.bankName ?? "--"}</div>
+                    <div className="text-[11px] text-muted-foreground">{withdraw?.iban ?? withdraw?.cardNumber ?? "--"}</div>
+                  </div>
+                )}
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
