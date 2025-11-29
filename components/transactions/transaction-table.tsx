@@ -16,7 +16,6 @@ import {
 import { Badge } from "../ui/badge";
 import { Trade, TradeSide, TradeStatus } from "@/lib/types/backend";
 import { getMyTrades } from "@/lib/api/trades";
-import { TradeDetailsDialog } from "../details/trade-details-dialog";
 import { Button } from "../ui/button";
 
 type BadgeVariant =
@@ -48,11 +47,14 @@ const sideLabel: Record<TradeSide, string> = {
   [TradeSide.SELL]: "فروش",
 };
 
-export function TransactionTable() {
+interface TransactionTableProps {
+  onSelectTrade?: (trade: Trade) => void;
+}
+
+export function TransactionTable({ onSelectTrade }: TransactionTableProps) {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -119,6 +121,7 @@ export function TransactionTable() {
             <TableHead className="text-right">ارزش کل</TableHead>
             <TableHead className="text-right">وضعیت</TableHead>
             <TableHead className="text-right">تاریخ</TableHead>
+            <TableHead className="text-right">عملیات</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -132,8 +135,8 @@ export function TransactionTable() {
             return (
               <TableRow
                 key={trade.id}
-                className="cursor-pointer hover:bg-muted/60"
-                onClick={() => setSelectedTrade(trade)}
+                className={onSelectTrade ? "cursor-pointer hover:bg-muted/60" : undefined}
+                onClick={onSelectTrade ? () => onSelectTrade(trade) : undefined}
               >
                 <TableCell className="font-mono text-xs">{trade.id}</TableCell>
                 <TableCell className="text-sm">
@@ -162,25 +165,23 @@ export function TransactionTable() {
                     ? format(new Date(trade.createdAt), "PPP", { locale: faIR })
                     : "—"}
                 </TableCell>
+                <TableCell className="text-left">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectTrade?.(trade);
+                    }}
+                  >
+                    جزئیات
+                  </Button>
+                </TableCell>
               </TableRow>
             );
           })}
         </TableBody>
       </Table>
-      <TradeDetailsDialog
-        trade={selectedTrade}
-        open={!!selectedTrade}
-        onOpenChange={(open) => !open && setSelectedTrade(null)}
-        footer={
-          selectedTrade && (
-            <div className="flex justify-end">
-              <Button size="sm" variant="outline" onClick={() => setSelectedTrade(null)}>
-                بستن
-              </Button>
-            </div>
-          )
-        }
-      />
     </div>
   );
 }
