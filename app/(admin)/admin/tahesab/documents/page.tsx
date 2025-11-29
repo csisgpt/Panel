@@ -7,8 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { getTahesabDocuments } from "@/lib/api/tahesab";
-import { TahesabDocumentStatus, TahesabDocumentSummary, TahesabDocumentType } from "@/lib/types/backend";
+import { getTahesabDocumentById, getTahesabDocuments } from "@/lib/api/tahesab";
+import {
+  TahesabDocumentDetail,
+  TahesabDocumentStatus,
+  TahesabDocumentSummary,
+  TahesabDocumentType,
+} from "@/lib/types/backend";
 import { TahesabDocumentDetailsDialog } from "@/components/tahesab/tahesab-document-details-dialog";
 
 const typeOptions: { label: string; value: TahesabDocumentType | "ALL" }[] = [
@@ -32,6 +37,7 @@ export default function TahesabDocumentsPage() {
     dateTo: "",
   });
   const [selected, setSelected] = useState<string | null>(null);
+  const [selectedDoc, setSelectedDoc] = useState<TahesabDocumentDetail | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -54,6 +60,24 @@ export default function TahesabDocumentsPage() {
     };
     load();
   }, [filters]);
+
+  useEffect(() => {
+    const loadSelected = async () => {
+      if (!selected) {
+        setSelectedDoc(null);
+        return;
+      }
+
+      try {
+        const detail = await getTahesabDocumentById(selected);
+        setSelectedDoc(detail);
+      } catch (err) {
+        setSelectedDoc(null);
+      }
+    };
+
+    loadSelected();
+  }, [selected]);
 
   const filteredDocs = useMemo(() => {
     return docs.filter((doc) =>
@@ -176,7 +200,7 @@ export default function TahesabDocumentsPage() {
         </CardContent>
       </Card>
 
-      <TahesabDocumentDetailsDialog documentId={selected} open={Boolean(selected)} onOpenChange={(o) => !o && setSelected(null)} />
+      <TahesabDocumentDetailsDialog document={selectedDoc} open={Boolean(selected)} onOpenChange={(o) => !o && setSelected(null)} />
     </div>
   );
 }
