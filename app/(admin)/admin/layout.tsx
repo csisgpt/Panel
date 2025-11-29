@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
 import { Sidebar, NavItem } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 import {
   Shield,
   Users,
@@ -42,42 +43,24 @@ const adminNav: NavItem[] = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isAdmin, user } = useAuth();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
 
-  if (!isAuthenticated) {
+  useEffect(() => {
+    if (!isAuthenticated || !isAdmin) {
+      router.replace("/login");
+    }
+  }, [isAuthenticated, isAdmin, router]);
+
+  if (!isAuthenticated || !isAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-muted/30 px-6" dir="rtl">
         <div className="max-w-md space-y-4 rounded-lg border bg-card p-6 text-center shadow-sm">
-          <p className="text-lg font-semibold">ابتدا وارد شوید</p>
-          <p className="text-sm text-muted-foreground">
-            برای دسترسی به بخش ادمین باید وارد سامانه شوید. از یکی از گزینه‌های زیر استفاده کنید.
-          </p>
+          <p className="text-lg font-semibold">دسترسی محدود</p>
+          <p className="text-sm text-muted-foreground">برای مشاهده پنل ادمین ابتدا وارد حساب کاربری خود شوید.</p>
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Button asChild variant="default">
               <Link href="/login">بازگشت به صفحه ورود</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/trader/dashboard">مشاهده پنل معامله‌گر</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  if (!isAdmin) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/30 px-6" dir="rtl">
-        <div className="max-w-md space-y-4 rounded-lg border bg-card p-6 text-center shadow-sm">
-          <p className="text-lg font-semibold">دسترسی ندارید</p>
-          <p className="text-sm text-muted-foreground">
-            برای مشاهده بخش ادمین باید با نقش ادمین وارد شوید یا به صفحه معامله‌گر بروید.
-          </p>
-          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <Button asChild variant="default">
-              <Link href="/login">بازگشت به صفحه ورود</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/trader/dashboard">مشاهده پنل معامله‌گر</Link>
             </Button>
           </div>
         </div>
