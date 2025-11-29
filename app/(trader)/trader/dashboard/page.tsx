@@ -10,6 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useMemo, useState } from "react";
 import { Account, DepositRequest, Trade, WithdrawRequest } from "@/lib/types/backend";
+import { TradeDetailsDialog } from "@/components/details/trade-details-dialog";
+import { PaymentRequestDialog } from "@/components/details/payment-request-dialog";
+import Link from "next/link";
 
 export default function TraderDashboardPage() {
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -19,6 +22,9 @@ export default function TraderDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [systemStatus, setSystemStatus] = useState<{ tahesabOnline: boolean; lastSyncAt: string } | null>(null);
+  const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+  const [selectedDeposit, setSelectedDeposit] = useState<DepositRequest | null>(null);
+  const [selectedWithdraw, setSelectedWithdraw] = useState<WithdrawRequest | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -125,12 +131,21 @@ export default function TraderDashboardPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>آخرین معاملات</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>آخرین معاملات</CardTitle>
+              <Link href="/trader/transactions" className="text-xs text-primary hover:underline">
+                مشاهده همه
+              </Link>
+            </div>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {latestTrades.length === 0 && <p className="text-muted-foreground">معامله‌ای ثبت نشده است.</p>}
             {latestTrades.map((trade) => (
-              <div key={trade.id} className="rounded-lg border p-3 shadow-sm">
+              <div
+                key={trade.id}
+                className="cursor-pointer rounded-lg border p-3 shadow-sm hover:bg-muted/60"
+                onClick={() => setSelectedTrade(trade)}
+              >
                 <div className="flex items-center justify-between gap-2">
                   <div className="font-semibold">{trade.instrument?.name}</div>
                   <Badge variant={trade.side === "BUY" ? "outline" : "secondary"}>{trade.side === "BUY" ? "خرید" : "فروش"}</Badge>
@@ -142,14 +157,23 @@ export default function TraderDashboardPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>ورودی/خروجی اخیر</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>ورودی/خروجی اخیر</CardTitle>
+              <Link href="/trader/remittances" className="text-xs text-primary hover:underline">
+                مشاهده همه
+              </Link>
+            </div>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {[...deposits.slice(0, 3), ...withdrawals.slice(0, 3)].length === 0 && (
               <p className="text-muted-foreground">تراکنشی ثبت نشده است.</p>
             )}
             {deposits.slice(0, 3).map((dep) => (
-              <div key={dep.id} className="flex items-center justify-between rounded-lg border p-3">
+              <div
+                key={dep.id}
+                className="flex cursor-pointer items-center justify-between rounded-lg border p-3 hover:bg-muted/60"
+                onClick={() => setSelectedDeposit(dep)}
+              >
                 <div>
                   <div className="font-semibold">واریز</div>
                   <p className="text-xs text-muted-foreground">{Number(dep.amount).toLocaleString()} ریال</p>
@@ -158,7 +182,11 @@ export default function TraderDashboardPage() {
               </div>
             ))}
             {withdrawals.slice(0, 3).map((wd) => (
-              <div key={wd.id} className="flex items-center justify-between rounded-lg border p-3">
+              <div
+                key={wd.id}
+                className="flex cursor-pointer items-center justify-between rounded-lg border p-3 hover:bg-muted/60"
+                onClick={() => setSelectedWithdraw(wd)}
+              >
                 <div>
                   <div className="font-semibold">برداشت</div>
                   <p className="text-xs text-muted-foreground">{Number(wd.amount).toLocaleString()} ریال</p>
@@ -169,6 +197,26 @@ export default function TraderDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <TradeDetailsDialog
+        trade={selectedTrade}
+        open={!!selectedTrade}
+        onOpenChange={(open) => !open && setSelectedTrade(null)}
+      />
+      <PaymentRequestDialog
+        deposit={selectedDeposit}
+        open={!!selectedDeposit}
+        onOpenChange={(open) => {
+          if (!open) setSelectedDeposit(null);
+        }}
+      />
+      <PaymentRequestDialog
+        withdraw={selectedWithdraw}
+        open={!!selectedWithdraw}
+        onOpenChange={(open) => {
+          if (!open) setSelectedWithdraw(null);
+        }}
+      />
     </div>
   );
 }
