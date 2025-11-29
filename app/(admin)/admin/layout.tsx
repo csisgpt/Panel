@@ -6,7 +6,20 @@ import { useRouter } from "next/navigation";
 import { Sidebar, NavItem } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { Sheet } from "@/components/ui/sheet";
-import { Shield, Users, Tags, FileStack, Cog, Activity, Link as LinkIcon, NotepadText, Layers } from "lucide-react";
+import {
+  Shield,
+  Users,
+  Tags,
+  FileStack,
+  Cog,
+  Activity,
+  Link as LinkIcon,
+  NotepadText,
+  Layers,
+  LayoutDashboard,
+  FileText,
+  Scale,
+} from "lucide-react";
 
 const adminNav: NavItem[] = [
   { href: "/admin/dashboard", label: "داشبورد", icon: Shield },
@@ -14,8 +27,11 @@ const adminNav: NavItem[] = [
   { href: "/admin/instruments", label: "ابزارها", icon: Tags },
   { href: "/admin/pricing", label: "قیمت‌گذاری", icon: NotepadText },
   { href: "/admin/pricing/logs", label: "گزارش قیمت", icon: Activity },
+  { href: "/admin/tahesab/overview", label: "مرور ته‌حساب", icon: LayoutDashboard },
   { href: "/admin/tahesab/connection", label: "اتصال تاهساب", icon: LinkIcon },
   { href: "/admin/tahesab/mapping", label: "نگاشت", icon: Layers },
+  { href: "/admin/tahesab/reconciliation", label: "مغایرت‌ها", icon: Scale },
+  { href: "/admin/tahesab/documents", label: "سندهای تاهساب", icon: FileText },
   { href: "/admin/tahesab/logs", label: "گزارش تاهساب", icon: FileStack },
   { href: "/admin/risk/settings", label: "تنظیمات ریسک", icon: Cog },
   { href: "/admin/risk/monitor", label: "پایش ریسک", icon: Activity },
