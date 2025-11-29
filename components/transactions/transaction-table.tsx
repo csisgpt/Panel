@@ -16,6 +16,8 @@ import {
 import { Badge } from "../ui/badge";
 import { Trade, TradeSide, TradeStatus } from "@/lib/types/backend";
 import { getMyTrades } from "@/lib/api/trades";
+import { TradeDetailsDialog } from "../details/trade-details-dialog";
+import { Button } from "../ui/button";
 
 type BadgeVariant =
   | "default"
@@ -50,6 +52,7 @@ export function TransactionTable() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -127,7 +130,11 @@ export function TransactionTable() {
             const total = Number(trade.totalAmount || qty * price);
 
             return (
-              <TableRow key={trade.id} className="cursor-default">
+              <TableRow
+                key={trade.id}
+                className="cursor-pointer hover:bg-muted/60"
+                onClick={() => setSelectedTrade(trade)}
+              >
                 <TableCell className="font-mono text-xs">{trade.id}</TableCell>
                 <TableCell className="text-sm">
                   {trade.client?.fullName ?? "—"}
@@ -160,6 +167,20 @@ export function TransactionTable() {
           })}
         </TableBody>
       </Table>
+      <TradeDetailsDialog
+        trade={selectedTrade}
+        open={!!selectedTrade}
+        onOpenChange={(open) => !open && setSelectedTrade(null)}
+        footer={
+          selectedTrade && (
+            <div className="flex justify-end">
+              <Button size="sm" variant="outline" onClick={() => setSelectedTrade(null)}>
+                بستن
+              </Button>
+            </div>
+          )
+        }
+      />
     </div>
   );
 }
