@@ -201,7 +201,7 @@ export default function TahesabLogsPage() {
                   <td className="p-2 text-xs text-muted-foreground">{log.internalRef ?? "-"}</td>
                   <td className="p-2 text-xs text-blue-600">
                     {log.tahesabDocumentId ? (
-                      <button className="underline" onClick={() => setSelectedDocId(log.tahesabDocumentId)}>
+                      <button className="underline" onClick={() => setSelectedDocId(log.tahesabDocumentId ?? null)}>
                         {log.tahesabDocumentId}
                       </button>
                     ) : (
