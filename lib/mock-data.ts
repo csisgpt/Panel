@@ -63,22 +63,41 @@ export interface Remittance {
   createdAt: string;
 }
 
-export type TahesabLogLevel = "info" | "warn" | "error";
+export type TahesabLogLevel = "INFO" | "WARN" | "ERROR";
 
 export interface TahesabLog {
   id: string;
   time: string;
   level: TahesabLogLevel;
+  operation: string;
+  entityType?: "trade" | "deposit" | "withdrawal" | "remittance" | "balance" | "none";
+  internalRef?: string;
+  tahesabDocumentId?: string;
   message: string;
-  entityRef?: string;
 }
 
 export interface TahesabMapping {
   id: string;
-  internalAccount: string;
-  tahesabCode: string;
-  type: "HOUSE" | "CLIENT";
-  status: "ACTIVE" | "DISABLED";
+  internalName: string;
+  internalCode: string;
+  tahesabCode?: string;
+  type: "ACCOUNT" | "INSTRUMENT" | "CUSTOMER";
+  status: "MAPPED" | "UNMAPPED" | "IGNORED";
+}
+
+export interface TahesabBalanceInternalItem {
+  id: string;
+  type: "trade" | "deposit" | "withdrawal" | "remittance";
+  date: string;
+  amount: number;
+  assetType: TahesabAssetType;
+  description?: string;
+}
+
+export interface TahesabBalanceBreakdown {
+  recordId: string;
+  internalItems: TahesabBalanceInternalItem[];
+  tahesabDocumentIds: string[];
 }
 
 export interface RiskSettingsConfig {
@@ -1350,36 +1369,115 @@ export async function updateMockSystemStatus(partial: Partial<SystemStatus>) {
 let mockTahesabLogs: TahesabLog[] = [
   {
     id: "log-1",
-    time: daysAgo(1),
-    level: "info",
-    message: "همگام‌سازی موفق کاربران",
-    entityRef: "users",
+    time: daysAgo(0.2),
+    level: "INFO",
+    operation: "SYNC_BALANCE",
+    entityType: "balance",
+    internalRef: "ACC-TH-4302",
+    message: "تراز حساب طلا بروزرسانی شد",
   },
   {
     id: "log-2",
-    time: daysAgo(2),
-    level: "warn",
-    message: "تاخیر در پاسخ تاهساب برای تراکنش‌ها",
-    entityRef: "transactions",
+    time: daysAgo(1),
+    level: "WARN",
+    operation: "SYNC_TRADE",
+    entityType: "trade",
+    internalRef: "TR-98214",
+    tahesabDocumentId: "doc-1",
+    message: "ارسال معامله با تاخیر تایید شد",
   },
   {
     id: "log-3",
+    time: daysAgo(1.6),
+    level: "ERROR",
+    operation: "SYNC_REMITTANCE",
+    entityType: "remittance",
+    internalRef: "RM-7712",
+    message: "حواله ارزی به دلیل شناسه حساب نامعتبر رد شد",
+  },
+  {
+    id: "log-4",
+    time: daysAgo(2.3),
+    level: "INFO",
+    operation: "FETCH_DOCUMENTS",
+    entityType: "none",
+    message: "دریافت سندهای روز گذشته تکمیل شد",
+  },
+  {
+    id: "log-5",
     time: daysAgo(3),
-    level: "error",
-    message: "عدم تطابق موجودی حساب داخلی با تاهساب",
-    entityRef: "acc-house-irr",
+    level: "WARN",
+    operation: "SYNC_BALANCE",
+    entityType: "balance",
+    internalRef: "ACC-TH-8891",
+    message: "مغایرت ریالی بزرگ شناسایی شد",
   },
 ];
 
 let mockTahesabMappings: TahesabMapping[] = [
-  { id: "map-1", internalAccount: "حساب خانه ریالی", tahesabCode: "TH-1001", type: "HOUSE", status: "ACTIVE" },
-  { id: "map-2", internalAccount: "مشتری علی رضایی - ریالی", tahesabCode: "TH-4302", type: "CLIENT", status: "ACTIVE" },
-  { id: "map-3", internalAccount: "مشتری سارا کریمی - طلا ۷۵۰", tahesabCode: "TH-7845", type: "CLIENT", status: "DISABLED" },
+  {
+    id: "map-1",
+    internalName: "حساب خانه ریالی",
+    internalCode: "HOUSE-IRR",
+    tahesabCode: "TH-1001",
+    type: "ACCOUNT",
+    status: "MAPPED",
+  },
+  {
+    id: "map-2",
+    internalName: "مشتری علی رضایی - ریالی",
+    internalCode: "CUST-4302",
+    tahesabCode: "TH-4302",
+    type: "CUSTOMER",
+    status: "MAPPED",
+  },
+  {
+    id: "map-3",
+    internalName: "مشتری سارا کریمی - طلا ۷۵۰",
+    internalCode: "CUST-7845",
+    tahesabCode: undefined,
+    type: "CUSTOMER",
+    status: "UNMAPPED",
+  },
+  {
+    id: "map-4",
+    internalName: "انس جهانی طلا",
+    internalCode: "INS-GOLD-ONS",
+    tahesabCode: "TG-120",
+    type: "INSTRUMENT",
+    status: "MAPPED",
+  },
+  {
+    id: "map-5",
+    internalName: "سکه طرح قدیم",
+    internalCode: "INS-COIN-OLD",
+    tahesabCode: undefined,
+    type: "INSTRUMENT",
+    status: "IGNORED",
+  },
 ];
 
-export async function getMockTahesabLogs(): Promise<TahesabLog[]> {
+export async function getMockTahesabLogs(params?: {
+  limit?: number;
+  level?: TahesabLogLevel;
+  operation?: string;
+  entityType?: TahesabLog["entityType"];
+  dateFrom?: string;
+  dateTo?: string;
+}): Promise<TahesabLog[]> {
   await simulateDelay();
-  return [...mockTahesabLogs].sort((a, b) => (a.time > b.time ? -1 : 1));
+  const filtered = mockTahesabLogs
+    .filter((log) => {
+      const matchesLevel = params?.level ? log.level === params.level : true;
+      const matchesOp = params?.operation ? log.operation === params.operation : true;
+      const matchesEntity = params?.entityType ? log.entityType === params.entityType : true;
+      const matchesFrom = params?.dateFrom ? new Date(log.time) >= new Date(params.dateFrom) : true;
+      const matchesTo = params?.dateTo ? new Date(log.time) <= new Date(params.dateTo) : true;
+      return matchesLevel && matchesOp && matchesEntity && matchesFrom && matchesTo;
+    })
+    .sort((a, b) => (a.time > b.time ? -1 : 1));
+
+  return params?.limit ? filtered.slice(0, params.limit) : filtered;
 }
 
 export async function getMockTahesabMappings(): Promise<TahesabMapping[]> {
@@ -1405,6 +1503,7 @@ const mockTahesabSyncStatus: TahesabSyncStatus = {
   nextScheduledAt: new Date(now.getTime() + 1000 * 60 * 20).toISOString(),
   queueLength: 2,
   pendingSince: daysAgo(0.2),
+  errorMessage: "پاسخ نامعتبر از سرویس تراز تاهساب",
 };
 
 const mockTahesabBalances: TahesabBalanceRecord[] = [
@@ -1449,6 +1548,28 @@ const mockTahesabBalances: TahesabBalanceRecord[] = [
     balanceTahesab: 3495000000,
     difference: 5000000,
     lastSyncedAt: daysAgo(0.3),
+  },
+  {
+    id: "bal-5",
+    customerId: "u-vip-1",
+    customerName: "شرکت زرین گستر",
+    tahesabAccountCode: "TH-CORP-12",
+    assetType: "SILVER",
+    balanceInternal: 120.5,
+    balanceTahesab: 119.8,
+    difference: 0.7,
+    lastSyncedAt: daysAgo(0.9),
+  },
+  {
+    id: "bal-6",
+    customerId: "u-vip-2",
+    customerName: "شرکت توسعه کیان",
+    tahesabAccountCode: "TH-CORP-88",
+    assetType: "PLATINUM",
+    balanceInternal: 12,
+    balanceTahesab: 12,
+    difference: 0,
+    lastSyncedAt: daysAgo(0.4),
   },
 ];
 
@@ -1498,6 +1619,27 @@ const mockTahesabDocuments: TahesabDocumentSummary[] = [
     status: TahesabDocumentStatus.POSTED,
     totalAmount: 50000000,
     internalEntityRef: { type: "remittance", id: "rem-1" },
+  },
+  {
+    id: "doc-5",
+    documentNumber: "TS-1005",
+    date: daysAgo(0.3),
+    customerId: "u-client-3",
+    tahesabAccountCode: "TH-8891",
+    type: TahesabDocumentType.WITHDRAW,
+    status: TahesabDocumentStatus.FAILED,
+    totalAmount: 20000000,
+    internalEntityRef: { type: "withdrawal", id: "wd-1" },
+  },
+  {
+    id: "doc-6",
+    documentNumber: "TS-1006",
+    date: daysAgo(0.1),
+    tahesabAccountCode: "TH-CORP-12",
+    type: TahesabDocumentType.ADJUSTMENT,
+    status: TahesabDocumentStatus.PENDING,
+    totalAmount: -1200000,
+    internalEntityRef: { type: "trade", id: "t-3" },
   },
 ];
 
@@ -1559,6 +1701,102 @@ const mockTahesabDocumentDetails: Record<string, TahesabDocumentDetail> = {
       },
     ],
   },
+  "doc-5": {
+    ...mockTahesabDocuments[4],
+    lines: [
+      {
+        lineId: "doc-5-1",
+        assetType: "CURRENCY",
+        instrumentName: "ریال",
+        quantity: 1,
+        unitPrice: 20000000,
+        amount: 20000000,
+      },
+    ],
+  },
+  "doc-6": {
+    ...mockTahesabDocuments[5],
+    lines: [
+      {
+        lineId: "doc-6-1",
+        assetType: "SILVER",
+        instrumentName: "نقره صنعتی",
+        quantity: 1,
+        unitPrice: -1200000,
+        amount: -1200000,
+        note: "اصلاح کارمزد",
+      },
+    ],
+  },
+};
+
+const mockBalanceBreakdowns: Record<string, TahesabBalanceBreakdown> = {
+  "bal-1": {
+    recordId: "bal-1",
+    internalItems: [
+      {
+        id: "t-1",
+        type: "trade",
+        date: daysAgo(2),
+        amount: 360000000,
+        assetType: "GOLD",
+        description: "خرید ۱۰ گرم طلا ۱۸ عیار",
+      },
+      {
+        id: "t-2",
+        type: "trade",
+        date: daysAgo(1),
+        amount: -310250000,
+        assetType: "GOLD",
+        description: "فروش ۸.۵ گرم طلا",
+      },
+    ],
+    tahesabDocumentIds: ["doc-1", "doc-2"],
+  },
+  "bal-3": {
+    recordId: "bal-3",
+    internalItems: [
+      {
+        id: "dep-1",
+        type: "deposit",
+        date: daysAgo(4),
+        amount: 120000000,
+        assetType: "CURRENCY",
+        description: "واریز وجه ریالی",
+      },
+      {
+        id: "rm-1",
+        type: "remittance",
+        date: daysAgo(3),
+        amount: -50000000,
+        assetType: "CURRENCY",
+        description: "انتقال وجه به حساب خارج از مجموعه",
+      },
+      {
+        id: "wd-1",
+        type: "withdrawal",
+        date: daysAgo(0.3),
+        amount: -20000000,
+        assetType: "CURRENCY",
+        description: "برداشت نقدی مشتری",
+      },
+    ],
+    tahesabDocumentIds: ["doc-3", "doc-4", "doc-5"],
+  },
+  "bal-5": {
+    recordId: "bal-5",
+    internalItems: [
+      {
+        id: "t-3",
+        type: "trade",
+        date: daysAgo(0.5),
+        amount: -1200000,
+        assetType: "SILVER",
+        description: "اصلاح کارمزد معاملات نقره",
+      },
+    ],
+    tahesabDocumentIds: ["doc-6"],
+  },
 };
 
 export async function getMockTahesabSyncStatus(): Promise<TahesabSyncStatus> {
@@ -1574,6 +1812,17 @@ export async function getMockTahesabBalances(): Promise<TahesabBalanceRecord[]> 
 export async function getMockTahesabBalancesByCustomer(customerId: string): Promise<TahesabBalanceRecord[]> {
   await simulateDelay();
   return mockTahesabBalances.filter((b) => b.customerId === customerId);
+}
+
+export async function getMockTahesabBalanceBreakdown(recordId: string) {
+  await simulateDelay();
+  const breakdown = mockBalanceBreakdowns[recordId];
+  if (!breakdown) throw new Error("Breakdown not found");
+
+  return {
+    ...breakdown,
+    tahesabDocuments: breakdown.tahesabDocumentIds.map((id) => mockTahesabDocumentDetails[id]).filter(Boolean),
+  };
 }
 
 export async function getMockTahesabDocuments(
@@ -1609,6 +1858,55 @@ export async function getMockTahesabDocumentsByRef(
 ): Promise<TahesabDocumentSummary[]> {
   await simulateDelay();
   return mockTahesabDocuments.filter((doc) => doc.internalEntityRef?.type === refType && doc.internalEntityRef.id === refId);
+}
+
+export async function mockTestTahesabConnection(): Promise<{ success: boolean; message: string }> {
+  await simulateDelay(300);
+  const success = Math.random() > 0.15;
+  if (!success) {
+    mockTahesabLogs.unshift({
+      id: `log-${Date.now()}`,
+      time: new Date().toISOString(),
+      level: "ERROR",
+      operation: "TEST_CONNECTION",
+      entityType: "none",
+      message: "پاسخ از سرور تاهساب دریافت نشد",
+    });
+    return { success, message: "پاسخ از سرور دریافت نشد" };
+  }
+
+  mockTahesabLogs.unshift({
+    id: `log-${Date.now()}`,
+    time: new Date().toISOString(),
+    level: "INFO",
+    operation: "TEST_CONNECTION",
+    entityType: "none",
+    message: "تست اتصال موفق بود",
+  });
+  return { success, message: "اتصال با موفقیت برقرار شد" };
+}
+
+export async function mockTriggerTahesabSync(): Promise<{ accepted: boolean; status: TahesabSyncStatus }> {
+  await simulateDelay(500);
+  mockTahesabLogs.unshift({
+    id: `log-${Date.now()}`,
+    time: new Date().toISOString(),
+    level: "INFO",
+    operation: "MANUAL_SYNC",
+    entityType: "none",
+    message: "سینک دستی توسط کاربر آغاز شد",
+  });
+
+  const updatedStatus: TahesabSyncStatus = {
+    ...mockTahesabSyncStatus,
+    lastSyncedAt: new Date().toISOString(),
+    lastSuccessfulSyncAt: new Date().toISOString(),
+    pendingSince: undefined,
+    queueLength: Math.max(0, (mockTahesabSyncStatus.queueLength ?? 0) - 1),
+    errorMessage: null,
+  };
+  Object.assign(mockTahesabSyncStatus, updatedStatus);
+  return { accepted: true, status: { ...mockTahesabSyncStatus } };
 }
 
 // ---------------------------------------------------------------------------

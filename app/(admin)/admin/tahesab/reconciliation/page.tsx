@@ -1,82 +1,78 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getTahesabBalances, getTahesabDocumentById, getTahesabDocumentsByInternalRef } from "@/lib/api/tahesab";
-import { TahesabBalanceRecord, TahesabDocumentDetail } from "@/lib/types/backend";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ReconciliationDetailsDialog } from "@/components/tahesab/reconciliation-details-dialog";
+import {
+  getTahesabBalanceBreakdown,
+  getTahesabBalanceRecords,
+  type TahesabBalanceInternalItem,
+} from "@/lib/api/tahesab";
+import type { TahesabDocumentDetail, TahesabAssetType, TahesabBalanceRecord } from "@/lib/types/backend";
 import { useToast } from "@/hooks/use-toast";
-import { TahesabDocumentDetailsDialog } from "@/components/tahesab/tahesab-document-details-dialog";
+
+const assetTypeOptions: (TahesabAssetType | "ALL")[] = ["ALL", "GOLD", "COIN", "CURRENCY", "SILVER", "PLATINUM"];
 
 export default function TahesabReconciliationPage() {
   const [records, setRecords] = useState<TahesabBalanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
-  const [assetType, setAssetType] = useState<string>("ALL");
-  const [onlyMismatch, setOnlyMismatch] = useState(false);
-  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
-  const [selectedDoc, setSelectedDoc] = useState<TahesabDocumentDetail | null>(null);
-  const [relatedDocs, setRelatedDocs] = useState<{ id: string; label: string }[]>([]);
+  const [filters, setFilters] = useState({ asset: "ALL" as TahesabAssetType | "ALL", onlyMismatch: false, query: "" });
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<TahesabBalanceRecord | null>(null);
+  const [internalItems, setInternalItems] = useState<TahesabBalanceInternalItem[]>([]);
+  const [tahesabDocs, setTahesabDocs] = useState<TahesabDocumentDetail[]>([]);
+  const [loadingBreakdown, setLoadingBreakdown] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    getTahesabBalances()
-      .then((data) => {
+    const load = async () => {
+      try {
+        const data = await getTahesabBalanceRecords();
         setRecords(data);
         setError(null);
-      })
-      .catch(() => setError("خطا در دریافت داده‌ها"))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const filtered = useMemo(() => {
-    return records.filter((r) => {
-      const matchesQuery = query
-        ? `${r.customerName ?? r.tahesabAccountCode}`.toLowerCase().includes(query.toLowerCase())
-        : true;
-      const matchesAsset = assetType === "ALL" ? true : r.assetType === assetType;
-      const matchesDiff = onlyMismatch ? r.difference !== 0 : true;
-      return matchesQuery && matchesAsset && matchesDiff;
-    });
-  }, [records, query, assetType, onlyMismatch]);
-
-  const openDetails = async (record: TahesabBalanceRecord) => {
-    setRelatedDocs([]);
-    if (record.customerId) {
-      try {
-        const docs = await getTahesabDocumentsByInternalRef("trade", record.customerId);
-        setRelatedDocs(docs.map((d) => ({ id: d.id, label: `${d.documentNumber} (${d.type})` })));
       } catch (err) {
-        toast({ title: "دریافت سندهای مرتبط با خطا مواجه شد", variant: "destructive" });
-      }
-    }
-    if (record.customerId) setSelectedDocId(null);
-  };
-
-  useEffect(() => {
-    const loadSelected = async () => {
-      if (!selectedDocId) {
-        setSelectedDoc(null);
-        return;
-      }
-
-      try {
-        const detail = await getTahesabDocumentById(selectedDocId);
-        setSelectedDoc(detail);
-      } catch (err) {
-        setSelectedDoc(null);
+        setError("خطا در دریافت داده‌ها");
+      } finally {
+        setLoading(false);
       }
     };
+    load();
+  }, []);
 
-    loadSelected();
-  }, [selectedDocId]);
+  const filteredRecords = useMemo(() => {
+    return records.filter((rec) => {
+      const matchesAsset = filters.asset === "ALL" ? true : rec.assetType === filters.asset;
+      const matchesDiff = filters.onlyMismatch ? rec.difference !== 0 : true;
+      const matchesQuery = filters.query
+        ? `${rec.customerName ?? rec.tahesabAccountCode}`.toLowerCase().includes(filters.query.toLowerCase())
+        : true;
+      return matchesAsset && matchesDiff && matchesQuery;
+    });
+  }, [filters, records]);
+
+  const openDetails = async (record: TahesabBalanceRecord) => {
+    setSelectedRecord(record);
+    setDialogOpen(true);
+    setLoadingBreakdown(true);
+    try {
+      const breakdown = await getTahesabBalanceBreakdown(record.id);
+      setInternalItems(breakdown.internalItems);
+      setTahesabDocs(breakdown.tahesabDocuments);
+    } catch (err) {
+      toast({ title: "خطا در دریافت جزئیات", variant: "destructive" });
+      setInternalItems([]);
+      setTahesabDocs([]);
+    } finally {
+      setLoadingBreakdown(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -88,34 +84,54 @@ export default function TahesabReconciliationPage() {
   }
 
   if (error) {
-    return <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">{error}</div>;
+    return (
+      <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">{error}</div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">مغایرت حساب‌ها</h1>
-          <p className="text-sm text-muted-foreground">مقایسه تراز داخلی با تاهساب</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Input placeholder="جستجو مشتری" value={query} onChange={(e) => setQuery(e.target.value)} className="w-48" />
-          <Select value={assetType} onValueChange={setAssetType}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="نوع دارایی" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">همه</SelectItem>
-              <SelectItem value="GOLD">طلا</SelectItem>
-              <SelectItem value="COIN">سکه</SelectItem>
-              <SelectItem value="CURRENCY">ارز</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant={onlyMismatch ? "secondary" : "outline"} onClick={() => setOnlyMismatch((prev) => !prev)}>
-            فقط اختلاف‌ها
-          </Button>
-        </div>
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold">مغایرت حساب‌ها</h1>
+        <p className="text-sm text-muted-foreground">مقایسه تراز داخلی با تاهساب و مشاهده جزئیات اختلاف</p>
       </div>
+
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle>فیلتر</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              placeholder="نام مشتری / کد حساب"
+              value={filters.query}
+              onChange={(e) => setFilters((f) => ({ ...f, query: e.target.value }))}
+              className="w-52"
+            />
+            <Select value={filters.asset} onValueChange={(v) => setFilters((f) => ({ ...f, asset: v as TahesabAssetType | "ALL" }))}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="نوع دارایی" />
+              </SelectTrigger>
+              <SelectContent>
+                {assetTypeOptions.map((asset) => (
+                  <SelectItem key={asset} value={asset}>
+                    {asset === "ALL" ? "همه" : asset}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant={filters.onlyMismatch ? "secondary" : "outline"}
+              onClick={() => setFilters((f) => ({ ...f, onlyMismatch: !f.onlyMismatch }))}
+            >
+              فقط دارای مغایرت
+            </Button>
+          </div>
+          <Button variant="ghost" onClick={() => setFilters({ asset: "ALL", onlyMismatch: false, query: "" })}>
+            ریست فیلتر
+          </Button>
+        </CardContent>
+      </Card>
 
       <Card className="shadow-sm">
         <CardHeader>
@@ -134,84 +150,48 @@ export default function TahesabReconciliationPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => (
+              {filteredRecords.map((rec) => (
                 <tr
-                  key={r.id}
-                  className="cursor-pointer border-t transition hover:bg-muted/40"
-                  onClick={() => openDetails(r)}
+                  key={rec.id}
+                  className="cursor-pointer border-t transition hover:bg-muted/50"
+                  onClick={() => openDetails(rec)}
                 >
                   <td className="p-2 font-semibold">
-                    {r.customerName ?? "حساب سیستمی"}
-                    <p className="text-xs text-muted-foreground">{r.tahesabAccountCode}</p>
+                    {rec.customerName ?? "حساب سیستمی"}
+                    <p className="text-xs text-muted-foreground">{rec.tahesabAccountCode}</p>
                   </td>
-                  <td className="p-2">{r.assetType}</td>
-                  <td className="p-2">{r.balanceInternal.toLocaleString("fa-IR")}</td>
-                  <td className="p-2">{r.balanceTahesab.toLocaleString("fa-IR")}</td>
+                  <td className="p-2">{rec.assetType}</td>
+                  <td className="p-2">{rec.balanceInternal.toLocaleString("fa-IR")}</td>
+                  <td className="p-2">{rec.balanceTahesab.toLocaleString("fa-IR")}</td>
                   <td className="p-2">
-                    <Badge variant={r.difference === 0 ? "secondary" : "destructive"}>
-                      {r.difference.toLocaleString("fa-IR")}
+                    <Badge variant={rec.difference === 0 ? "secondary" : "destructive"}>
+                      {rec.difference.toLocaleString("fa-IR")}
                     </Badge>
                   </td>
-                  <td className="p-2 text-xs text-muted-foreground">{new Date(r.lastSyncedAt).toLocaleString("fa-IR")}</td>
+                  <td className="p-2 text-xs text-muted-foreground">{new Date(rec.lastSyncedAt).toLocaleString("fa-IR")}</td>
                 </tr>
               ))}
+              {filteredRecords.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="p-4 text-center text-sm text-muted-foreground">
+                    موردی یافت نشد
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
-          {filtered.length === 0 && (
-            <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">موردی یافت نشد</div>
-          )}
         </CardContent>
       </Card>
 
-      <Tabs
-        defaultValue="internal"
-        items={[
-          {
-            value: "internal",
-            label: "جزئیات داخلی",
-            content: (
-              <Card className="shadow-sm">
-                <CardHeader>
-                  <CardTitle>جزئیات انتخاب شده</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm text-muted-foreground">
-                  برای مشاهده جزئیات حساب روی ردیف کلیک کنید.
-                </CardContent>
-              </Card>
-            ),
-          },
-          {
-            value: "tahesab",
-            label: "سندهای تاهساب",
-            content: (
-              <Card className="shadow-sm">
-                <CardHeader>
-                  <CardTitle>سندهای مرتبط</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="max-h-64 space-y-2">
-                    {relatedDocs.length === 0 && (
-                      <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
-                        سندی انتخاب نشده است
-                      </div>
-                    )}
-                    {relatedDocs.map((doc) => (
-                      <div key={doc.id} className="flex items-center justify-between rounded-lg border p-2">
-                        <div className="text-sm font-semibold">{doc.label}</div>
-                        <Button size="sm" variant="outline" onClick={() => setSelectedDocId(doc.id)}>
-                          مشاهده جزئیات
-                        </Button>
-                      </div>
-                    ))}
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            ),
-          },
-        ]}
-      />
-
-      <TahesabDocumentDetailsDialog document={selectedDoc} open={Boolean(selectedDocId)} onOpenChange={(o) => !o && setSelectedDocId(null)} />
+      <ScrollArea className="max-h-[70vh]">
+        <ReconciliationDetailsDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          record={selectedRecord}
+          internalItems={loadingBreakdown ? [] : internalItems}
+          documents={loadingBreakdown ? [] : tahesabDocs}
+        />
+      </ScrollArea>
     </div>
   );
 }
