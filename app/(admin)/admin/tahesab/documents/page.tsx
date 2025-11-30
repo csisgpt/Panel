@@ -9,11 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { TahesabDocumentDetailsDialog } from "@/components/tahesab/tahesab-document-details-dialog";
 import { getTahesabDocumentById, getTahesabDocuments } from "@/lib/api/tahesab";
-import type {
-  TahesabDocumentDetail,
+import {
   TahesabDocumentStatus,
-  TahesabDocumentSummary,
   TahesabDocumentType,
+  type TahesabDocumentDetail,
+  type TahesabDocumentSummary,
 } from "@/lib/types/backend";
 
 const typeLabels: Record<TahesabDocumentType, string> = {
