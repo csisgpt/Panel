@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeftRight, FileText, Map, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getTahesabBalances, getTahesabDocuments, getTahesabSyncStatus } from "@/lib/api/tahesab";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TahesabSyncStatusCard } from "@/components/tahesab/tahesab-sync-status-card";
+import { getTahesabBalanceRecords, getTahesabDocuments, getTahesabSyncStatus } from "@/lib/api/tahesab";
 import { TahesabBalanceRecord, TahesabDocumentType } from "@/lib/types/backend";
 
 export const metadata = {
@@ -10,26 +12,26 @@ export const metadata = {
 };
 
 function summarizeBalances(records: TahesabBalanceRecord[]) {
-  const summary: Record<string, { internal: number; tahesab: number }> = {};
-  records.forEach((r) => {
-    if (!summary[r.assetType]) summary[r.assetType] = { internal: 0, tahesab: 0 };
-    summary[r.assetType].internal += r.balanceInternal;
-    summary[r.assetType].tahesab += r.balanceTahesab;
-  });
-  return summary;
+  return records.reduce<Record<string, { internal: number; tahesab: number; diff: number }>>((acc, rec) => {
+    const key = rec.assetType;
+    const current = acc[key] ?? { internal: 0, tahesab: 0, diff: 0 };
+    current.internal += rec.balanceInternal;
+    current.tahesab += rec.balanceTahesab;
+    current.diff += rec.difference;
+    acc[key] = current;
+    return acc;
+  }, {});
 }
 
 export default async function TahesabOverviewPage() {
-  const [syncStatus, balances, documents] = await Promise.all([
+  const [status, balances, documents] = await Promise.all([
     getTahesabSyncStatus(),
-    getTahesabBalances(),
+    getTahesabBalanceRecords(),
     getTahesabDocuments(),
   ]);
 
   const balanceSummary = summarizeBalances(balances);
   const diffCount = balances.filter((b) => b.difference !== 0).length;
-  const docsToday = documents.filter((d) => new Date(d.date).toDateString() === new Date().toDateString()).length;
-
   const docsByType = documents.reduce<Record<TahesabDocumentType, number>>((acc, doc) => {
     acc[doc.type] = (acc[doc.type] ?? 0) + 1;
     return acc;
@@ -37,41 +39,16 @@ export default async function TahesabOverviewPage() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="space-y-1">
         <h1 className="text-2xl font-bold">نمای کلی تاهساب</h1>
         <p className="text-sm text-muted-foreground">خلاصه وضعیت اتصال، ترازها و سندهای اخیر</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <Card className="shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between gap-2">
-            <CardTitle className="text-base">وضعیت اتصال</CardTitle>
-            <Badge variant={syncStatus.connected ? "success" : "destructive"}>
-              {syncStatus.connected ? "متصل" : "قطع"}
-            </Badge>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">آخرین سینک</span>
-              <span className="font-semibold">{new Date(syncStatus.lastSyncedAt).toLocaleString("fa-IR")}</span>
-            </div>
-            {syncStatus.nextScheduledAt && (
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">سینک بعدی</span>
-                <span className="font-semibold">{new Date(syncStatus.nextScheduledAt).toLocaleString("fa-IR")}</span>
-              </div>
-            )}
-            {syncStatus.queueLength !== undefined && (
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">صف انتظار</span>
-                <span className="font-semibold">{syncStatus.queueLength} مورد</span>
-              </div>
-            )}
-            <Button asChild variant="outline" size="sm" className="mt-2 w-full">
-              <Link href="/admin/tahesab/connection">نمایش وضعیت اتصال</Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <TahesabSyncStatusCard
+          status={status}
+          description="وضعیت همگام‌سازی و برنامه زمان‌بندی"
+        />
 
         <Card className="shadow-sm">
           <CardHeader>
@@ -81,16 +58,16 @@ export default async function TahesabOverviewPage() {
             {Object.entries(balanceSummary).map(([asset, sums]) => {
               const diff = sums.tahesab - sums.internal;
               return (
-                <div key={asset} className="flex items-center justify-between rounded-lg bg-muted/40 p-2">
-                  <div className="space-y-1">
+                <div key={asset} className="flex items-center justify-between rounded-lg bg-muted/40 p-3">
+                  <div>
                     <p className="text-xs text-muted-foreground">{asset}</p>
                     <p className="font-semibold">داخلی: {sums.internal.toLocaleString("fa-IR")}</p>
                   </div>
                   <div className="text-left">
                     <p>تاهساب: {sums.tahesab.toLocaleString("fa-IR")}</p>
-                    <p className={diff === 0 ? "text-muted-foreground text-xs" : "text-destructive text-xs font-semibold"}>
+                    <Badge variant={diff === 0 ? "secondary" : "destructive"} className="mt-1">
                       اختلاف: {diff.toLocaleString("fa-IR")}
-                    </p>
+                    </Badge>
                   </div>
                 </div>
               );
@@ -100,7 +77,7 @@ export default async function TahesabOverviewPage() {
 
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base">مغایرت‌ها و سندها</CardTitle>
+            <CardTitle className="text-base">سندها و مغایرت‌ها</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex items-center justify-between">
@@ -108,24 +85,78 @@ export default async function TahesabOverviewPage() {
               <Badge variant={diffCount > 0 ? "destructive" : "secondary"}>{diffCount}</Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span>سندهای امروز</span>
-              <Badge variant="secondary">{docsToday}</Badge>
+              <span>تعداد کل سندها</span>
+              <Badge variant="secondary">{documents.length}</Badge>
             </div>
-            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+            <div className="flex flex-wrap gap-2 pt-1 text-xs text-muted-foreground">
               {Object.entries(docsByType).map(([type, count]) => (
                 <Badge key={type} variant="outline">
                   {type}: {count}
                 </Badge>
               ))}
             </div>
-            <div className="flex flex-col gap-2 pt-2">
+            <div className="grid grid-cols-2 gap-2 pt-3">
               <Button asChild variant="outline" size="sm">
                 <Link href="/admin/tahesab/reconciliation">مشاهده مغایرت‌ها</Link>
               </Button>
               <Button asChild variant="secondary" size="sm">
-                <Link href="/admin/tahesab/documents">مشاهده سندها</Link>
+                <Link href="/admin/tahesab/documents">سندهای اخیر</Link>
               </Button>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center gap-2">
+            <ArrowLeftRight className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-base">کنترل اتصال</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">مدیریت اتصال و تست سینک</p>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/admin/tahesab/connection">جزئیات</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center gap-2">
+            <RefreshCw className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-base">مغایرت‌گیری</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">بررسی اختلاف تراز مشتریان</p>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/admin/tahesab/reconciliation">مشاهده</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-base">سندها</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">پیگیری وضعیت ارسال اسناد</p>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/admin/tahesab/documents">باز کردن</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center gap-2">
+            <Map className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-base">نگاشت حساب‌ها</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">وضعیت نگاشت به کدهای تاهساب</p>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/admin/tahesab/mapping">مدیریت</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
