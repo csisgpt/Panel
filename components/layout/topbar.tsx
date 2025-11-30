@@ -1,22 +1,34 @@
 'use client';
 
-import { Search, Sun, Moon, Menu } from "lucide-react";
+import { Search, Sun, Moon, Menu, LogOut } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
+
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
 import { Avatar } from "../ui/avatar";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
+import { clearSession } from "@/lib/session";
 
 interface TopbarProps {
   onMenuClick?: () => void;
   userName?: string;
+  userRole?: string;
   pageTitle?: string;
   badge?: string;
+  onLogout?: () => void;
 }
 
-export function Topbar({ onMenuClick, userName, pageTitle, badge }: TopbarProps) {
+export function Topbar({ onMenuClick, userName, userRole, pageTitle, badge, onLogout }: TopbarProps) {
   const { setTheme, theme } = useTheme();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    clearSession();
+    onLogout?.();
+    router.replace("/login");
+  };
 
   return (
     <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
@@ -44,12 +56,15 @@ export function Topbar({ onMenuClick, userName, pageTitle, badge }: TopbarProps)
             >
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-            <div className="hidden items-center gap-2 rounded-full border px-3 py-1 sm:flex">
+            <div className="hidden items-center gap-3 rounded-full border px-3 py-1 sm:flex">
               <div className="text-right">
-                <p className="text-xs text-muted-foreground">خوش آمدید</p>
+                <p className="text-xs text-muted-foreground">{userRole ?? "کاربر سیستم"}</p>
                 <p className="text-sm font-semibold">{userName ?? "کاربر"}</p>
               </div>
               <Avatar name={userName ?? "کاربر"} />
+              <Button variant="ghost" size="sm" onClick={handleLogout} className="text-xs">
+                <LogOut className="ml-1 h-4 w-4" />خروج
+              </Button>
             </div>
           </div>
         </div>
@@ -72,10 +87,13 @@ export function Topbar({ onMenuClick, userName, pageTitle, badge }: TopbarProps)
             </Badge>
             <div className="flex items-center gap-2 rounded-full border px-3 py-1 sm:hidden">
               <div className="text-right">
-                <p className="text-[10px] text-muted-foreground">خوش آمدید</p>
+                <p className="text-[10px] text-muted-foreground">{userRole ?? "کاربر"}</p>
                 <p className="text-xs font-semibold">{userName ?? "کاربر"}</p>
               </div>
               <Avatar name={userName ?? "کاربر"} />
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleLogout}>
+                <LogOut className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
