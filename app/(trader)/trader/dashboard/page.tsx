@@ -94,7 +94,7 @@ export default function TraderDashboardPage() {
         customer: wd.user?.fullName ?? "برداشت کننده",
         contact: wd.user?.mobile,
         amount: Number(wd.amount),
-        account: wd.refNo ?? "-",
+        account: wd.accountTxId ?? wd.iban ?? wd.cardNumber ?? "-",
         instrument: "برداشت",
         statusLabel: wd.status,
         statusVariant: badgeForWithdraw(wd.status),
