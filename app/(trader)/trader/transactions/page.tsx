@@ -94,7 +94,7 @@ export default function TraderTransactionsPage() {
         kind: "WITHDRAW" as TransactionKind,
         customer: wd.user?.fullName ?? "برداشت کننده",
         contact: wd.user?.mobile,
-        account: wd.refNo ?? wd.accountTxId ?? "-",
+        account: wd.accountTxId ?? wd.iban ?? wd.cardNumber ?? "-",
         instrument: "برداشت",
         amount: Number(wd.amount),
         statusLabel: mapWithdrawStatus(wd.status).label,
