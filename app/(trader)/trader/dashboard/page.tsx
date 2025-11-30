@@ -17,8 +17,10 @@ import { getWithdrawals } from "@/lib/api/withdrawals";
 import { getRemittances } from "@/lib/api/remittances";
 import {
   DepositRequest,
+  DepositStatus,
   Trade,
   WithdrawRequest,
+  WithdrawStatus,
 } from "@/lib/types/backend";
 import { Remittance, RemittanceStatus } from "@/lib/mock-data";
 
@@ -82,7 +84,7 @@ export default function TraderDashboardPage() {
         account: dep.refNo ?? "-",
         instrument: "واریز ریالی",
         statusLabel: dep.status,
-        statusVariant: dep.status === "APPROVED" ? "success" : dep.status === "PENDING" ? "warning" : "destructive",
+        statusVariant: badgeForDeposit(dep.status),
         createdAt: dep.createdAt,
         deposit: dep,
       })),
@@ -95,7 +97,7 @@ export default function TraderDashboardPage() {
         account: wd.refNo ?? "-",
         instrument: "برداشت",
         statusLabel: wd.status,
-        statusVariant: wd.status === "APPROVED" ? "success" : wd.status === "PENDING" ? "warning" : "destructive",
+        statusVariant: badgeForWithdraw(wd.status),
         createdAt: wd.createdAt,
         withdrawal: wd,
       })),
@@ -261,5 +263,27 @@ function statusLabel(status: RemittanceStatus) {
       return "ارسال شده";
     default:
       return "ناموفق";
+  }
+}
+
+function badgeForDeposit(status: DepositStatus): TransactionRow["statusVariant"] {
+  switch (status) {
+    case DepositStatus.APPROVED:
+      return "success";
+    case DepositStatus.PENDING:
+      return "warning";
+    default:
+      return "destructive";
+  }
+}
+
+function badgeForWithdraw(status: WithdrawStatus): TransactionRow["statusVariant"] {
+  switch (status) {
+    case WithdrawStatus.APPROVED:
+      return "success";
+    case WithdrawStatus.PENDING:
+      return "warning";
+    default:
+      return "destructive";
   }
 }
