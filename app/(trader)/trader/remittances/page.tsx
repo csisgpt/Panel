@@ -149,10 +149,10 @@ export default function TraderRemittancesPage() {
                   onClick={() => setSelected(rem)}
                 >
                   <td className="p-2">
-                    <div className="font-semibold">{accountById[rem.fromAccountId]?.iban ?? rem.fromAccountId}</div>
+                    <div className="font-semibold">{accountById[rem.fromAccountId]?.id ?? rem.fromAccountId}</div>
                     <p className="text-xs text-muted-foreground">{userById[rem.customerId]?.fullName}</p>
                   </td>
-                  <td className="p-2">{accountById[rem.toAccountId]?.iban ?? rem.toAccountId}</td>
+                  <td className="p-2">{accountById[rem.toAccountId]?.id ?? rem.toAccountId}</td>
                   <td className="p-2 text-right font-semibold">{rem.amount.toLocaleString("fa-IR")}</td>
                   <td className="p-2">
                     <Badge variant={badgeVariant(rem.status)}>{statusLabel(rem.status)}</Badge>
