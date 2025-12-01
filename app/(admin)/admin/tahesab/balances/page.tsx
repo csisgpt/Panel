@@ -49,7 +49,7 @@ export default function TahesabBalancesPage() {
     const loadBanks = async () => {
       setBanks((prev) => ({ ...prev, loading: true }));
       try {
-        const data = await getTahesabBankBalances({
+        const data: TahesabBankBalance[] = await getTahesabBankBalances({
           fromDate: bankFilters.fromDate || undefined,
           toDate: bankFilters.toDate || undefined,
         });
