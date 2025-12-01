@@ -81,7 +81,7 @@ export default function TahesabBalancesPage() {
     const loadFinished = async () => {
       setFinished((prev) => ({ ...prev, loading: true }));
       try {
-        const data = await getTahesabFinishedInventory();
+        const data = (await getTahesabFinishedInventory()) as TahesabFinishedInventoryItem[];
         setFinished({ data, loading: false, error: null });
       } catch (err) {
         setFinished({ data: [], loading: false, error: "خطا در دریافت کارساخته" });
