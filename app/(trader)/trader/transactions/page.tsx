@@ -19,7 +19,7 @@ import {
   WithdrawRequest,
   WithdrawStatus,
 } from "@/lib/types/backend";
-import { BadgeVariant } from "@/components/ui/badge";
+import { BadgeVariants } from "@/components/ui/badge";
 
 const transactionTypeOptions = [
   { label: "همه نوع تراکنش", value: "ALL" },
@@ -40,7 +40,7 @@ type FilterStatus = (typeof statusFilterOptions)[number]["value"];
 
 type StatusMeta = {
   label: string;
-  variant: BadgeVariant;
+  variant: BadgeVariants;
   filterStatus: Exclude<FilterStatus, "ALL">;
 };
 
