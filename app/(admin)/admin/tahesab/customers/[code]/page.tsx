@@ -140,10 +140,10 @@ export default async function TahesabCustomerDetailPage({ params }: { params: { 
                 {documents.map((doc) => (
                   <tr key={doc.id} className="border-t">
                     <td className="p-2 text-xs text-muted-foreground">{new Date(doc.date).toLocaleDateString("fa-IR")}</td>
-                    <td className="p-2 font-semibold">{doc.documentNumber}</td>
+                    <td className="p-2 font-semibold">{doc.documentNo}</td>
                     <td className="p-2">{doc.type}</td>
-                    <td className="p-2">{doc.totalAmount ?? doc.totalWeight ?? "-"}</td>
-                    <td className="p-2">{doc.status}</td>
+                    <td className="p-2">{doc.amount ?? doc.weight ?? "-"}</td>
+                    <td className="p-2">-</td>
                   </tr>
                 ))}
               </tbody>
