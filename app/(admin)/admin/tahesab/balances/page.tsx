@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs } from "@/components/ui/tabs";
 import {
   getTahesabBankBalances,
   getTahesabFinishedInventory,
@@ -105,22 +105,13 @@ export default function TahesabBalancesPage() {
 
   const totalGoldWeight = useMemo(() => taraz.data?.totalGoldWeight ?? 0, [taraz.data]);
 
-  return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold">موجودی و تراز</h1>
-        <p className="text-sm text-muted-foreground">مرور موجودی بانک، طلا، کارساخته و خلاصه تراز</p>
-      </div>
-
-      <Tabs defaultValue="banks">
-        <TabsList className="flex flex-wrap gap-2">
-          <TabsTrigger value="banks">بانک</TabsTrigger>
-          <TabsTrigger value="gold">طلا / متفرقه</TabsTrigger>
-          <TabsTrigger value="finished">کارساخته</TabsTrigger>
-          <TabsTrigger value="taraz">تراز</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="banks" className="space-y-4">
+  const tabItems = useMemo(
+    () => [
+      {
+        value: "banks",
+        label: "بانک",
+        content: (
+          <div className="space-y-4">
           <Card className="shadow-sm">
             <CardHeader>
               <CardTitle>فیلتر تاریخ</CardTitle>
@@ -181,9 +172,14 @@ export default function TahesabBalancesPage() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="gold" className="space-y-4">
+        </div>
+        ),
+      },
+      {
+        value: "gold",
+        label: "طلا / متفرقه",
+        content: (
+          <div className="space-y-4">
           <Card className="shadow-sm">
             <CardHeader>
               <CardTitle>فیلتر موجودی طلا</CardTitle>
@@ -240,9 +236,14 @@ export default function TahesabBalancesPage() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="finished" className="space-y-4">
+        </div>
+        ),
+      },
+      {
+        value: "finished",
+        label: "کارساخته",
+        content: (
+          <div className="space-y-4">
           <Card className="shadow-sm">
             <CardHeader>
               <CardTitle>موجودی کارساخته</CardTitle>
@@ -278,9 +279,14 @@ export default function TahesabBalancesPage() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="taraz" className="space-y-4">
+        </div>
+        ),
+      },
+      {
+        value: "taraz",
+        label: "تراز",
+        content: (
+          <div className="space-y-4">
           <Card className="shadow-sm">
             <CardHeader>
               <CardTitle>خلاصه تراز</CardTitle>
@@ -388,8 +394,39 @@ export default function TahesabBalancesPage() {
           {taraz.data && (
             <p className="text-xs text-muted-foreground">آخرین وزن کل طلا: {totalGoldWeight}</p>
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+        ),
+      },
+    ],
+    [
+      bankFilters.fromDate,
+      bankFilters.toDate,
+      banks.data,
+      banks.error,
+      banks.loading,
+      finished.data,
+      finished.error,
+      finished.loading,
+      goldFilters.ayar,
+      goldFilters.metal,
+      goldInventory.data,
+      goldInventory.error,
+      goldInventory.loading,
+      taraz.data,
+      taraz.error,
+      taraz.loading,
+      totalGoldWeight,
+    ],
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold">موجودی و تراز</h1>
+        <p className="text-sm text-muted-foreground">مرور موجودی بانک، طلا، کارساخته و خلاصه تراز</p>
+      </div>
+
+      <Tabs defaultValue="banks" items={tabItems} />
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { FormEvent, SyntheticEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -146,6 +146,163 @@ export default function TahesabManualDocumentsPage() {
     }
   };
 
+  const tabItems = [
+    {
+      value: "gold",
+      label: "طلا / متفرقه",
+      content: (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>سند طلا / متفرقه</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form className="grid gap-3 md:grid-cols-2" onSubmit={handleGoldSubmit}>
+              <Input placeholder="کد مشتری" value={goldForm.customerCode} onChange={(e) => setGoldForm((p) => ({ ...p, customerCode: e.target.value }))} />
+              <Input type="date" value={goldForm.date} onChange={(e) => setGoldForm((p) => ({ ...p, date: e.target.value }))} />
+              <Input placeholder="نوع سند (IN/OUT/BUY/SELL)" value={goldForm.documentType} onChange={(e) => setGoldForm((p) => ({ ...p, documentType: e.target.value }))} />
+              <Input placeholder="فلز" value={goldForm.metal} onChange={(e) => setGoldForm((p) => ({ ...p, metal: e.target.value }))} />
+              <Input placeholder="عیار" value={goldForm.ayar} onChange={(e) => setGoldForm((p) => ({ ...p, ayar: e.target.value }))} />
+              <Input placeholder="وزن" value={goldForm.weight} onChange={(e) => setGoldForm((p) => ({ ...p, weight: e.target.value }))} />
+              <Input placeholder="قیمت هر گرم" value={goldForm.pricePerGram} onChange={(e) => setGoldForm((p) => ({ ...p, pricePerGram: e.target.value }))} />
+              <Textarea
+                className="md:col-span-2"
+                placeholder="توضیحات"
+                value={goldForm.description}
+                onChange={(e) => setGoldForm((p) => ({ ...p, description: e.target.value }))}
+              />
+              <div className="md:col-span-2 flex justify-end">
+                <Button type="submit">ثبت سند</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      ),
+    },
+    {
+      value: "coin",
+      label: "سکه",
+      content: (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>سند سکه</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form className="grid gap-3 md:grid-cols-2" onSubmit={handleCoinSubmit}>
+              <Input placeholder="کد مشتری" value={coinForm.customerCode} onChange={(e) => setCoinForm((p) => ({ ...p, customerCode: e.target.value }))} />
+              <Input type="date" value={coinForm.date} onChange={(e) => setCoinForm((p) => ({ ...p, date: e.target.value }))} />
+              <Input placeholder="نوع عملیات (IN/OUT/BUY/SELL)" value={coinForm.operationType} onChange={(e) => setCoinForm((p) => ({ ...p, operationType: e.target.value }))} />
+              <Input placeholder="نوع سکه" value={coinForm.coinType} onChange={(e) => setCoinForm((p) => ({ ...p, coinType: e.target.value }))} />
+              <Input placeholder="تعداد" value={coinForm.quantity} onChange={(e) => setCoinForm((p) => ({ ...p, quantity: e.target.value }))} />
+              <Input placeholder="قیمت واحد" value={coinForm.unitPrice} onChange={(e) => setCoinForm((p) => ({ ...p, unitPrice: e.target.value }))} />
+              <Textarea
+                className="md:col-span-2"
+                placeholder="توضیحات"
+                value={coinForm.description}
+                onChange={(e) => setCoinForm((p) => ({ ...p, description: e.target.value }))}
+              />
+              <div className="md:col-span-2 flex justify-end">
+                <Button type="submit">ثبت سند</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      ),
+    },
+    {
+      value: "financial",
+      label: "مالی",
+      content: (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>اسناد مالی</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <form className="grid gap-3 md:grid-cols-2" onSubmit={(e) => handleFinancial("cash", e)}>
+              <Input placeholder="کد مشتری" value={financialForm.customerCode} onChange={(e) => setFinancialForm((p) => ({ ...p, customerCode: e.target.value }))} />
+              <Input type="number" placeholder="مبلغ" value={financialForm.amount} onChange={(e) => setFinancialForm((p) => ({ ...p, amount: e.target.value }))} />
+              <Input type="date" value={financialForm.date} onChange={(e) => setFinancialForm((p) => ({ ...p, date: e.target.value }))} />
+              <Textarea
+                className="md:col-span-2"
+                placeholder="توضیحات"
+                value={financialForm.description}
+                onChange={(e) => setFinancialForm((p) => ({ ...p, description: e.target.value }))}
+              />
+              <div className="md:col-span-2 flex justify-end gap-2">
+                <Button type="submit">ثبت نقدی</Button>
+                <Button type="button" variant="outline" onClick={(e) => handleFinancial("bank", e)}>
+                  ثبت بانکی
+                </Button>
+                <Button type="button" variant="outline" onClick={(e) => handleFinancial("discount", e)}>
+                  تخفیف
+                </Button>
+                <Button type="button" variant="outline" onClick={(e) => handleFinancial("debtCredit", e)}>
+                  بدهکار/بستانکار
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      ),
+    },
+    {
+      value: "finished",
+      label: "کارساخته",
+      content: (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>سند کارساخته</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form className="grid gap-3 md:grid-cols-2" onSubmit={handleFinishedSubmit}>
+              <Input placeholder="کد مشتری" value={finishedForm.customerCode} onChange={(e) => setFinishedForm((p) => ({ ...p, customerCode: e.target.value }))} />
+              <Input placeholder="نام کار" value={finishedForm.workName} onChange={(e) => setFinishedForm((p) => ({ ...p, workName: e.target.value }))} />
+              <Input placeholder="تعداد" value={finishedForm.quantity} onChange={(e) => setFinishedForm((p) => ({ ...p, quantity: e.target.value }))} />
+              <Input placeholder="وزن" value={finishedForm.weight} onChange={(e) => setFinishedForm((p) => ({ ...p, weight: e.target.value }))} />
+              <Input type="date" value={finishedForm.date} onChange={(e) => setFinishedForm((p) => ({ ...p, date: e.target.value }))} />
+              <Textarea
+                className="md:col-span-2"
+                placeholder="توضیحات"
+                value={finishedForm.description}
+                onChange={(e) => setFinishedForm((p) => ({ ...p, description: e.target.value }))}
+              />
+              <div className="md:col-span-2 flex justify-end">
+                <Button type="submit">ثبت سند</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      ),
+    },
+    {
+      value: "tags",
+      label: "اتیکت",
+      content: (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>سند اتیکت</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form className="grid gap-3 md:grid-cols-2" onSubmit={handleTagSubmit}>
+              <Input placeholder="کد مشتری" value={tagForm.customerCode} onChange={(e) => setTagForm((p) => ({ ...p, customerCode: e.target.value }))} />
+              <Input placeholder="کد اتیکت" value={tagForm.tagCode} onChange={(e) => setTagForm((p) => ({ ...p, tagCode: e.target.value }))} />
+              <Input placeholder="نوع حرکت (IN/OUT)" value={tagForm.movementType} onChange={(e) => setTagForm((p) => ({ ...p, movementType: e.target.value }))} />
+              <Input type="date" value={tagForm.date} onChange={(e) => setTagForm((p) => ({ ...p, date: e.target.value }))} />
+              <Textarea
+                className="md:col-span-2"
+                placeholder="توضیحات"
+                value={tagForm.description}
+                onChange={(e) => setTagForm((p) => ({ ...p, description: e.target.value }))}
+              />
+              <div className="md:col-span-2 flex justify-end">
+                <Button type="submit">ثبت سند</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="space-y-1">
@@ -153,154 +310,7 @@ export default function TahesabManualDocumentsPage() {
         <p className="text-sm text-muted-foreground">ثبت دستی انواع سند برای اتصال به تاهساب</p>
       </div>
 
-      <Tabs defaultValue="gold">
-        <TabsList className="flex flex-wrap gap-2">
-          <TabsTrigger value="gold">طلا / متفرقه</TabsTrigger>
-          <TabsTrigger value="coin">سکه</TabsTrigger>
-          <TabsTrigger value="financial">مالی</TabsTrigger>
-          <TabsTrigger value="finished">کارساخته</TabsTrigger>
-          <TabsTrigger value="tags">اتیکت</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="gold">
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle>سند طلا / متفرقه</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form className="grid gap-3 md:grid-cols-2" onSubmit={handleGoldSubmit}>
-                <Input placeholder="کد مشتری" value={goldForm.customerCode} onChange={(e) => setGoldForm((p) => ({ ...p, customerCode: e.target.value }))} />
-                <Input type="date" value={goldForm.date} onChange={(e) => setGoldForm((p) => ({ ...p, date: e.target.value }))} />
-                <Input placeholder="نوع سند (IN/OUT/BUY/SELL)" value={goldForm.documentType} onChange={(e) => setGoldForm((p) => ({ ...p, documentType: e.target.value }))} />
-                <Input placeholder="فلز" value={goldForm.metal} onChange={(e) => setGoldForm((p) => ({ ...p, metal: e.target.value }))} />
-                <Input placeholder="عیار" value={goldForm.ayar} onChange={(e) => setGoldForm((p) => ({ ...p, ayar: e.target.value }))} />
-                <Input placeholder="وزن" value={goldForm.weight} onChange={(e) => setGoldForm((p) => ({ ...p, weight: e.target.value }))} />
-                <Input placeholder="قیمت هر گرم" value={goldForm.pricePerGram} onChange={(e) => setGoldForm((p) => ({ ...p, pricePerGram: e.target.value }))} />
-                <Textarea
-                  className="md:col-span-2"
-                  placeholder="توضیحات"
-                  value={goldForm.description}
-                  onChange={(e) => setGoldForm((p) => ({ ...p, description: e.target.value }))}
-                />
-                <div className="md:col-span-2 flex justify-end">
-                  <Button type="submit">ثبت سند</Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="coin">
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle>سند سکه</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form className="grid gap-3 md:grid-cols-2" onSubmit={handleCoinSubmit}>
-                <Input placeholder="کد مشتری" value={coinForm.customerCode} onChange={(e) => setCoinForm((p) => ({ ...p, customerCode: e.target.value }))} />
-                <Input type="date" value={coinForm.date} onChange={(e) => setCoinForm((p) => ({ ...p, date: e.target.value }))} />
-                <Input placeholder="نوع عملیات (IN/OUT/BUY/SELL)" value={coinForm.operationType} onChange={(e) => setCoinForm((p) => ({ ...p, operationType: e.target.value }))} />
-                <Input placeholder="نوع سکه" value={coinForm.coinType} onChange={(e) => setCoinForm((p) => ({ ...p, coinType: e.target.value }))} />
-                <Input placeholder="تعداد" value={coinForm.quantity} onChange={(e) => setCoinForm((p) => ({ ...p, quantity: e.target.value }))} />
-                <Input placeholder="قیمت واحد" value={coinForm.unitPrice} onChange={(e) => setCoinForm((p) => ({ ...p, unitPrice: e.target.value }))} />
-                <Textarea
-                  className="md:col-span-2"
-                  placeholder="توضیحات"
-                  value={coinForm.description}
-                  onChange={(e) => setCoinForm((p) => ({ ...p, description: e.target.value }))}
-                />
-                <div className="md:col-span-2 flex justify-end">
-                  <Button type="submit">ثبت سند</Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="financial">
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle>اسناد مالی</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <form className="grid gap-3 md:grid-cols-2" onSubmit={(e) => handleFinancial("cash", e)}>
-                <Input placeholder="کد مشتری" value={financialForm.customerCode} onChange={(e) => setFinancialForm((p) => ({ ...p, customerCode: e.target.value }))} />
-                <Input type="number" placeholder="مبلغ" value={financialForm.amount} onChange={(e) => setFinancialForm((p) => ({ ...p, amount: e.target.value }))} />
-                <Input type="date" value={financialForm.date} onChange={(e) => setFinancialForm((p) => ({ ...p, date: e.target.value }))} />
-                <Textarea
-                  className="md:col-span-2"
-                  placeholder="توضیحات"
-                  value={financialForm.description}
-                  onChange={(e) => setFinancialForm((p) => ({ ...p, description: e.target.value }))}
-                />
-                <div className="md:col-span-2 flex justify-end gap-2">
-                  <Button type="submit">ثبت نقدی</Button>
-                  <Button type="button" variant="outline" onClick={(e) => handleFinancial("bank", e)}>
-                    ثبت بانکی
-                  </Button>
-                  <Button type="button" variant="outline" onClick={(e) => handleFinancial("discount", e)}>
-                    تخفیف
-                  </Button>
-                  <Button type="button" variant="outline" onClick={(e) => handleFinancial("debtCredit", e)}>
-                    بدهکار/بستانکار
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="finished">
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle>سند کارساخته</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form className="grid gap-3 md:grid-cols-2" onSubmit={handleFinishedSubmit}>
-                <Input placeholder="کد مشتری" value={finishedForm.customerCode} onChange={(e) => setFinishedForm((p) => ({ ...p, customerCode: e.target.value }))} />
-                <Input placeholder="نام کار" value={finishedForm.workName} onChange={(e) => setFinishedForm((p) => ({ ...p, workName: e.target.value }))} />
-                <Input placeholder="تعداد" value={finishedForm.quantity} onChange={(e) => setFinishedForm((p) => ({ ...p, quantity: e.target.value }))} />
-                <Input placeholder="وزن" value={finishedForm.weight} onChange={(e) => setFinishedForm((p) => ({ ...p, weight: e.target.value }))} />
-                <Input type="date" value={finishedForm.date} onChange={(e) => setFinishedForm((p) => ({ ...p, date: e.target.value }))} />
-                <Textarea
-                  className="md:col-span-2"
-                  placeholder="توضیحات"
-                  value={finishedForm.description}
-                  onChange={(e) => setFinishedForm((p) => ({ ...p, description: e.target.value }))}
-                />
-                <div className="md:col-span-2 flex justify-end">
-                  <Button type="submit">ثبت سند</Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="tags">
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle>سند اتیکت</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form className="grid gap-3 md:grid-cols-2" onSubmit={handleTagSubmit}>
-                <Input placeholder="کد مشتری" value={tagForm.customerCode} onChange={(e) => setTagForm((p) => ({ ...p, customerCode: e.target.value }))} />
-                <Input placeholder="کد اتیکت" value={tagForm.tagCode} onChange={(e) => setTagForm((p) => ({ ...p, tagCode: e.target.value }))} />
-                <Input placeholder="نوع حرکت (IN/OUT)" value={tagForm.movementType} onChange={(e) => setTagForm((p) => ({ ...p, movementType: e.target.value }))} />
-                <Input type="date" value={tagForm.date} onChange={(e) => setTagForm((p) => ({ ...p, date: e.target.value }))} />
-                <Textarea
-                  className="md:col-span-2"
-                  placeholder="توضیحات"
-                  value={tagForm.description}
-                  onChange={(e) => setTagForm((p) => ({ ...p, description: e.target.value }))}
-                />
-                <div className="md:col-span-2 flex justify-end">
-                  <Button type="submit">ثبت سند</Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <Tabs defaultValue="gold" items={tabItems} />
     </div>
   );
 }
