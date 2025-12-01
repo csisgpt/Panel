@@ -21,6 +21,9 @@ import {
   LayoutDashboard,
   FileText,
   Scale,
+  UsersRound,
+  Scale3D,
+  BadgePercent,
 } from "lucide-react";
 
 const adminNav: NavItem[] = [
@@ -34,6 +37,12 @@ const adminNav: NavItem[] = [
   { href: "/admin/tahesab/mapping", label: "نگاشت", icon: Layers },
   { href: "/admin/tahesab/reconciliation", label: "مغایرت‌ها", icon: Scale },
   { href: "/admin/tahesab/documents", label: "سندهای تاهساب", icon: FileText },
+  { href: "/admin/tahesab/raw-documents", label: "اسناد خام ته‌حساب", icon: FileStack },
+  { href: "/admin/tahesab/customers", label: "مشتریان ته‌حساب", icon: UsersRound },
+  { href: "/admin/tahesab/balances", label: "موجودی و تراز", icon: Scale3D },
+  { href: "/admin/tahesab/master-data", label: "اطلاعات پایه ته‌حساب", icon: FileText },
+  { href: "/admin/tahesab/tags", label: "اتیکت‌ها", icon: Tags },
+  { href: "/admin/tahesab/manual-documents", label: "اسناد دستی", icon: BadgePercent },
   { href: "/admin/tahesab/logs", label: "گزارش تاهساب", icon: FileStack },
   { href: "/admin/risk/settings", label: "تنظیمات ریسک", icon: Cog },
   { href: "/admin/risk/monitor", label: "پایش ریسک", icon: Activity },

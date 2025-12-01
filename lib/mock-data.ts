@@ -44,6 +44,22 @@ import {
   WithdrawRequest,
   WithdrawStatus,
 } from "@/lib/types/backend";
+import type {
+  CreateTahesabCustomerPayload,
+  TahesabBankAccount,
+  TahesabBankBalance,
+  TahesabCoinType,
+  TahesabCustomer,
+  TahesabCustomerBalance,
+  TahesabFinishedInventoryItem,
+  TahesabGoldInventoryItem,
+  TahesabRawDocumentDetail,
+  TahesabRawDocumentSummary,
+  TahesabTag,
+  TahesabTagDetail,
+  TahesabTarazSummary,
+  TahesabWorkName,
+} from "./api/tahesab";
 
 export enum RemittanceStatus {
   PENDING = "PENDING",
@@ -1981,4 +1997,247 @@ export async function createMockRemittance(remittance: Omit<Remittance, "id" | "
   };
   mockRemittances = [newRemittance, ...mockRemittances];
   return newRemittance;
+}
+
+// ---- Tahesab Extended Mock Data ----
+
+let mockTahesabCustomers: TahesabCustomer[] = [
+  {
+    code: "C-1001",
+    name: "مشتری الف",
+    groupId: "G-1",
+    groupName: "عمده فروشان",
+    mobile: "09120000001",
+    nationalId: "0012345678",
+    city: "تهران",
+    address: "خیابان ولیعصر",
+    defaultMetal: "طلا",
+  },
+  {
+    code: "C-1002",
+    name: "مشتری ب",
+    groupId: "G-2",
+    groupName: "خرده فروشان",
+    mobile: "09120000002",
+    nationalId: "0087654321",
+    city: "شیراز",
+    defaultMetal: "نقره",
+  },
+];
+
+const mockTahesabCustomerBalances: Record<string, TahesabCustomerBalance> = {
+  "C-1001": { currency: "IRR", monetaryBalance: 125000000, goldWeightBalance: 12.4 },
+  "C-1002": { currency: "IRR", monetaryBalance: -45000000, goldWeightBalance: 3.2 },
+};
+
+const mockTahesabBankBalances: TahesabBankBalance[] = [
+  { bankName: "ملت", accountNumber: "6037997000001", balance: 320000000, totalDeposit: 54000000, totalWithdraw: 12000000 },
+  { bankName: "ملی", accountNumber: "6037997000002", balance: 78000000, totalDeposit: 13000000, totalWithdraw: 5000000 },
+];
+
+const mockTahesabGoldInventory: TahesabGoldInventoryItem[] = [
+  { metal: "طلا", ayar: 750, weight: 18.6 },
+  { metal: "طلا", ayar: 900, weight: 5.4 },
+  { metal: "نقره", ayar: 999, weight: 12.2 },
+];
+
+const mockTahesabFinishedInventory: TahesabFinishedInventoryItem[] = [
+  { workName: "دستبند زنجیری", metal: "طلا", availableWeight: 2.4, availableCount: 3 },
+  { workName: "گردنبند سکه", metal: "طلا", availableWeight: 5.1, availableCount: 2 },
+];
+
+const mockTahesabTaraz: TahesabTarazSummary = {
+  totalGoldWeight: 120.5,
+  totalGoldValue: 24500000000,
+  totalCurrencyValue: 8200000000,
+  coins: [
+    { name: "تمام بهار", quantity: 30, value: 18000000000 },
+    { name: "نیم", quantity: 45, value: 6000000000 },
+  ],
+  currencies: [
+    { code: "USD", quantity: 12000, value: 7200000000 },
+    { code: "EUR", quantity: 5000, value: 1000000000 },
+  ],
+};
+
+const mockTahesabCoinTypes: TahesabCoinType[] = [
+  { name: "تمام بهار آزادی", weight: 8.133, ayar: 900, description: "سکه تمام" },
+  { name: "نیم بهار آزادی", weight: 4.066, ayar: 900 },
+];
+
+const mockTahesabBankAccounts: TahesabBankAccount[] = [
+  { bankName: "ملت", accountNumber: "6037997000001", iban: "IR1230000001", branch: "ولیعصر" },
+  { bankName: "ملی", accountNumber: "6037997000002", iban: "IR1230000002", branch: "سعدی" },
+];
+
+const mockTahesabWorkNames: TahesabWorkName[] = [
+  { workName: "دستبند زنجیری", metal: "طلا", category: "دستبند" },
+  { workName: "گردنبند سکه", metal: "طلا", category: "گردنبند" },
+];
+
+const mockTahesabTags: TahesabTagDetail[] = [
+  {
+    code: "T-1001",
+    workCode: "W-10",
+    name: "دستبند ظریف",
+    ayar: 750,
+    weight: 2.1,
+    makingCost: 550000,
+    onlinePrice: 28000000,
+    displayPrice: 28500000,
+    hasPhoto: true,
+    isInStock: true,
+    description: "دستبند زنجیری سبک",
+    pricingBreakdown: { weight: 2.1, makingCost: 550000, tax: 200000, profit: 1500000 },
+    imageBase64: "",
+  },
+  {
+    code: "T-1002",
+    workCode: "W-11",
+    name: "انگشتر نگین‌دار",
+    ayar: 750,
+    weight: 3.4,
+    makingCost: 750000,
+    onlinePrice: 42000000,
+    displayPrice: 43000000,
+    hasPhoto: false,
+    isInStock: false,
+  },
+];
+
+const mockTahesabRawDocuments: TahesabRawDocumentDetail[] = [
+  {
+    id: "RD-1",
+    documentNo: "10001",
+    date: new Date().toISOString(),
+    customerCode: "C-1001",
+    customerName: "مشتری الف",
+    type: "BUY",
+    metal: "طلا",
+    amount: 120000000,
+    weight: 10.4,
+    lines: [
+      { rowNo: 1, description: "خرید طلا", amount: 120000000, weight: 10.4, metal: "طلا" },
+    ],
+    rawPayload: { note: "نمونه" },
+  },
+  {
+    id: "RD-2",
+    documentNo: "10002",
+    date: new Date().toISOString(),
+    customerCode: "C-1002",
+    customerName: "مشتری ب",
+    type: "SELL",
+    metal: "طلا",
+    amount: 45000000,
+    weight: 3.2,
+    lines: [
+      { rowNo: 1, description: "فروش طلا", amount: 45000000, weight: 3.2, metal: "طلا" },
+    ],
+    rawPayload: { note: "نمونه" },
+  },
+];
+
+export async function getMockTahesabCustomers(params?: { search?: string; page?: number; pageSize?: number; groupId?: string }) {
+  await simulateDelay();
+  let data = [...mockTahesabCustomers];
+  if (params?.groupId) data = data.filter((c) => c.groupId === params.groupId);
+  if (params?.search) {
+    data = data.filter((c) =>
+      `${c.code} ${c.name} ${c.mobile ?? ""}`.toLowerCase().includes(params.search?.toLowerCase())
+    );
+  }
+  return data;
+}
+
+export async function getMockTahesabCustomerByCode(code: string) {
+  await simulateDelay();
+  return mockTahesabCustomers.find((c) => c.code === code) ?? null;
+}
+
+export async function getMockTahesabCustomerBalances(code: string) {
+  await simulateDelay();
+  return mockTahesabCustomerBalances[code] ?? { currency: "IRR", monetaryBalance: 0 };
+}
+
+export async function getMockTahesabCustomerDocuments(code: string) {
+  await simulateDelay();
+  return mockTahesabRawDocuments.filter((d) => d.customerCode === code);
+}
+
+export async function createMockTahesabCustomer(payload: CreateTahesabCustomerPayload) {
+  await simulateDelay(200);
+  const newCustomer: TahesabCustomer = { ...payload, code: payload.code ?? `C-${mockTahesabCustomers.length + 1001}` } as TahesabCustomer;
+  mockTahesabCustomers = [newCustomer, ...mockTahesabCustomers];
+  return newCustomer;
+}
+
+export async function updateMockTahesabCustomer(code: string, payload: Partial<TahesabCustomer>) {
+  await simulateDelay(200);
+  const idx = mockTahesabCustomers.findIndex((c) => c.code === code);
+  if (idx >= 0) {
+    mockTahesabCustomers[idx] = { ...mockTahesabCustomers[idx], ...payload };
+    return mockTahesabCustomers[idx];
+  }
+  throw new Error("Customer not found");
+}
+
+export async function getMockTahesabBankBalances() {
+  await simulateDelay();
+  return mockTahesabBankBalances;
+}
+
+export async function getMockTahesabGoldInventory() {
+  await simulateDelay();
+  return mockTahesabGoldInventory;
+}
+
+export async function getMockTahesabFinishedInventory() {
+  await simulateDelay();
+  return mockTahesabFinishedInventory;
+}
+
+export async function getMockTahesabTaraz() {
+  await simulateDelay();
+  return mockTahesabTaraz;
+}
+
+export async function getMockTahesabCoinTypes() {
+  await simulateDelay();
+  return mockTahesabCoinTypes;
+}
+
+export async function getMockTahesabBankAccounts() {
+  await simulateDelay();
+  return mockTahesabBankAccounts;
+}
+
+export async function getMockTahesabWorkNames() {
+  await simulateDelay();
+  return mockTahesabWorkNames;
+}
+
+export async function getMockTahesabTags() {
+  await simulateDelay();
+  return mockTahesabTags;
+}
+
+export async function getMockTahesabTagByCode(code: string) {
+  await simulateDelay();
+  return mockTahesabTags.find((t) => t.code === code) ?? null;
+}
+
+export async function getMockTahesabRawDocuments() {
+  await simulateDelay();
+  return mockTahesabRawDocuments;
+}
+
+export async function getMockTahesabRawDocumentById(id: string) {
+  await simulateDelay();
+  return mockTahesabRawDocuments.find((d) => d.id === id) ?? null;
+}
+
+export async function mockCreateTahesabDocument() {
+  await simulateDelay(200);
+  return { success: true };
 }
