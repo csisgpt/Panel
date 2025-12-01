@@ -49,10 +49,10 @@ export default function TahesabBalancesPage() {
     const loadBanks = async () => {
       setBanks((prev) => ({ ...prev, loading: true }));
       try {
-        const data: TahesabBankBalance[] = await getTahesabBankBalances({
+        const data = (await getTahesabBankBalances({
           fromDate: bankFilters.fromDate || undefined,
           toDate: bankFilters.toDate || undefined,
-        });
+        })) as TahesabBankBalance[];
         setBanks({ data, loading: false, error: null });
       } catch (err) {
         setBanks({ data: [], loading: false, error: "خطا در دریافت موجودی بانک" });
