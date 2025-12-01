@@ -4,9 +4,6 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LogOut } from "lucide-react";
-import { Button } from "../ui/button";
-import { useAuth } from "@/lib/auth-context";
 
 export interface NavItem {
   href: string;
@@ -24,7 +21,6 @@ interface SidebarProps {
 
 export function Sidebar({ className, onNavigate, title, subtitle, navItems }: SidebarProps) {
   const pathname = usePathname();
-  const { logout } = useAuth();
 
   return (
     <aside className={cn("flex h-full w-72 flex-col border-l bg-card/95 px-4 py-6 shadow-xl", className)}>
@@ -37,7 +33,7 @@ export function Sidebar({ className, onNavigate, title, subtitle, navItems }: Si
       <nav className="space-y-1 overflow-y-auto pb-6">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const active = pathname.startsWith(item.href);
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
             <Link key={item.href} href={item.href} onClick={onNavigate}>
               <div
@@ -53,12 +49,6 @@ export function Sidebar({ className, onNavigate, title, subtitle, navItems }: Si
           );
         })}
       </nav>
-      <div className="mt-auto pt-4">
-        <Button variant="outline" className="flex w-full items-center justify-center gap-2" onClick={logout}>
-          <LogOut className="h-4 w-4" />
-          <span>خروج</span>
-        </Button>
-      </div>
     </aside>
   );
 }

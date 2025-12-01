@@ -1,199 +1,217 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TransactionTable, TransactionRow, TransactionKind } from "@/components/transactions/transaction-table";
+import { TradeDetailsDialog } from "@/components/details/trade-details-dialog";
+import { DepositDetailsDialog } from "@/components/details/deposit-details-dialog";
+import { WithdrawDetailsDialog } from "@/components/details/withdraw-details-dialog";
+import { RemittanceDetailsDialog } from "@/components/details/remittance-details-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { getMyTrades } from "@/lib/api/trades";
-import { getMyAccounts } from "@/lib/api/accounts";
 import { getDeposits } from "@/lib/api/deposits";
 import { getWithdrawals } from "@/lib/api/withdrawals";
-import { getSystemStatus } from "@/lib/api/system";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useEffect, useMemo, useState } from "react";
-import { Account, DepositRequest, Trade, WithdrawRequest } from "@/lib/types/backend";
-import { TradeDetailsDialog } from "@/components/details/trade-details-dialog";
-import { PaymentRequestDialog } from "@/components/details/payment-request-dialog";
-import Link from "next/link";
+import { getRemittances } from "@/lib/api/remittances";
+import {
+  DepositRequest,
+  DepositStatus,
+  Trade,
+  WithdrawRequest,
+  WithdrawStatus,
+} from "@/lib/types/backend";
+import { Remittance, RemittanceStatus } from "@/lib/mock-data";
+
+function isToday(date: string | undefined) {
+  if (!date) return false;
+  const d = new Date(date);
+  const now = new Date();
+  return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+}
 
 export default function TraderDashboardPage() {
+  const router = useRouter();
   const [trades, setTrades] = useState<Trade[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
   const [deposits, setDeposits] = useState<DepositRequest[]>([]);
   const [withdrawals, setWithdrawals] = useState<WithdrawRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [systemStatus, setSystemStatus] = useState<{ tahesabOnline: boolean; lastSyncAt: string } | null>(null);
+  const [remittances, setRemittances] = useState<Remittance[]>([]);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [selectedDeposit, setSelectedDeposit] = useState<DepositRequest | null>(null);
   const [selectedWithdraw, setSelectedWithdraw] = useState<WithdrawRequest | null>(null);
+  const [selectedRemittance, setSelectedRemittance] = useState<Remittance | null>(null);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        const [t, a, d, w, status] = await Promise.all([
-          getMyTrades(),
-          getMyAccounts(),
-          getDeposits(),
-          getWithdrawals(),
-          getSystemStatus(),
-        ]);
-        setTrades(t);
-        setAccounts(a);
-        setDeposits(d);
-        setWithdrawals(w);
-        setSystemStatus(status);
-        setError(null);
-      } catch (err) {
-        setError("خطا در دریافت داده‌ها");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
+    getMyTrades().then(setTrades).catch(() => setTrades([]));
+    getDeposits().then(setDeposits).catch(() => setDeposits([]));
+    getWithdrawals().then(setWithdrawals).catch(() => setWithdrawals([]));
+    getRemittances().then(setRemittances).catch(() => setRemittances([]));
   }, []);
 
-  const irrBalance = useMemo(() => {
-    return accounts
-      .filter((acc) => acc.instrument?.code === "IRR")
-      .reduce((sum, acc) => sum + Number(acc.balance || "0"), 0)
-      .toLocaleString();
-  }, [accounts]);
+  const todayStats = useMemo(() => {
+    return {
+      trades: trades.filter((t) => isToday(t.createdAt)).length,
+      remittances: remittances.filter((r) => isToday(r.createdAt)).length,
+      deposits: deposits.filter((d) => isToday(d.createdAt)).length,
+      withdrawals: withdrawals.filter((w) => isToday(w.createdAt)).length,
+    };
+  }, [deposits, remittances, trades, withdrawals]);
 
-  const goldHoldings = useMemo(() => {
-    const goldAccounts = accounts.filter((acc) => acc.instrument?.code !== "IRR");
-    return goldAccounts
-      .map((acc) => `${acc.balance} ${acc.instrument?.unit === "PIECE" ? "عدد" : "گرم"}`)
-      .join(" | ");
-  }, [accounts]);
+  const recentTransactions: TransactionRow[] = useMemo(() => {
+    const rows: TransactionRow[] = [
+      ...trades.map((trade) => ({
+        id: trade.id,
+        kind: "TRADE" as TransactionKind,
+        customer: trade.client?.fullName ?? "مشتری",
+        contact: trade.client?.mobile,
+        account: trade.clientId,
+        instrument: trade.instrument?.name,
+        quantity: trade.quantity,
+        pricePerUnit: trade.pricePerUnit,
+        amount: Number(trade.totalAmount || Number(trade.quantity) * Number(trade.pricePerUnit)),
+        statusLabel: trade.status,
+        statusVariant: "secondary" as const,
+        createdAt: trade.createdAt,
+        trade,
+      })),
+      ...deposits.map((dep) => ({
+        id: dep.id,
+        kind: "DEPOSIT" as TransactionKind,
+        customer: dep.user?.fullName ?? "واریز کننده",
+        contact: dep.user?.mobile,
+        amount: Number(dep.amount),
+        account: dep.refNo ?? "-",
+        instrument: "واریز ریالی",
+        statusLabel: dep.status,
+        statusVariant: badgeForDeposit(dep.status),
+        createdAt: dep.createdAt,
+        deposit: dep,
+      })),
+      ...withdrawals.map((wd) => ({
+        id: wd.id,
+        kind: "WITHDRAW" as TransactionKind,
+        customer: wd.user?.fullName ?? "برداشت کننده",
+        contact: wd.user?.mobile,
+        amount: Number(wd.amount),
+        account: wd.accountTxId ?? wd.iban ?? wd.cardNumber ?? "-",
+        instrument: "برداشت",
+        statusLabel: wd.status,
+        statusVariant: badgeForWithdraw(wd.status),
+        createdAt: wd.createdAt,
+        withdrawal: wd,
+      })),
+    ];
 
-  const todayPnL = useMemo(() => {
-    return trades
-      .filter((t) => new Date(t.createdAt).toDateString() === new Date().toDateString())
-      .reduce((sum, t) => sum + Number(t.totalAmount || "0") * (t.side === "SELL" ? 1 : -1), 0)
-      .toLocaleString();
-  }, [trades]);
+    return rows
+      .sort((a, b) => (a.createdAt && b.createdAt ? (a.createdAt > b.createdAt ? -1 : 1) : 0))
+      .slice(0, 5);
+  }, [deposits, trades, withdrawals]);
 
-  const latestTrades = trades.slice(0, 5);
+  const latestRemittances = useMemo(() => remittances.slice(0, 5), [remittances]);
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-64" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, idx) => (
-            <Skeleton key={idx} className="h-20" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{error}</div>;
-  }
+  const summaryCards = [
+    {
+      title: "کل معاملات امروز",
+      value: todayStats.trades,
+      onClick: () => router.push("/trader/transactions?type=TRADE"),
+    },
+    {
+      title: "کل حواله‌های امروز",
+      value: todayStats.remittances,
+      onClick: () => router.push("/trader/remittances"),
+    },
+    {
+      title: "کل واریزهای امروز",
+      value: todayStats.deposits,
+      onClick: () => router.push("/trader/transactions?type=DEPOSIT"),
+    },
+    {
+      title: "کل برداشت‌های امروز",
+      value: todayStats.withdrawals,
+      onClick: () => router.push("/trader/transactions?type=WITHDRAW"),
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">داشبورد معامله‌گر</h1>
-          <p className="text-sm text-muted-foreground">جمع‌بندی سریع وضعیت مشتریان و نقدینگی</p>
-        </div>
-        {systemStatus && (
-          <Badge variant={systemStatus.tahesabOnline ? "success" : "destructive"}>
-            وضعیت سامانه: {systemStatus.tahesabOnline ? "پایدار" : "قطع"}
-          </Badge>
-        )}
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold">داشبورد معامله‌گر</h1>
+        <p className="text-sm text-muted-foreground">جمع‌بندی سریع از فعالیت امروز و موارد اخیر.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">موجودی ریالی</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-bold">{irrBalance} ریال</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">دارایی طلا/سکه</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm font-semibold leading-6 text-foreground">{goldHoldings || "-"}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">سود/زیان امروز</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-bold">{todayPnL} ریال</CardContent>
-        </Card>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {summaryCards.map((card) => (
+          <Card
+            key={card.title}
+            className="cursor-pointer transition hover:shadow-lg"
+            onClick={card.onClick}
+          >
+            <CardHeader>
+              <CardTitle className="text-sm text-muted-foreground">{card.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold">{card.value}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>آخرین معاملات</CardTitle>
-              <Link href="/trader/transactions" className="text-xs text-primary hover:underline">
-                مشاهده همه
-              </Link>
-            </div>
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>آخرین تراکنش‌ها</CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => router.push("/trader/transactions")}>مشاهده همه</Button>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {latestTrades.length === 0 && <p className="text-muted-foreground">معامله‌ای ثبت نشده است.</p>}
-            {latestTrades.map((trade) => (
-              <div
-                key={trade.id}
-                className="cursor-pointer rounded-lg border p-3 shadow-sm hover:bg-muted/60"
-                onClick={() => setSelectedTrade(trade)}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="font-semibold">{trade.instrument?.name}</div>
-                  <Badge variant={trade.side === "BUY" ? "outline" : "secondary"}>{trade.side === "BUY" ? "خرید" : "فروش"}</Badge>
-                </div>
-                <div className="text-xs text-muted-foreground">{trade.quantity} @ {trade.pricePerUnit}</div>
-              </div>
-            ))}
+          <CardContent>
+            <TransactionTable
+              data={recentTransactions}
+              onSelectTrade={setSelectedTrade}
+              onSelectDeposit={setSelectedDeposit}
+              onSelectWithdraw={setSelectedWithdraw}
+            />
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>ورودی/خروجی اخیر</CardTitle>
-              <Link href="/trader/remittances" className="text-xs text-primary hover:underline">
-                مشاهده همه
-              </Link>
-            </div>
+
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>آخرین حواله‌ها</CardTitle>
+            <Badge variant="outline">{remittances.length} مورد</Badge>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {[...deposits.slice(0, 3), ...withdrawals.slice(0, 3)].length === 0 && (
-              <p className="text-muted-foreground">تراکنشی ثبت نشده است.</p>
-            )}
-            {deposits.slice(0, 3).map((dep) => (
-              <div
-                key={dep.id}
-                className="flex cursor-pointer items-center justify-between rounded-lg border p-3 hover:bg-muted/60"
-                onClick={() => setSelectedDeposit(dep)}
-              >
-                <div>
-                  <div className="font-semibold">واریز</div>
-                  <p className="text-xs text-muted-foreground">{Number(dep.amount).toLocaleString()} ریال</p>
-                </div>
-                <Badge variant={dep.status === "APPROVED" ? "success" : dep.status === "REJECTED" ? "destructive" : "secondary"}>{dep.status}</Badge>
-              </div>
-            ))}
-            {withdrawals.slice(0, 3).map((wd) => (
-              <div
-                key={wd.id}
-                className="flex cursor-pointer items-center justify-between rounded-lg border p-3 hover:bg-muted/60"
-                onClick={() => setSelectedWithdraw(wd)}
-              >
-                <div>
-                  <div className="font-semibold">برداشت</div>
-                  <p className="text-xs text-muted-foreground">{Number(wd.amount).toLocaleString()} ریال</p>
-                </div>
-                <Badge variant={wd.status === "APPROVED" ? "success" : wd.status === "REJECTED" ? "destructive" : "secondary"}>{wd.status}</Badge>
-              </div>
-            ))}
+          <CardContent className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-xs text-muted-foreground">
+                <tr className="text-right">
+                  <th className="p-2">از</th>
+                  <th className="p-2">به</th>
+                  <th className="p-2">مبلغ</th>
+                  <th className="p-2">وضعیت</th>
+                </tr>
+              </thead>
+              <tbody>
+                {latestRemittances.map((rem) => (
+                  <tr
+                    key={rem.id}
+                    className="border-t cursor-pointer hover:bg-muted/50"
+                    onClick={() => setSelectedRemittance(rem)}
+                  >
+                    <td className="p-2">{rem.fromAccountId}</td>
+                    <td className="p-2">{rem.toAccountId}</td>
+                    <td className="p-2 text-right font-semibold">{rem.amount.toLocaleString("fa-IR")}</td>
+                    <td className="p-2">
+                      <Badge variant={badgeForRemittance(rem.status)}>{statusLabel(rem.status)}</Badge>
+                    </td>
+                  </tr>
+                ))}
+                {!latestRemittances.length && (
+                  <tr>
+                    <td colSpan={4} className="p-3 text-center text-xs text-muted-foreground">
+                      حواله‌ای ثبت نشده است.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </CardContent>
         </Card>
       </div>
@@ -203,20 +221,69 @@ export default function TraderDashboardPage() {
         open={!!selectedTrade}
         onOpenChange={(open) => !open && setSelectedTrade(null)}
       />
-      <PaymentRequestDialog
+      <DepositDetailsDialog
         deposit={selectedDeposit}
         open={!!selectedDeposit}
-        onOpenChange={(open) => {
-          if (!open) setSelectedDeposit(null);
-        }}
+        onOpenChange={(open) => !open && setSelectedDeposit(null)}
       />
-      <PaymentRequestDialog
-        withdraw={selectedWithdraw}
+      <WithdrawDetailsDialog
+        withdrawal={selectedWithdraw}
         open={!!selectedWithdraw}
-        onOpenChange={(open) => {
-          if (!open) setSelectedWithdraw(null);
-        }}
+        onOpenChange={(open) => !open && setSelectedWithdraw(null)}
+      />
+      <RemittanceDetailsDialog
+        remittance={selectedRemittance}
+        open={!!selectedRemittance}
+        onOpenChange={(open) => !open && setSelectedRemittance(null)}
       />
     </div>
   );
+}
+
+function badgeForRemittance(status: RemittanceStatus) {
+  switch (status) {
+    case RemittanceStatus.COMPLETED:
+      return "success" as const;
+    case RemittanceStatus.PENDING:
+      return "warning" as const;
+    case RemittanceStatus.SENT:
+      return "secondary" as const;
+    default:
+      return "destructive" as const;
+  }
+}
+
+function statusLabel(status: RemittanceStatus) {
+  switch (status) {
+    case RemittanceStatus.COMPLETED:
+      return "تکمیل شده";
+    case RemittanceStatus.PENDING:
+      return "در انتظار";
+    case RemittanceStatus.SENT:
+      return "ارسال شده";
+    default:
+      return "ناموفق";
+  }
+}
+
+function badgeForDeposit(status: DepositStatus): TransactionRow["statusVariant"] {
+  switch (status) {
+    case DepositStatus.APPROVED:
+      return "success";
+    case DepositStatus.PENDING:
+      return "warning";
+    default:
+      return "destructive";
+  }
+}
+
+function badgeForWithdraw(status: WithdrawStatus): TransactionRow["statusVariant"] {
+  switch (status) {
+    case WithdrawStatus.APPROVED:
+      return "success";
+    case WithdrawStatus.PENDING:
+      return "warning";
+    default:
+      return "destructive";
+  }
 }
