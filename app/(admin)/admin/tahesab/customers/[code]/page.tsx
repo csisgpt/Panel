@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  type TahesabRawDocumentSummary,
   getTahesabCustomerBalances,
   getTahesabCustomerByCode,
   getTahesabCustomerDocuments,
@@ -21,12 +22,15 @@ export default async function TahesabCustomerDetailPage({ params }: { params: { 
     notFound();
   }
 
-  const [balances, documents] = await Promise.all([
+  const [balances, documentResults] = await Promise.all([
     getTahesabCustomerBalances(params.code),
     getTahesabCustomerDocuments(params.code),
   ]);
 
   const balanceEntries = Array.isArray(balances) ? balances : [];
+  const documents: TahesabRawDocumentSummary[] = Array.isArray(documentResults)
+    ? (documentResults as TahesabRawDocumentSummary[])
+    : [];
 
   return (
     <div className="space-y-6">
