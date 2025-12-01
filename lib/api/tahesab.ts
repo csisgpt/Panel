@@ -7,6 +7,7 @@ import {
   getMockTahesabBankAccounts,
   getMockTahesabBankBalances,
   getMockTahesabCoinTypes,
+  getMockTahesabDocumentById,
   getMockTahesabCustomerBalances,
   getMockTahesabCustomerByCode,
   getMockTahesabCustomerDocuments,

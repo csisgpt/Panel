@@ -2116,8 +2116,9 @@ export async function getMockTahesabCustomers(params?: { search?: string; page?:
   let data = [...mockTahesabCustomers];
   if (params?.groupId) data = data.filter((c) => c.groupId === params.groupId);
   if (params?.search) {
+    const searchTerm = params.search.toLowerCase();
     data = data.filter((c) =>
-      `${c.code} ${c.name} ${c.mobile ?? ""}`.toLowerCase().includes(params.search?.toLowerCase())
+      `${c.code} ${c.name} ${c.mobile ?? ""}`.toLowerCase().includes(searchTerm)
     );
   }
   return data;
