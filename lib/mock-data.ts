@@ -48,18 +48,23 @@ import type {
   CreateTahesabCustomerPayload,
   TahesabBankAccount,
   TahesabBankBalance,
+  TahesabBalanceBreakdown,
+  TahesabBalanceInternalItem,
   TahesabCoinType,
   TahesabCustomer,
   TahesabCustomerBalance,
   TahesabFinishedInventoryItem,
   TahesabGoldInventoryItem,
+  TahesabLog,
+  TahesabLogLevel,
+  TahesabMapping,
   TahesabRawDocumentDetail,
   TahesabRawDocumentSummary,
   TahesabTag,
   TahesabTagDetail,
   TahesabTarazSummary,
   TahesabWorkName,
-} from "./api/tahesab";
+} from "@/lib/types/tahesab";
 
 export enum RemittanceStatus {
   PENDING = "PENDING",
@@ -77,43 +82,6 @@ export interface Remittance {
   status: RemittanceStatus;
   description?: string;
   createdAt: string;
-}
-
-export type TahesabLogLevel = "INFO" | "WARN" | "ERROR";
-
-export interface TahesabLog {
-  id: string;
-  time: string;
-  level: TahesabLogLevel;
-  operation: string;
-  entityType?: "trade" | "deposit" | "withdrawal" | "remittance" | "balance" | "none";
-  internalRef?: string;
-  tahesabDocumentId?: string;
-  message: string;
-}
-
-export interface TahesabMapping {
-  id: string;
-  internalName: string;
-  internalCode: string;
-  tahesabCode?: string;
-  type: "ACCOUNT" | "INSTRUMENT" | "CUSTOMER";
-  status: "MAPPED" | "UNMAPPED" | "IGNORED";
-}
-
-export interface TahesabBalanceInternalItem {
-  id: string;
-  type: "trade" | "deposit" | "withdrawal" | "remittance";
-  date: string;
-  amount: number;
-  assetType: TahesabAssetType;
-  description?: string;
-}
-
-export interface TahesabBalanceBreakdown {
-  recordId: string;
-  internalItems: TahesabBalanceInternalItem[];
-  tahesabDocumentIds: string[];
 }
 
 export interface RiskSettingsConfig {
