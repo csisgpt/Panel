@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import {
   getTahesabCustomerBalances,
   getTahesabCustomerByCode,
@@ -100,7 +99,7 @@ export default async function TahesabCustomerDetailPage({ params }: { params: { 
                     </div>
                     {balance.currency && <Badge variant="secondary">{balance.currency}</Badge>}
                   </div>
-                  <Separator className="my-2" />
+                  <div className="my-2 border-t" />
                   <div className="space-y-1 text-sm">
                     {balance.monetaryBalance !== undefined && (
                       <p>مبلغ: {balance.monetaryBalance.toLocaleString("fa-IR")}</p>
