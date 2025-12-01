@@ -151,7 +151,7 @@ export default function TahesabMasterDataPage() {
                       <tr>
                         <th className="p-2">بانک</th>
                         <th className="p-2">شماره حساب</th>
-                        <th className="p-2">شبا</th>
+                        <th className="p-2">شبا / IBAN</th>
                         <th className="p-2">شعبه</th>
                       </tr>
                     </thead>
@@ -160,7 +160,7 @@ export default function TahesabMasterDataPage() {
                         <tr key={`${account.bankName}-${account.accountNumber}`} className="border-t">
                           <td className="p-2 font-semibold">{account.bankName}</td>
                           <td className="p-2">{account.accountNumber}</td>
-                          <td className="p-2">{account.sheba ?? "-"}</td>
+                          <td className="p-2">{account.iban ?? "-"}</td>
                           <td className="p-2">{account.branch ?? "-"}</td>
                         </tr>
                       ))}
