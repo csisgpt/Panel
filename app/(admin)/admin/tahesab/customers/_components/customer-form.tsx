@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -70,6 +70,12 @@ export function TahesabCustomerForm({ mode, initialData }: CustomerFormProps) {
     }
   };
 
+  useEffect(() => {
+    if (Object.keys(groupOptions).length === 0) {
+      void loadGroups();
+    }
+  }, []);
+
   const onSubmit = async (values: TahesabCustomer) => {
     setSubmitting(true);
     try {
@@ -110,9 +116,6 @@ export function TahesabCustomerForm({ mode, initialData }: CustomerFormProps) {
             <div className="space-y-2">
               <Label htmlFor="groupId">گروه</Label>
               <Select
-                onOpenChange={(open) => {
-                  if (open && Object.keys(groupOptions).length === 0) loadGroups();
-                }}
                 defaultValue={initialData?.groupId}
                 onValueChange={(value) =>
                   reset({
