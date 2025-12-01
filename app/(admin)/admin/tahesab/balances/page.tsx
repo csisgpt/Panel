@@ -65,10 +65,10 @@ export default function TahesabBalancesPage() {
     const loadGold = async () => {
       setGoldInventory((prev) => ({ ...prev, loading: true }));
       try {
-        const data = await getTahesabGoldInventory({
+        const data = (await getTahesabGoldInventory({
           metal: goldFilters.metal || undefined,
           ayar: goldFilters.ayar ? Number(goldFilters.ayar) : undefined,
-        });
+        })) as TahesabGoldInventoryItem[];
         setGoldInventory({ data, loading: false, error: null });
       } catch (err) {
         setGoldInventory({ data: [], loading: false, error: "خطا در دریافت موجودی طلا" });
