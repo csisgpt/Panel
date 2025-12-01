@@ -145,6 +145,7 @@ export interface TahesabTag {
   displayPrice?: number;
   hasPhoto?: boolean;
   isInStock?: boolean;
+  rfid?: string | null;
 }
 
 export interface TahesabTagDetail extends TahesabTag {

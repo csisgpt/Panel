@@ -106,18 +106,22 @@ export default function TahesabTagDetailPage({ params }: { params: { code: strin
           </div>
           <div>
             <p className="text-xs text-muted-foreground">RFID</p>
-            <p className="font-semibold">{(tag as any).rfid ?? "-"}</p>
+            <p className="font-semibold">{tag.rfid ?? "-"}</p>
           </div>
         </CardContent>
       </Card>
 
-      {tag.image && (
+      {(tag.imageUrl || tag.imageBase64) && (
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle>تصویر</CardTitle>
           </CardHeader>
           <CardContent>
-            <img src={tag.image} alt={tag.name ?? tag.code} className="max-h-80 rounded-lg border object-contain" />
+            <img
+              src={tag.imageUrl ?? (tag.imageBase64 ? `data:image/jpeg;base64,${tag.imageBase64}` : undefined)}
+              alt={tag.name ?? tag.code}
+              className="max-h-80 rounded-lg border object-contain"
+            />
           </CardContent>
         </Card>
       )}
