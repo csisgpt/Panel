@@ -49,10 +49,10 @@ export default function TahesabBalancesPage() {
     const loadBanks = async () => {
       setBanks((prev) => ({ ...prev, loading: true }));
       try {
-        const data = (await getTahesabBankBalances({
+        const data = await getTahesabBankBalances({
           fromDate: bankFilters.fromDate || undefined,
           toDate: bankFilters.toDate || undefined,
-        })) as TahesabBankBalance[];
+        });
         setBanks({ data, loading: false, error: null });
       } catch (err) {
         setBanks({ data: [], loading: false, error: "خطا در دریافت موجودی بانک" });
@@ -65,10 +65,10 @@ export default function TahesabBalancesPage() {
     const loadGold = async () => {
       setGoldInventory((prev) => ({ ...prev, loading: true }));
       try {
-        const data = (await getTahesabGoldInventory({
+        const data = await getTahesabGoldInventory({
           metal: goldFilters.metal || undefined,
           ayar: goldFilters.ayar ? Number(goldFilters.ayar) : undefined,
-        })) as TahesabGoldInventoryItem[];
+        });
         setGoldInventory({ data, loading: false, error: null });
       } catch (err) {
         setGoldInventory({ data: [], loading: false, error: "خطا در دریافت موجودی طلا" });
@@ -81,7 +81,7 @@ export default function TahesabBalancesPage() {
     const loadFinished = async () => {
       setFinished((prev) => ({ ...prev, loading: true }));
       try {
-        const data = (await getTahesabFinishedInventory()) as TahesabFinishedInventoryItem[];
+        const data = await getTahesabFinishedInventory();
         setFinished({ data, loading: false, error: null });
       } catch (err) {
         setFinished({ data: [], loading: false, error: "خطا در دریافت کارساخته" });

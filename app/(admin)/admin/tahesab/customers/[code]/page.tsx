@@ -22,15 +22,12 @@ export default async function TahesabCustomerDetailPage({ params }: { params: { 
     notFound();
   }
 
-  const [balances, documentResults] = await Promise.all([
+  const [balances, documents] = await Promise.all([
     getTahesabCustomerBalances(params.code),
     getTahesabCustomerDocuments(params.code),
   ]);
 
-  const balanceEntries = Array.isArray(balances) ? balances : [];
-  const documents: TahesabRawDocumentSummary[] = Array.isArray(documentResults)
-    ? (documentResults as TahesabRawDocumentSummary[])
-    : [];
+  const balanceEntries = balances ?? [];
 
   return (
     <div className="space-y-6">

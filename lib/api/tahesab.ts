@@ -62,6 +62,8 @@ export interface TahesabCustomerBalance {
   monetaryBalance?: number;
   goldWeightBalance?: number;
   silverWeightBalance?: number;
+  metal?: string;
+  type?: string;
   [key: string]: unknown;
 }
 
@@ -340,68 +342,74 @@ export async function updateTahesabCustomer(
   return apiPatch(`/tahesab/customers/${code}`, payload);
 }
 
-export async function getTahesabCustomerBalances(code: string, params?: { toDate?: string }) {
+export async function getTahesabCustomerBalances(
+  code: string,
+  params?: { toDate?: string }
+): Promise<TahesabCustomerBalance[]> {
   if (isMockMode()) return getMockTahesabCustomerBalances(code);
   const query = new URLSearchParams();
   if (params?.toDate) query.append("toDate", params.toDate);
   const qs = query.toString();
-  return apiGet(`/tahesab/customers/${code}/balances${qs ? `?${qs}` : ""}`);
+  return apiGet<TahesabCustomerBalance[]>(`/tahesab/customers/${code}/balances${qs ? `?${qs}` : ""}`);
 }
 
-export async function getTahesabCustomerDocuments(code: string, params?: { fromDate?: string; toDate?: string; type?: string }) {
+export async function getTahesabCustomerDocuments(
+  code: string,
+  params?: { fromDate?: string; toDate?: string; type?: string }
+): Promise<TahesabRawDocumentSummary[]> {
   if (isMockMode()) return getMockTahesabCustomerDocuments(code);
   const query = new URLSearchParams();
   if (params?.fromDate) query.append("fromDate", params.fromDate);
   if (params?.toDate) query.append("toDate", params.toDate);
   if (params?.type) query.append("type", params.type);
   const qs = query.toString();
-  return apiGet(`/tahesab/customers/${code}/documents${qs ? `?${qs}` : ""}`);
+  return apiGet<TahesabRawDocumentSummary[]>(`/tahesab/customers/${code}/documents${qs ? `?${qs}` : ""}`);
 }
 
-export async function getTahesabBankBalances(params?: { fromDate?: string; toDate?: string }) {
+export async function getTahesabBankBalances(params?: { fromDate?: string; toDate?: string }): Promise<TahesabBankBalance[]> {
   if (isMockMode()) return getMockTahesabBankBalances();
   const query = new URLSearchParams();
   if (params?.fromDate) query.append("fromDate", params.fromDate);
   if (params?.toDate) query.append("toDate", params.toDate);
   const qs = query.toString();
-  return apiGet(`/tahesab/balances/banks${qs ? `?${qs}` : ""}`);
+  return apiGet<TahesabBankBalance[]>(`/tahesab/balances/banks${qs ? `?${qs}` : ""}`);
 }
 
-export async function getTahesabGoldInventory(params?: { metal?: string; ayar?: number }) {
+export async function getTahesabGoldInventory(params?: { metal?: string; ayar?: number }): Promise<TahesabGoldInventoryItem[]> {
   if (isMockMode()) return getMockTahesabGoldInventory();
   const query = new URLSearchParams();
   if (params?.metal) query.append("metal", params.metal);
   if (params?.ayar) query.append("ayar", String(params.ayar));
   const qs = query.toString();
-  return apiGet(`/tahesab/inventory/gold${qs ? `?${qs}` : ""}`);
+  return apiGet<TahesabGoldInventoryItem[]>(`/tahesab/inventory/gold${qs ? `?${qs}` : ""}`);
 }
 
-export async function getTahesabFinishedInventory(params?: { metal?: string }) {
+export async function getTahesabFinishedInventory(params?: { metal?: string }): Promise<TahesabFinishedInventoryItem[]> {
   if (isMockMode()) return getMockTahesabFinishedInventory();
   const query = new URLSearchParams();
   if (params?.metal) query.append("metal", params.metal);
   const qs = query.toString();
-  return apiGet(`/tahesab/inventory/finished${qs ? `?${qs}` : ""}`);
+  return apiGet<TahesabFinishedInventoryItem[]>(`/tahesab/inventory/finished${qs ? `?${qs}` : ""}`);
 }
 
 export async function getTahesabTarazSummary(): Promise<TahesabTarazSummary> {
   if (isMockMode()) return getMockTahesabTaraz();
-  return apiGet("/tahesab/taraz");
+  return apiGet<TahesabTarazSummary>("/tahesab/taraz");
 }
 
 export async function getTahesabCoinTypes(): Promise<TahesabCoinType[]> {
   if (isMockMode()) return getMockTahesabCoinTypes();
-  return apiGet("/tahesab/master/coins");
+  return apiGet<TahesabCoinType[]>("/tahesab/master/coins");
 }
 
 export async function getTahesabBankAccounts(): Promise<TahesabBankAccount[]> {
   if (isMockMode()) return getMockTahesabBankAccounts();
-  return apiGet("/tahesab/master/bank-accounts");
+  return apiGet<TahesabBankAccount[]>("/tahesab/master/bank-accounts");
 }
 
 export async function getTahesabWorkNames(): Promise<TahesabWorkName[]> {
   if (isMockMode()) return getMockTahesabWorkNames();
-  return apiGet("/tahesab/master/work-names");
+  return apiGet<TahesabWorkName[]>("/tahesab/master/work-names");
 }
 
 export async function getTahesabTags(params?: {
@@ -421,7 +429,7 @@ export async function getTahesabTags(params?: {
   if (params?.page) query.append("page", String(params.page));
   if (params?.pageSize) query.append("pageSize", String(params.pageSize));
   const qs = query.toString();
-  return apiGet(`/tahesab/tags${qs ? `?${qs}` : ""}`);
+  return apiGet<TahesabTag[]>(`/tahesab/tags${qs ? `?${qs}` : ""}`);
 }
 
 export async function getTahesabTagByCode(code: string, params?: { withPhoto?: boolean }): Promise<TahesabTagDetail | null> {
@@ -429,7 +437,7 @@ export async function getTahesabTagByCode(code: string, params?: { withPhoto?: b
   const query = new URLSearchParams();
   if (params?.withPhoto) query.append("withPhoto", "true");
   const qs = query.toString();
-  return apiGet(`/tahesab/tags/${code}${qs ? `?${qs}` : ""}`);
+  return apiGet<TahesabTagDetail | null>(`/tahesab/tags/${code}${qs ? `?${qs}` : ""}`);
 }
 
 export async function clearTahesabTagRFID(code: string) {
@@ -459,12 +467,12 @@ export async function getTahesabRawDocuments(params?: {
   if (params?.page) query.append("page", String(params.page));
   if (params?.pageSize) query.append("pageSize", String(params.pageSize));
   const qs = query.toString();
-  return apiGet(`/tahesab/raw-documents${qs ? `?${qs}` : ""}`);
+  return apiGet<TahesabRawDocumentSummary[]>(`/tahesab/raw-documents${qs ? `?${qs}` : ""}`);
 }
 
 export async function getTahesabRawDocumentById(id: string): Promise<TahesabRawDocumentDetail | null> {
   if (isMockMode()) return getMockTahesabRawDocumentById(id);
-  return apiGet(`/tahesab/raw-documents/${id}`);
+  return apiGet<TahesabRawDocumentDetail | null>(`/tahesab/raw-documents/${id}`);
 }
 
 export async function createTahesabGoldDocument(payload: Record<string, unknown>) {

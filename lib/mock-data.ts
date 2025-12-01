@@ -2025,9 +2025,14 @@ let mockTahesabCustomers: TahesabCustomer[] = [
   },
 ];
 
-const mockTahesabCustomerBalances: Record<string, TahesabCustomerBalance> = {
-  "C-1001": { currency: "IRR", monetaryBalance: 125000000, goldWeightBalance: 12.4 },
-  "C-1002": { currency: "IRR", monetaryBalance: -45000000, goldWeightBalance: 3.2 },
+const mockTahesabCustomerBalances: Record<string, TahesabCustomerBalance[]> = {
+  "C-1001": [
+    { currency: "IRR", monetaryBalance: 125000000, goldWeightBalance: 12.4, type: "cash" },
+    { metal: "طلا", goldWeightBalance: 12.4, type: "gold" },
+  ],
+  "C-1002": [
+    { currency: "IRR", monetaryBalance: -45000000, goldWeightBalance: 3.2, type: "cash" },
+  ],
 };
 
 const mockTahesabBankBalances: TahesabBankBalance[] = [
@@ -2157,7 +2162,7 @@ export async function getMockTahesabCustomerByCode(code: string) {
 
 export async function getMockTahesabCustomerBalances(code: string) {
   await simulateDelay();
-  return mockTahesabCustomerBalances[code] ?? { currency: "IRR", monetaryBalance: 0 };
+  return mockTahesabCustomerBalances[code] ?? [];
 }
 
 export async function getMockTahesabCustomerDocuments(code: string) {
