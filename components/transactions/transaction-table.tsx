@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { faIR } from "date-fns/locale";
 
@@ -13,18 +13,13 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table";
-import { Badge } from "../ui/badge";
-import { Trade, TradeSide, TradeStatus } from "@/lib/types/backend";
+import { Badge, BadgeProps } from "../ui/badge";
+import { Trade, TradeStatus } from "@/lib/types/backend";
 import { getMyTrades } from "@/lib/api/trades";
 import { Button } from "../ui/button";
+import { cn } from "@/lib/utils";
 
-type BadgeVariant =
-  | "default"
-  | "secondary"
-  | "success"
-  | "warning"
-  | "destructive"
-  | "outline";
+type BadgeVariant = BadgeProps["variant"];
 
 const statusMap: Record<TradeStatus, { label: string; variant: BadgeVariant }> =
   {
@@ -34,29 +29,50 @@ const statusMap: Record<TradeStatus, { label: string; variant: BadgeVariant }> =
     [TradeStatus.REJECTED]: { label: "رد شده", variant: "destructive" },
     [TradeStatus.CANCELLED_BY_USER]: {
       label: "لغو توسط مشتری",
-      variant: "default",
+      variant: "secondary",
     },
     [TradeStatus.CANCELLED_BY_ADMIN]: {
       label: "لغو توسط ادمین",
-      variant: "default",
+      variant: "secondary",
     },
   };
 
-const sideLabel: Record<TradeSide, string> = {
-  [TradeSide.BUY]: "خرید",
-  [TradeSide.SELL]: "فروش",
+export type TransactionTableRow = {
+  id: string;
+  type: "TRADE" | "DEPOSIT" | "WITHDRAW";
+  typeLabel: string;
+  customerName: string;
+  accountCode?: string | null;
+  amount: number;
+  status: "SUCCESS" | "PENDING" | "FAILED";
+  statusLabel: string;
+  statusVariant: BadgeVariant;
+  date?: string | null;
+  description?: string | null;
+  actionLabel?: string;
+  onClick?: () => void;
 };
 
 interface TransactionTableProps {
   onSelectTrade?: (trade: Trade) => void;
+  transactions?: TransactionTableRow[];
+  loading?: boolean;
+  emptyMessage?: string;
 }
 
-export function TransactionTable({ onSelectTrade }: TransactionTableProps) {
+export function TransactionTable({
+  onSelectTrade,
+  transactions,
+  loading,
+  emptyMessage = "هیچ تراکنشی برای نمایش وجود ندارد.",
+}: TransactionTableProps) {
   const [trades, setTrades] = useState<Trade[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [internalLoading, setInternalLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (transactions) return;
+
     let mounted = true;
 
     getMyTrades()
@@ -74,16 +90,49 @@ export function TransactionTable({ onSelectTrade }: TransactionTableProps) {
       })
       .finally(() => {
         if (mounted) {
-          setLoading(false);
+          setInternalLoading(false);
         }
       });
 
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [transactions]);
 
-  if (loading) {
+  const tableRows = useMemo(() => {
+    if (transactions) return transactions;
+
+    return trades.map((trade) => {
+      const status = statusMap[trade.status] ?? statusMap[TradeStatus.PENDING];
+      const qty = Number(trade.quantity || 0);
+      const price = Number(trade.pricePerUnit || 0);
+      const total = Number(trade.totalAmount || qty * price);
+
+      return {
+        id: trade.id,
+        type: "TRADE" as const,
+        typeLabel: "معامله",
+        customerName: trade.client?.fullName ?? "—",
+        accountCode: trade.client?.username ?? trade.client?.mobile ?? "—",
+        amount: total,
+        status: status.variant === "success"
+          ? "SUCCESS"
+          : status.variant === "warning"
+            ? "PENDING"
+            : "FAILED",
+        statusLabel: status.label,
+        statusVariant: status.variant,
+        date: trade.createdAt ?? null,
+        description: trade.instrument?.name ?? undefined,
+        actionLabel: "جزئیات",
+        onClick: onSelectTrade ? () => onSelectTrade(trade) : undefined,
+      } satisfies TransactionTableRow;
+    });
+  }, [onSelectTrade, trades, transactions]);
+
+  const effectiveLoading = loading ?? internalLoading;
+
+  if (effectiveLoading) {
     return (
       <div className="rounded-lg border p-4 text-sm text-muted-foreground">
         در حال بارگذاری تراکنش‌ها...
@@ -91,7 +140,7 @@ export function TransactionTable({ onSelectTrade }: TransactionTableProps) {
     );
   }
 
-  if (error) {
+  if (!transactions && error) {
     return (
       <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
         خطا در بارگذاری تراکنش‌ها: {error}
@@ -99,89 +148,87 @@ export function TransactionTable({ onSelectTrade }: TransactionTableProps) {
     );
   }
 
-  if (!trades.length) {
+  if (!tableRows.length) {
     return (
       <div className="rounded-lg border p-4 text-sm text-muted-foreground">
-        هنوز هیچ معامله‌ای ثبت نشده است.
+        {emptyMessage}
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border bg-card">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[90px] text-right">کد</TableHead>
-            <TableHead className="text-right">مشتری</TableHead>
-            <TableHead className="text-right">ابزار</TableHead>
-            <TableHead className="text-right">جهت</TableHead>
-            <TableHead className="text-right">تعداد / وزن</TableHead>
-            <TableHead className="text-right">قیمت واحد</TableHead>
-            <TableHead className="text-right">ارزش کل</TableHead>
-            <TableHead className="text-right">وضعیت</TableHead>
-            <TableHead className="text-right">تاریخ</TableHead>
-            <TableHead className="text-right">عملیات</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {trades.map((trade) => {
-            const status = statusMap[trade.status] ?? statusMap[TradeStatus.PENDING];
+    <div className="w-full overflow-x-auto rounded-xl border bg-card">
+      <div className="p-2 sm:p-4">
+        <Table className="min-w-[720px]">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-right">تاریخ</TableHead>
+              <TableHead className="text-right">نوع</TableHead>
+              <TableHead className="text-right">مشتری / حساب</TableHead>
+              <TableHead className="text-right">مبلغ</TableHead>
+              <TableHead className="text-right">وضعیت</TableHead>
+              <TableHead className="text-right">عملیات</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {tableRows.map((row) => {
+              const dateLabel = row.date
+                ? format(new Date(row.date), "yyyy/MM/dd HH:mm", { locale: faIR })
+                : "—";
 
-            const qty = Number(trade.quantity || 0);
-            const price = Number(trade.pricePerUnit || 0);
-            const total = Number(trade.totalAmount || qty * price);
+              const isClickable = Boolean(row.onClick);
 
-            return (
-              <TableRow
-                key={trade.id}
-                className={onSelectTrade ? "cursor-pointer hover:bg-muted/60" : undefined}
-                onClick={onSelectTrade ? () => onSelectTrade(trade) : undefined}
-              >
-                <TableCell className="font-mono text-xs">{trade.id}</TableCell>
-                <TableCell className="text-sm">
-                  {trade.client?.fullName ?? "—"}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {trade.instrument?.name ?? "—"}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {sideLabel[trade.side]}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {qty.toLocaleString("fa-IR")}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {price.toLocaleString("fa-IR")}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {total.toLocaleString("fa-IR")}
-                </TableCell>
-                <TableCell className="text-sm">
-                  <Badge variant={status.variant}>{status.label}</Badge>
-                </TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {trade.createdAt
-                    ? format(new Date(trade.createdAt), "PPP", { locale: faIR })
-                    : "—"}
-                </TableCell>
-                <TableCell className="text-left">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelectTrade?.(trade);
-                    }}
-                  >
-                    جزئیات
-                  </Button>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+              return (
+                <TableRow
+                  key={row.id}
+                  className={cn(
+                    "transition-colors",
+                    isClickable && "cursor-pointer hover:bg-muted/50"
+                  )}
+                  onClick={row.onClick}
+                >
+                  <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                    {dateLabel}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    <div className="font-semibold">{row.typeLabel}</div>
+                    {row.description ? (
+                      <div className="text-xs text-muted-foreground">
+                        {row.description}
+                      </div>
+                    ) : null}
+                  </TableCell>
+                  <TableCell className="space-y-1 text-sm">
+                    <div className="font-semibold">{row.customerName}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {row.accountCode ?? "—"}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right text-sm font-semibold">
+                    {row.amount.toLocaleString("fa-IR")} ریال
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    <Badge variant={row.statusVariant}>{row.statusLabel}</Badge>
+                  </TableCell>
+                  <TableCell className="text-left">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        row.onClick?.();
+                      }}
+                    >
+                      {row.actionLabel ?? "جزئیات"}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
