@@ -37,8 +37,9 @@ export default function LoginPage() {
   const handleValidSubmit = async (values: LoginFormValues) => {
     setLoading(true);
     try {
-      await loginWithCredentials(values.mobile, values.password, values.role);
-      router.replace(values.role === UserRole.ADMIN ? "/admin/dashboard" : "/trader/dashboard");
+      // const res = await loginWithCredentials(values.mobile, values.password, values.role);
+      console.log(values)
+      // router.replace(values.role === UserRole.ADMIN ? "/admin/dashboard" : "/trader/dashboard");
     } catch (err) {
       toast({
         title: "خطا در ورود",

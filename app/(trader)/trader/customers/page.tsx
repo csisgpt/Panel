@@ -117,7 +117,7 @@ export default function TraderCustomersPage() {
 
       <Card className="shadow-sm">
         <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap gap-3">
+          <div className="w-full flex items-center flex-wrap gap-3">
             <Input
               placeholder="جستجو نام یا موبایل"
               className="w-64"
@@ -230,7 +230,7 @@ export default function TraderCustomersPage() {
                     .map((acc) => (
                       <div key={acc.id} className="rounded-lg border p-3">
                         <div className="font-semibold">{acc.instrument?.name}</div>
-                        <p className="text-xs text-muted-foreground">موجودی: {acc.balance}</p>
+                        <p className="text-xs text-muted-foreground">موجودی: {Number(acc.balance || 0).toLocaleString("fa-IR")}</p>
                       </div>
                     ))}
                   {accounts.filter((a) => a.userId === selected.id).length === 0 && (
@@ -262,7 +262,7 @@ export default function TraderCustomersPage() {
                             {t.side === "BUY" ? "خرید" : "فروش"}
                           </Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground">{t.quantity} @ {t.pricePerUnit}</p>
+                        <p className="text-xs text-muted-foreground">{t.quantity} @ {Number(t.pricePerUnit || 0).toLocaleString('fa-IR')}</p>
                         <p className="text-[11px] text-muted-foreground">
                           وضعیت: {t.status}
                         </p>

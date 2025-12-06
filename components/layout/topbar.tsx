@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { Search, Sun, Moon, Menu, LogOut } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -20,7 +20,14 @@ interface TopbarProps {
   onLogout?: () => void;
 }
 
-export function Topbar({ onMenuClick, userName, userRole, pageTitle, badge, onLogout }: TopbarProps) {
+export function Topbar({
+  onMenuClick,
+  userName,
+  userRole,
+  pageTitle,
+  badge,
+  onLogout,
+}: TopbarProps) {
   const { setTheme, theme } = useTheme();
   const router = useRouter();
 
@@ -35,15 +42,32 @@ export function Topbar({ onMenuClick, userName, userRole, pageTitle, badge, onLo
       <div className="flex w-full flex-col gap-3 px-3 py-3 sm:px-4 lg:px-8">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick} aria-label="باز کردن منو">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden"
+              onClick={onMenuClick}
+              aria-label="باز کردن منو"
+            >
               <Menu className="h-5 w-5" />
             </Button>
-            <div className="flex flex-col gap-1">
-              <p className="text-xs text-muted-foreground">نمای کلی</p>
-              <p className="text-lg font-semibold">{pageTitle ?? "پنل"}</p>
+            <div
+              className={cn(
+                "flex w-full items-center gap-2 rounded-2xl border bg-card px-3 py-0 shadow-sm",
+                "lg:max-w-xl"
+              )}
+            >
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="جستجو در سیستم"
+                className="border-none bg-transparent text-sm shadow-none focus-visible:ring-0"
+              />
             </div>
-            <Badge className="ml-1" variant="outline">
-              {badge ?? "محیط نمایشی"}
+            <Badge
+              variant="secondary"
+              className="hidden sm:inline-flex min-w-fit py-3"
+            >
+              <span className="text-[11px]">وضعیت : پایدار</span>
             </Badge>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
@@ -54,44 +78,49 @@ export function Topbar({ onMenuClick, userName, userRole, pageTitle, badge, onLo
               className="rounded-full border"
               aria-label="تغییر تم"
             >
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
             </Button>
-            <div className="hidden items-center gap-3 rounded-full border px-3 py-1 sm:flex">
+            <div className="hidden items-center gap-3 rounded-full border pl-3 pr-1 py-1 sm:flex">
+              <Avatar name={userName ?? "کاربر"} />
+
               <div className="text-right">
-                <p className="text-xs text-muted-foreground">{userRole ?? "کاربر سیستم"}</p>
+                {/* <p className="text-xs text-muted-foreground">
+                  {userRole ?? "کاربر سیستم"}
+                </p> */}
                 <p className="text-sm font-semibold">{userName ?? "کاربر"}</p>
               </div>
-              <Avatar name={userName ?? "کاربر"} />
-              <Button variant="ghost" size="sm" onClick={handleLogout} className="text-xs">
-                <LogOut className="ml-1 h-4 w-4" />خروج
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="text-xs"
+              >
+                <LogOut className="ml-1 h-4 w-4" />
+                خروج
               </Button>
             </div>
           </div>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div
-            className={cn(
-              "flex w-full items-center gap-2 rounded-2xl border bg-card px-3 py-2 shadow-sm",
-              "lg:max-w-xl"
-            )}
-          >
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="جستجو در سیستم"
-              className="border-none bg-transparent text-sm shadow-none focus-visible:ring-0"
-            />
-          </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:hidden">
           <div className="flex items-center justify-between gap-3 sm:justify-end">
-            <Badge variant="secondary" className="hidden sm:inline-flex">
-              <span className="text-[11px]">وضعیت: پایدار</span>
-            </Badge>
             <div className="flex items-center gap-2 rounded-full border px-3 py-1 sm:hidden">
               <div className="text-right">
-                <p className="text-[10px] text-muted-foreground">{userRole ?? "کاربر"}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {userRole ?? "کاربر"}
+                </p>
                 <p className="text-xs font-semibold">{userName ?? "کاربر"}</p>
               </div>
               <Avatar name={userName ?? "کاربر"} />
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleLogout}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={handleLogout}
+              >
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>

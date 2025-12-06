@@ -2,65 +2,138 @@
 @tailwind components;
 @tailwind utilities;
 
+/* رنگ‌ها و توکن‌های اصلی طراحی */
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  /* Light theme */
+  --background: 210 40% 98%;
+  --foreground: 222.2 47% 11.2%;
+
   --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --card-foreground: 222.2 47% 11.2%;
+
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 256 86% 58%;
+  --popover-foreground: 222.2 47% 11.2%;
+
+  /* آبی-سبز مینیمال به عنوان رنگ اصلی */
+  --primary: 200 100% 45%;
   --primary-foreground: 210 40% 98%;
+
   --secondary: 210 40% 96%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 215 92% 60%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
+  --secondary-foreground: 222.2 47% 11.2%;
+
+  --muted: 210 24% 94%;
+  --muted-foreground: 215 16% 46%;
+
+  /* سبز لطیف به عنوان accent */
+  --accent: 173 80% 40%;
+  --accent-foreground: 210 40% 98%;
+
+  --destructive: 0 72% 50%;
   --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 256 86% 58%;
-  --radius: 12px;
+
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 200 100% 45%;
+
+  /* کمی گردتر برای حس مدرن‌تر */
+  --radius: 14px;
 }
 
+/* Dark mode */
 .dark {
-  --background: 222.2 84% 4.9%;
+  --background: 222.2 47% 7%;
   --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
+
+  --card: 222.2 47% 9%;
   --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
+
+  --popover: 222.2 47% 7%;
   --popover-foreground: 210 40% 98%;
-  --primary: 256 86% 68%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 217.2 32.6% 17.5%;
+
+  --primary: 200 100% 60%;
+  --primary-foreground: 222.2 47% 11.2%;
+
+  --secondary: 217.2 25% 15%;
   --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 256 86% 68%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 62.8% 30.6%;
+
+  --muted: 217.2 25% 15%;
+  --muted-foreground: 215 20% 70%;
+
+  --accent: 173 80% 60%;
+  --accent-foreground: 222.2 47% 11.2%;
+
+  --destructive: 0 65% 55%;
   --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 256 86% 68%;
+
+  --border: 217.2 25% 20%;
+  --input: 217.2 25% 20%;
+  --ring: 200 100% 60%;
 }
 
+/* هماهنگ کردن borderها با توکن Tailwind */
 * {
   @apply border-border;
+}
+
+/* بدنه سایت – مینیمال با گرادیان خیلی ملایم */
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+  @apply antialiased;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+
+  /* گرادیان خیلی ملایم برای عمق بصری بدون شلوغی */
+  background-image:
+    radial-gradient(circle at top left, hsl(var(--primary) / 0.08), transparent 60%),
+    radial-gradient(circle at bottom right, hsl(var(--accent) / 0.08), transparent 55%);
+  background-attachment: fixed;
 }
 
+/* انتخاب متن */
+::selection {
+  background-color: hsl(var(--primary) / 0.16);
+  color: hsl(var(--primary-foreground));
+}
+
+/* Scrollbar مینیمال */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 ::-webkit-scrollbar-thumb {
-  background: rgba(120, 120, 120, 0.4);
+  background: hsl(0 0% 60% / 0.35);
   border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(0 0% 40% / 0.55);
+}
+
+/* فوکس‌های نرم و modern برای المنت‌های اینپوت و دکمه‌ها */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--background)),
+    0 0 0 4px hsl(var(--ring));
+}
+
+/* کارت‌ها و المان‌های شبیه کارت اگر از bg-card استفاده کنی */
+@layer components {
+  .elevated-card {
+    @apply bg-card border border-border rounded-2xl shadow-sm;
+  }
+
+  .soft-shadow {
+    box-shadow:
+      0 18px 45px hsl(220 40% 2% / 0.09),
+      0 0 0 1px hsl(var(--border) / 0.5);
+  }
 }

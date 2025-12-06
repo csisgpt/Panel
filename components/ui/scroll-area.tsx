@@ -5,7 +5,7 @@ export interface ScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 export function ScrollArea({ className, children, ...props }: ScrollAreaProps) {
   return (
-    <div className={cn("overflow-auto", className)} {...props}>
+    <div className={cn("overflow-auto pl-2", className)} {...props}>
       {children}
     </div>
   );

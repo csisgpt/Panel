@@ -32,7 +32,7 @@ export function PositionDetailsDialog({ position, trades, open, onOpenChange }: 
     : [];
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>جزئیات موقعیت</DialogTitle>
         </DialogHeader>

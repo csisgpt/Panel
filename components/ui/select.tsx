@@ -71,7 +71,7 @@ export const Select = ({
 
   return (
     <SelectContext.Provider value={ctx}>
-      <div className={cn("relative w-full", className)} {...rest}>
+      <div className={cn("relative w-auto", className)} {...rest}>
         {children}
       </div>
     </SelectContext.Provider>

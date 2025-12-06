@@ -4,6 +4,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Sidebar, NavItem } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { Sheet } from "@/components/ui/sheet";
+import { useAuth } from "@/lib/auth-context";
+
 import { LayoutDashboard, ScrollText, Receipt, Users, Banknote } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -21,22 +23,16 @@ const traderNav: NavItem[] = [
 
 export default function TraderLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [user, setUser] = useState<BackendUser | null>(null);
   const [open, setOpen] = useState(false);
 
+  const { isAuthenticated, isTrader, user } = useAuth();
+
+
   useEffect(() => {
-    const session = getSession();
-    if (!session || session.role !== "TRADER") {
+    if (!isAuthenticated || !isTrader) {
       router.replace("/login");
-      return;
     }
-    getMockUser(session.userId)
-      .then((u) => setUser(u))
-      .catch(() => {
-        clearSession();
-        router.replace("/login");
-      });
-  }, [router]);
+  }, [isAuthenticated, isTrader, router]);
 
   const initials = useMemo(() => (user?.fullName ? user.fullName.slice(0, 2) : ""), [user?.fullName]);
 
