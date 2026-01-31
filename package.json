@@ -6,11 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "gen:api-types": "openapi-typescript \"$OPENAPI_JSON\" -o lib/types/generated/api.d.ts"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-slot": "^1.1.0",
+    "@tanstack/react-query": "^5.51.0",
+    "@tanstack/react-table": "^8.20.6",
     "autoprefixer": "^10.4.19",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
@@ -33,6 +36,7 @@
     "@types/react-dom": "^18.3.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.5",
+    "openapi-typescript": "^7.5.0",
     "postcss": "^8.4.38",
     "typescript": "^5.4.5"
   }

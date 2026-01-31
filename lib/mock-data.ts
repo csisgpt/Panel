@@ -16,6 +16,7 @@ import {
   CreateWithdrawalDto,
   DepositRequest,
   DepositStatus,
+  FileLink,
   FileMeta,
   GoldLot,
   GoldLotStatus,
@@ -121,6 +122,18 @@ const daysAgo = (days: number) => {
 
 function createId(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function buildMockFileLink(file: FileMeta, mode: "preview" | "download"): FileLink {
+  const label = `${file.fileName} (${mode})`;
+  const svg = `<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"640\" height=\"360\"><rect width=\"100%\" height=\"100%\" fill=\"#0f172a\"/><text x=\"50%\" y=\"50%\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#e2e8f0\" font-size=\"20\">${label}</text></svg>`;
+  const dataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  return {
+    id: file.id,
+    previewUrl: dataUrl,
+    downloadUrl: dataUrl,
+    expiresInSeconds: 60,
+  };
 }
 
 async function simulateDelay(ms = 250) {
@@ -1261,6 +1274,15 @@ export async function getMockAttachments(
     result = result.filter((a) => a.entityId === entityId);
   }
   return result;
+}
+
+export async function getMockFileLinks(
+  fileIds: string[],
+  mode: "preview" | "download"
+): Promise<FileLink[]> {
+  await simulateDelay();
+  const files = mockFiles.filter((file) => fileIds.includes(file.id));
+  return files.map((file) => buildMockFileLink(file, mode));
 }
 
 // ---------------------------------------------------------------------------

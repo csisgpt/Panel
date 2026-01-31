@@ -1,22 +1,26 @@
 import { API_BASE_URL } from "./config";
+import { normalizeApiError } from "./error-normalizer";
+import { fetchWithRetry, getAuthToken, parseResponse } from "./http";
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
-  const res = await fetch(url, {
+  const token = getAuthToken();
+  const headers = new Headers(options.headers);
+  headers.set("Content-Type", "application/json");
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  const res = await fetchWithRetry(url, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
+    headers,
     cache: "no-store",
   });
 
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`API error ${res.status}: ${text}`);
+    throw await normalizeApiError(res);
   }
 
-  return (await res.json()) as T;
+  return await parseResponse<T>(res);
 }
 
 export function apiGet<T>(path: string): Promise<T> {
