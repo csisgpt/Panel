@@ -12,11 +12,13 @@ export function Pagination({
   onPageChange,
   onLimitChange,
   limitOptions = [10, 20, 50],
+  disabled = false,
 }: {
   meta: ListMeta;
   onPageChange: (page: number) => void;
   onLimitChange?: (limit: number) => void;
   limitOptions?: number[];
+  disabled?: boolean;
 }) {
   const totalPages = meta.totalPages ?? Math.ceil(meta.total / meta.limit);
   const hasPrev = meta.page > 1;
@@ -29,7 +31,11 @@ export function Pagination({
       </span>
       <div className="flex flex-wrap items-center gap-2">
         {onLimitChange ? (
-          <Select value={String(meta.limit)} onValueChange={(value) => onLimitChange(Number(value))}>
+          <Select
+            value={String(meta.limit)}
+            onValueChange={(value) => onLimitChange(Number(value))}
+            disabled={disabled}
+          >
             <SelectTrigger className="h-8 w-[120px]">
               <SelectValue placeholder="تعداد در صفحه" />
             </SelectTrigger>
@@ -42,10 +48,20 @@ export function Pagination({
             </SelectContent>
           </Select>
         ) : null}
-        <Button variant="outline" size="sm" disabled={!hasPrev} onClick={() => onPageChange(meta.page - 1)}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={disabled || !hasPrev}
+          onClick={() => onPageChange(meta.page - 1)}
+        >
           قبلی
         </Button>
-        <Button variant="outline" size="sm" disabled={!hasNext} onClick={() => onPageChange(meta.page + 1)}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={disabled || !hasNext}
+          onClick={() => onPageChange(meta.page + 1)}
+        >
           بعدی
         </Button>
       </div>

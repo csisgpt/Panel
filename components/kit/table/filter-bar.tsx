@@ -13,6 +13,7 @@ export function FilterBar({
   onReset,
   debounceMs = 300,
   placeholder = "جستجو",
+  disabled = false,
   children,
 }: {
   search?: string;
@@ -20,6 +21,7 @@ export function FilterBar({
   onReset?: () => void;
   debounceMs?: number;
   placeholder?: string;
+  disabled?: boolean;
   children?: ReactNode;
 }) {
   const [localSearch, setLocalSearch] = useState(search ?? "");
@@ -45,6 +47,7 @@ export function FilterBar({
           placeholder={placeholder}
           value={localSearch}
           onChange={(event) => setLocalSearch(event.target.value)}
+          disabled={disabled}
           className="max-w-xs"
         />
       ) : null}
@@ -54,6 +57,7 @@ export function FilterBar({
           type="button"
           variant="outline"
           size="sm"
+          disabled={disabled}
           onClick={() => {
             setLocalSearch("");
             onReset();

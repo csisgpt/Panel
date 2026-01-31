@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/kit/table/data-table";
 import { FilterBar } from "@/components/kit/table/filter-bar";
 import { SortSelect } from "@/components/kit/table/sort-select";
-import { useListQueryState } from "@/lib/querykit/use-list-query-state";
+import { ServerTableView } from "@/components/kit/table/server-table-view";
 import { defaultPresets } from "@/lib/querykit/presets";
 import { StatusBadge } from "@/components/kit/ops/status-badge";
 import { CountdownBadge } from "@/components/kit/ops/countdown-badge";
@@ -23,12 +23,22 @@ import { moneyColumn, dateColumn } from "@/components/kit/table/column-builder";
 import { useTableStatePersistence } from "@/components/kit/table/use-table-state-persistence";
 import { hasPermission, type AllocationActions } from "@/lib/contracts/permissions";
 import { useActionState } from "@/lib/hooks/use-action-state";
+import { buildApiError } from "@/lib/api/http";
 
 interface DemoRow {
   id: string;
   user: string;
   amount: string;
   status: string;
+  createdAt: string;
+}
+
+interface ServerRow {
+  id: string;
+  user: string;
+  amount: number;
+  status: string;
+  bucket: string;
   createdAt: string;
 }
 
@@ -52,21 +62,25 @@ const demoPermissions: AllocationActions = {
 };
 
 export function KitPlayground() {
-  const { params, setParams } = useListQueryState();
   const { state: tableState, setColumnVisibility, setPageSize } = useTableStatePersistence(
     "kit-playground.table"
   );
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const actionState = useActionState();
+  const [simulateError, setSimulateError] = useState(false);
 
-  const search = params.search ?? "";
+  const [tableSearch, setTableSearch] = useState("");
+  const [tableSort, setTableSort] = useState<{ key: string; dir: "asc" | "desc" } | undefined>(undefined);
+  const [tablePage, setTablePage] = useState(1);
+  const [tableLimit, setTableLimit] = useState(20);
 
   useEffect(() => {
-    if (tableState.pageSize && tableState.pageSize !== params.limit) {
-      setParams({ limit: tableState.pageSize, page: 1 });
+    if (tableState.pageSize && tableState.pageSize !== tableLimit) {
+      setTableLimit(tableState.pageSize);
+      setTablePage(1);
     }
-  }, [params.limit, setParams, tableState.pageSize]);
+  }, [tableLimit, tableState.pageSize]);
 
   const [columnVisibility, setColumnVisibilityState] = useState<Record<string, boolean>>(
     tableState.columnVisibility ?? {}
@@ -79,32 +93,37 @@ export function KitPlayground() {
   }, [tableState.columnVisibility]);
 
   const filtered = useMemo(() => {
-    const base = search ? demoRows.filter((row) => row.user.includes(search)) : demoRows;
-    if (!params.sort) return base;
-    if (params.sort === "createdAt_desc") {
+    const base = tableSearch ? demoRows.filter((row) => row.user.includes(tableSearch)) : demoRows;
+    if (!tableSort) return base;
+    if (tableSort.key === "createdAt") {
+      const direction = tableSort.dir === "asc" ? 1 : -1;
+      return [...base].sort((a, b) => direction * a.createdAt.localeCompare(b.createdAt));
+    }
+    if (tableSort.key === "amount") {
+      const direction = tableSort.dir === "asc" ? 1 : -1;
+      return [...base].sort((a, b) => direction * (Number(a.amount) - Number(b.amount)));
+    }
+    if (tableSort.key === "createdAt_legacy") {
       return [...base].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     }
-    if (params.sort === "amount_desc") {
-      return [...base].sort((a, b) => Number(b.amount) - Number(a.amount));
-    }
     return base;
-  }, [search, params.sort]);
+  }, [tableSearch, tableSort]);
 
   const paginated = useMemo(() => {
-    const start = (params.page - 1) * params.limit;
-    return filtered.slice(start, start + params.limit);
-  }, [filtered, params.page, params.limit]);
+    const start = (tablePage - 1) * tableLimit;
+    return filtered.slice(start, start + tableLimit);
+  }, [filtered, tablePage, tableLimit]);
 
   const meta = useMemo(
     () => ({
-      page: params.page,
-      limit: params.limit,
+      page: tablePage,
+      limit: tableLimit,
       total: filtered.length,
-      totalPages: Math.ceil(filtered.length / params.limit),
-      sort: params.sort,
-      filtersApplied: { search },
+      totalPages: Math.ceil(filtered.length / tableLimit),
+      sort: tableSort ? `${tableSort.key}_${tableSort.dir}` : undefined,
+      filtersApplied: { search: tableSearch },
     }),
-    [params.page, params.limit, params.sort, filtered.length, search]
+    [tablePage, tableLimit, tableSort, filtered.length, tableSearch]
   );
 
   const columns = useMemo<ColumnDef<DemoRow>[]>(
@@ -144,6 +163,78 @@ export function KitPlayground() {
     getMockAttachments().then(setAttachments);
   }, []);
 
+  const serverRows = useMemo<ServerRow[]>(
+    () =>
+      Array.from({ length: 60 }, (_, index) => ({
+        id: `srv-${index + 1}`,
+        user: `کاربر لیست ${index + 1}`,
+        amount: 250000 + index * 5000,
+        status: index % 4 === 0 ? "PENDING" : index % 4 === 1 ? "APPROVED" : index % 4 === 2 ? "REVIEW" : "REJECTED",
+        bucket:
+          index % 5 === 0
+            ? "needs_assignment"
+            : index % 5 === 1
+            ? "proof_submitted"
+            : index % 5 === 2
+            ? "expiring_soon"
+            : index % 5 === 3
+            ? "dispute"
+            : "all",
+        createdAt: new Date(Date.now() - index * 7200 * 1000).toISOString(),
+      })),
+    []
+  );
+
+  const serverColumns = useMemo<ColumnDef<ServerRow>[]>(
+    () => [
+      { id: "id", header: "شناسه", accessorKey: "id" },
+      { id: "user", header: "کاربر", accessorKey: "user" },
+      moneyColumn<ServerRow>("amount", "مبلغ"),
+      { id: "status", header: "وضعیت", accessorKey: "status" },
+      dateColumn<ServerRow>("createdAt", "زمان ایجاد"),
+    ],
+    []
+  );
+
+  const serverQueryFn = useCallback(
+    async (nextParams: { page: number; limit: number; search?: string; sort?: { key: string; dir: string }; filters?: Record<string, unknown> }) => {
+      if (simulateError) {
+        throw buildApiError({ message: "خطای شبیه‌سازی شده", traceId: "TRACE-PLAYGROUND-01" });
+      }
+      let items = [...serverRows];
+      if (nextParams.search) {
+        items = items.filter((row) => row.user.includes(nextParams.search ?? ""));
+      }
+      if (nextParams.filters?.bucket) {
+        items = items.filter((row) => row.bucket === nextParams.filters?.bucket);
+      }
+      if (nextParams.filters?.status) {
+        items = items.filter((row) => row.status === nextParams.filters?.status);
+      }
+      if (nextParams.sort?.key === "createdAt") {
+        const direction = nextParams.sort.dir === "asc" ? 1 : -1;
+        items = items.sort((a, b) => direction * a.createdAt.localeCompare(b.createdAt));
+      }
+      if (nextParams.sort?.key === "amount") {
+        const direction = nextParams.sort.dir === "asc" ? 1 : -1;
+        items = items.sort((a, b) => direction * (a.amount - b.amount));
+      }
+      const start = (nextParams.page - 1) * nextParams.limit;
+      const paginatedItems = items.slice(start, start + nextParams.limit);
+      return {
+        items: paginatedItems,
+        meta: {
+          page: nextParams.page,
+          limit: nextParams.limit,
+          total: items.length,
+          totalPages: Math.max(1, Math.ceil(items.length / nextParams.limit)),
+          filtersApplied: nextParams.filters,
+        },
+      };
+    },
+    [serverRows, simulateError]
+  );
+
   return (
     <div className="space-y-8 p-6">
       <Card>
@@ -181,26 +272,40 @@ export function KitPlayground() {
         </CardHeader>
         <CardContent className="space-y-4">
           <FilterBar
-            search={search}
-            onSearchChange={(value) => setParams({ search: value, page: 1 })}
-            onReset={() => setParams({ search: "", sort: undefined, page: 1 })}
+            search={tableSearch}
+            onSearchChange={(value) => {
+              setTableSearch(value);
+              setTablePage(1);
+            }}
+            onReset={() => {
+              setTableSearch("");
+              setTableSort(undefined);
+              setTablePage(1);
+            }}
           >
             {defaultPresets.map((preset) => (
               <Button
                 key={preset.id}
                 variant="outline"
-                onClick={() => setParams({ ...preset.params, search })}
+                onClick={() => {
+                  setTablePage(preset.params.page ?? 1);
+                  setTableLimit(preset.params.limit ?? 20);
+                }}
               >
                 {preset.label}
               </Button>
             ))}
             <SortSelect
-              value={params.sort}
+              value={tableSort ? `${tableSort.key}_${tableSort.dir}` : undefined}
               options={[
                 { value: "createdAt_desc", label: "جدیدترین" },
                 { value: "amount_desc", label: "بیشترین مبلغ" },
               ]}
-              onChange={(value) => setParams({ sort: value })}
+              onChange={(value) => {
+                const [key, dir] = value.split("_");
+                setTableSort({ key, dir: dir === "asc" ? "asc" : "desc" });
+                setTablePage(1);
+              }}
             />
           </FilterBar>
 
@@ -231,11 +336,60 @@ export function KitPlayground() {
             data={paginated}
             columns={visibleColumns}
             meta={meta}
-            onPageChange={(page) => setParams({ page })}
+            onPageChange={(page) => setTablePage(page)}
             onLimitChange={(limit) => {
-              setParams({ limit, page: 1 });
+              setTableLimit(limit);
+              setTablePage(1);
               setPageSize(limit);
             }}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>ServerTableView</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant={simulateError ? "destructive" : "outline"} size="sm" onClick={() => setSimulateError((prev) => !prev)}>
+              {simulateError ? "حالت خطا فعال است" : "شبیه‌سازی خطا"}
+            </Button>
+          </div>
+          <ServerTableView
+            storageKey="kit-playground.server-table"
+            title="لیست سرورمحور"
+            description="نمونه ترکیب QueryKit + React Query + TableKit"
+            columns={serverColumns}
+            queryKeyFactory={(params) => ["server-table", params]}
+            queryFn={serverQueryFn}
+            defaultParams={{ page: 1, limit: 10, tab: "all" }}
+            tabs={[
+              { id: "all", label: "همه", paramsPatch: { filters: {} } },
+              { id: "needs_assignment", label: "نیاز به تخصیص", paramsPatch: { filters: { bucket: "needs_assignment" } } },
+              { id: "proof_submitted", label: "رسید ارسال شد", paramsPatch: { filters: { bucket: "proof_submitted" } } },
+              { id: "expiring_soon", label: "در شرف انقضا", paramsPatch: { filters: { bucket: "expiring_soon" } } },
+              { id: "dispute", label: "اختلاف", paramsPatch: { filters: { bucket: "dispute" } } },
+            ]}
+            sortOptions={[
+              { key: "createdAt", label: "جدیدترین", defaultDir: "desc" },
+              { key: "amount", label: "بیشترین مبلغ", defaultDir: "desc" },
+            ]}
+            filtersConfig={[
+              {
+                type: "status",
+                key: "status",
+                label: "وضعیت",
+                options: [
+                  { label: "در انتظار", value: "PENDING" },
+                  { label: "تایید شده", value: "APPROVED" },
+                  { label: "بازبینی", value: "REVIEW" },
+                  { label: "رد شده", value: "REJECTED" },
+                ],
+              },
+              { type: "dateRange", key: "dateRange", label: "بازه تاریخ" },
+              { type: "amountRange", key: "amountRange", label: "بازه مبلغ" },
+            ]}
           />
         </CardContent>
       </Card>

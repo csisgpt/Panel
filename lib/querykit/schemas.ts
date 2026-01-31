@@ -1,17 +1,54 @@
-import { z } from "zod";
+export type SortDir = "asc" | "desc";
 
-export const listParamsSchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
-  sort: z.string().optional(),
-  search: z.string().optional(),
-  status: z.string().optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-  minAmount: z.coerce.number().optional(),
-  maxAmount: z.coerce.number().optional(),
-  hasProof: z.coerce.boolean().optional(),
-  expiresSoon: z.coerce.boolean().optional(),
-});
+export interface SortParam {
+  key: string;
+  dir: SortDir;
+}
 
-export type ListParams = z.infer<typeof listParamsSchema>;
+export interface ListParams<TFilters = Record<string, unknown>> {
+  page: number;
+  limit: number;
+  search?: string;
+  sort?: SortParam;
+  filters?: TFilters;
+  tab?: string;
+}
+
+export const listParamsDefaults = {
+  page: 1,
+  limit: 20,
+};
+
+/**
+ * Apply default values for list params.
+ */
+export function withDefaults<TFilters>(
+  params: Partial<ListParams<TFilters>>,
+  defaults: Partial<ListParams<TFilters>> = listParamsDefaults
+): ListParams<TFilters> {
+  return {
+    page: params.page ?? defaults.page ?? listParamsDefaults.page,
+    limit: params.limit ?? defaults.limit ?? listParamsDefaults.limit,
+    search: params.search ?? defaults.search,
+    sort: params.sort ?? defaults.sort,
+    filters: params.filters ?? defaults.filters,
+    tab: params.tab ?? defaults.tab,
+  };
+}
+
+/**
+ * Remove default values for shorter URLs.
+ */
+export function cleanDefaults<TFilters>(
+  params: Partial<ListParams<TFilters>>,
+  defaults: Partial<ListParams<TFilters>> = listParamsDefaults
+) {
+  const cleaned: Partial<ListParams<TFilters>> = { ...params };
+  if (cleaned.page === defaults.page) delete cleaned.page;
+  if (cleaned.limit === defaults.limit) delete cleaned.limit;
+  if (cleaned.search === "" || cleaned.search === defaults.search) delete cleaned.search;
+  if (cleaned.sort && !cleaned.sort.key) delete cleaned.sort;
+  if (cleaned.filters && Object.keys(cleaned.filters).length === 0) delete cleaned.filters;
+  if (cleaned.tab === "" || cleaned.tab === defaults.tab) delete cleaned.tab;
+  return cleaned;
+}

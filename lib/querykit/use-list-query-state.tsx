@@ -2,27 +2,29 @@
 
 import { useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { listParamsSchema, type ListParams } from "./schemas";
+import { parseListParams } from "./parse";
+import { serializeListParams } from "./serialize";
+import type { ListParams } from "./schemas";
+import { withDefaults } from "./schemas";
 
-export function useListQueryState() {
+export function useListQueryState<TFilters = Record<string, unknown>>({
+  defaultParams,
+}: {
+  defaultParams?: Partial<ListParams<TFilters>>;
+} = {}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
 
-  const params = useMemo(() => {
-    const raw = Object.fromEntries(searchParams.entries());
-    return listParamsSchema.parse(raw);
-  }, [searchParams]);
+  const params = useMemo(
+    () => parseListParams<TFilters>(searchParams, defaultParams),
+    [searchParams, defaultParams]
+  );
 
-  const setParams = (next: Partial<ListParams>) => {
-    const merged = { ...params, ...next };
-    const validated = listParamsSchema.parse(merged);
-    const updated = new URLSearchParams();
-    Object.entries(validated).forEach(([key, value]) => {
-      if (value === undefined || value === null || value === "") return;
-      updated.set(key, String(value));
-    });
-    router.replace(`${pathname}?${updated.toString()}`);
+  const setParams = (next: Partial<ListParams<TFilters>>) => {
+    const merged = withDefaults({ ...params, ...next }, defaultParams);
+    const query = serializeListParams(merged);
+    router.replace(`${pathname}${query}`);
   };
 
   return { params, setParams };

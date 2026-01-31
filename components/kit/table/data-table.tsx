@@ -21,12 +21,15 @@ interface DataTableProps<TData> {
   meta?: ListMeta;
   loading?: boolean;
   error?: ApiError | null;
+  onRetry?: () => void;
   state?: TableState;
   onPageChange?: (page: number) => void;
   onLimitChange?: (limit: number) => void;
   onSortChange?: (sort: SortModel) => void;
   onFiltersChange?: (filters: FiltersModel) => void;
   onSearchChange?: (search: string) => void;
+  getRowId?: (row: TData, index: number) => string;
+  showPagination?: boolean;
 }
 
 /**
@@ -38,11 +41,14 @@ export function DataTable<TData>({
   meta,
   loading,
   error,
+  onRetry,
   onPageChange,
   onLimitChange,
   onSortChange,
   onFiltersChange,
   onSearchChange,
+  getRowId,
+  showPagination = true,
 }: DataTableProps<TData>) {
   void onSortChange;
   void onFiltersChange;
@@ -52,6 +58,7 @@ export function DataTable<TData>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    getRowId,
   });
 
   const colSpan = table.getVisibleLeafColumns().length;
@@ -86,7 +93,7 @@ export function DataTable<TData>({
             ) : error ? (
               <TableRow>
                 <TableCell colSpan={colSpan}>
-                  <ErrorState error={error} />
+                  <ErrorState error={error} onAction={onRetry} />
                 </TableCell>
               </TableRow>
             ) : data.length === 0 ? (
@@ -112,7 +119,7 @@ export function DataTable<TData>({
           </TableBody>
         </Table>
       </div>
-      {meta && onPageChange ? (
+      {showPagination && meta && onPageChange ? (
         <Pagination meta={meta} onPageChange={onPageChange} onLimitChange={onLimitChange} />
       ) : null}
     </div>
