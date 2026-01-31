@@ -1,7 +1,7 @@
 node_modules
 .next
 out
-.lock
+*.lock
 .turbo
 dist
 *.log
