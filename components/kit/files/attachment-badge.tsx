@@ -1,6 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import type { FileMeta } from "@/lib/types/backend";
 
+/**
+ * Badge showing attachment name and size.
+ */
 export function AttachmentBadge({ file }: { file: FileMeta }) {
   return (
     <Badge variant="secondary" className="gap-2">

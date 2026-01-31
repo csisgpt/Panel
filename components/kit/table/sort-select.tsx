@@ -7,6 +7,9 @@ export interface SortOption {
   label: string;
 }
 
+/**
+ * Generic sort select for list views.
+ */
 export function SortSelect({
   value,
   options,

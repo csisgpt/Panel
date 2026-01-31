@@ -5,7 +5,6 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/kit/table/data-table";
 import { FilterBar } from "@/components/kit/table/filter-bar";
 import { SortSelect } from "@/components/kit/table/sort-select";
-import { Pagination } from "@/components/kit/table/pagination";
 import { useListQueryState } from "@/lib/querykit/use-list-query-state";
 import { defaultPresets } from "@/lib/querykit/presets";
 import { StatusBadge } from "@/components/kit/ops/status-badge";
@@ -18,9 +17,12 @@ import { AttachmentBadge } from "@/components/kit/files/attachment-badge";
 import { AttachmentPreviewButton } from "@/components/kit/files/attachment-preview-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { getMockAttachments } from "@/lib/mock-data";
 import type { Attachment, FileMeta } from "@/lib/types/backend";
+import { moneyColumn, dateColumn } from "@/components/kit/table/column-builder";
+import { useTableStatePersistence } from "@/components/kit/table/use-table-state-persistence";
+import { hasPermission, type AllocationActions } from "@/lib/contracts/permissions";
+import { useActionState } from "@/lib/hooks/use-action-state";
 
 interface DemoRow {
   id: string;
@@ -38,16 +40,55 @@ const demoRows: DemoRow[] = Array.from({ length: 42 }, (_, index) => ({
   createdAt: new Date(Date.now() - index * 3600 * 1000).toISOString(),
 }));
 
+const demoPermissions: AllocationActions = {
+  canSubmitProof: true,
+  canConfirmReceived: false,
+  canDispute: true,
+  canCancel: true,
+  canAdminVerify: false,
+  canFinalize: false,
+  canViewAttachments: true,
+  canDownloadAttachments: false,
+};
+
 export function KitPlayground() {
   const { params, setParams } = useListQueryState();
-  const [search, setSearch] = useState(params.search ?? "");
+  const { state: tableState, setColumnVisibility, setPageSize } = useTableStatePersistence(
+    "kit-playground.table"
+  );
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const actionState = useActionState();
+
+  const search = params.search ?? "";
+
+  useEffect(() => {
+    if (tableState.pageSize && tableState.pageSize !== params.limit) {
+      setParams({ limit: tableState.pageSize, page: 1 });
+    }
+  }, [params.limit, setParams, tableState.pageSize]);
+
+  const [columnVisibility, setColumnVisibilityState] = useState<Record<string, boolean>>(
+    tableState.columnVisibility ?? {}
+  );
+
+  useEffect(() => {
+    if (tableState.columnVisibility) {
+      setColumnVisibilityState(tableState.columnVisibility);
+    }
+  }, [tableState.columnVisibility]);
 
   const filtered = useMemo(() => {
-    if (!search) return demoRows;
-    return demoRows.filter((row) => row.user.includes(search));
-  }, [search]);
+    const base = search ? demoRows.filter((row) => row.user.includes(search)) : demoRows;
+    if (!params.sort) return base;
+    if (params.sort === "createdAt_desc") {
+      return [...base].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    }
+    if (params.sort === "amount_desc") {
+      return [...base].sort((a, b) => Number(b.amount) - Number(a.amount));
+    }
+    return base;
+  }, [search, params.sort]);
 
   const paginated = useMemo(() => {
     const start = (params.page - 1) * params.limit;
@@ -68,10 +109,12 @@ export function KitPlayground() {
 
   const columns = useMemo<ColumnDef<DemoRow>[]>(
     () => [
-      { header: "شناسه", accessorKey: "id" },
-      { header: "کاربر", accessorKey: "user" },
-      { header: "مبلغ", accessorKey: "amount" },
+      { id: "id", header: "شناسه", accessorKey: "id" },
+      { id: "user", header: "کاربر", accessorKey: "user" },
+      moneyColumn<DemoRow>("amount", "مبلغ"),
+      dateColumn<DemoRow>("createdAt", "زمان ایجاد"),
       {
+        id: "status",
         header: "وضعیت",
         cell: ({ row }) => <StatusBadge status={row.original.status} />,
       },
@@ -79,9 +122,23 @@ export function KitPlayground() {
     []
   );
 
+  const visibleColumns = useMemo(() => {
+    return columns.filter((column) => {
+      const key = column.id ?? (typeof column.accessorKey === "string" ? column.accessorKey : "");
+      if (!key) return true;
+      return columnVisibility[key] !== false;
+    });
+  }, [columns, columnVisibility]);
+
   const fileList: FileMeta[] = attachments
     .map((attachment) => attachment.file)
     .filter(Boolean) as FileMeta[];
+
+  const galleryFiles = useMemo(() => {
+    const images = fileList.filter((file) => file.mimeType.startsWith("image/"));
+    const pdfs = fileList.filter((file) => file.mimeType === "application/pdf");
+    return [images[0], images[1], pdfs[0]].filter(Boolean) as FileMeta[];
+  }, [fileList]);
 
   useEffect(() => {
     getMockAttachments().then(setAttachments);
@@ -91,10 +148,43 @@ export function KitPlayground() {
     <div className="space-y-8 p-6">
       <Card>
         <CardHeader>
+          <CardTitle>Permissions + UI State</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="default"
+              disabled={!hasPermission(demoPermissions, "canSubmitProof")}
+              onClick={() => {
+                actionState.setLoading();
+                setTimeout(() => actionState.setSuccess(), 600);
+              }}
+            >
+              ارسال رسید
+            </Button>
+            <Button variant="outline" disabled={!hasPermission(demoPermissions, "canConfirmReceived")}>
+              تایید دریافت
+            </Button>
+            <Button variant="outline" disabled={!hasPermission(demoPermissions, "canDispute")}>
+              ثبت اختلاف
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            وضعیت UI: {actionState.state.status === "loading" ? "در حال انجام" : actionState.state.status}
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>QueryKit + TableKit</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <FilterBar>
+          <FilterBar
+            search={search}
+            onSearchChange={(value) => setParams({ search: value, page: 1 })}
+            onReset={() => setParams({ search: "", sort: undefined, page: 1 })}
+          >
             {defaultPresets.map((preset) => (
               <Button
                 key={preset.id}
@@ -104,16 +194,6 @@ export function KitPlayground() {
                 {preset.label}
               </Button>
             ))}
-            <Input
-              placeholder="جستجو"
-              value={search}
-              onChange={(event) => {
-                const next = event.target.value;
-                setSearch(next);
-                setParams({ search: next, page: 1 });
-              }}
-              className="max-w-xs"
-            />
             <SortSelect
               value={params.sort}
               options={[
@@ -123,8 +203,40 @@ export function KitPlayground() {
               onChange={(value) => setParams({ sort: value })}
             />
           </FilterBar>
-          <DataTable data={paginated} columns={columns} />
-          <Pagination meta={meta} onPageChange={(page) => setParams({ page })} />
+
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <span>نمایش ستون‌ها:</span>
+            {columns.map((column) => {
+              const key = column.id ?? (typeof column.accessorKey === "string" ? column.accessorKey : "");
+              if (!key) return null;
+              const isVisible = columnVisibility[key] !== false;
+              return (
+                <Button
+                  key={key}
+                  size="sm"
+                  variant={isVisible ? "default" : "outline"}
+                  onClick={() => {
+                    const next = { ...columnVisibility, [key]: !isVisible };
+                    setColumnVisibilityState(next);
+                    setColumnVisibility(next);
+                  }}
+                >
+                  {column.header as string}
+                </Button>
+              );
+            })}
+          </div>
+
+          <DataTable
+            data={paginated}
+            columns={visibleColumns}
+            meta={meta}
+            onPageChange={(page) => setParams({ page })}
+            onLimitChange={(limit) => {
+              setParams({ limit, page: 1 });
+              setPageSize(limit);
+            }}
+          />
         </CardContent>
       </Card>
 
@@ -161,7 +273,7 @@ export function KitPlayground() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
-            {fileList.map((file) => (
+            {galleryFiles.map((file) => (
               <AttachmentBadge key={file.id} file={file} />
             ))}
           </div>
@@ -169,7 +281,7 @@ export function KitPlayground() {
           <AttachmentGalleryModal
             open={galleryOpen}
             onOpenChange={setGalleryOpen}
-            files={fileList}
+            files={galleryFiles}
           />
         </CardContent>
       </Card>

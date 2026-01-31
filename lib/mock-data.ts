@@ -124,6 +124,18 @@ function createId(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function buildListEnvelope<T>(items: T[], page = 1, limit = items.length) {
+  return {
+    items,
+    meta: {
+      page,
+      limit,
+      total: items.length,
+      totalPages: Math.max(1, Math.ceil(items.length / limit)),
+    },
+  };
+}
+
 function buildMockFileLink(file: FileMeta, mode: "preview" | "download"): FileLink {
   const label = `${file.fileName} (${mode})`;
   const svg = `<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"640\" height=\"360\"><rect width=\"100%\" height=\"100%\" fill=\"#0f172a\"/><text x=\"50%\" y=\"50%\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#e2e8f0\" font-size=\"20\">${label}</text></svg>`;
@@ -134,6 +146,25 @@ function buildMockFileLink(file: FileMeta, mode: "preview" | "download"): FileLi
     downloadUrl: dataUrl,
     expiresInSeconds: 60,
   };
+}
+
+const mockFileLinkAttempts = new Map<string, number>();
+
+function buildMockFileLinkWithExpiry(file: FileMeta, mode: "preview" | "download"): FileLink {
+  const key = `${file.id}:${mode}`;
+  const attempts = mockFileLinkAttempts.get(key) ?? 0;
+  mockFileLinkAttempts.set(key, attempts + 1);
+
+  if (mode === "preview" && attempts === 0) {
+    return {
+      id: file.id,
+      previewUrl: `https://expired.local/${file.id}`,
+      downloadUrl: `https://expired.local/${file.id}`,
+      expiresInSeconds: 1,
+    };
+  }
+
+  return buildMockFileLink(file, mode);
 }
 
 async function simulateDelay(ms = 250) {
@@ -624,6 +655,14 @@ export async function getMockAccountTx(accountId: string): Promise<AccountTx[]> 
   return mockAccountTx.filter((tx) => tx.accountId === accountId);
 }
 
+export function getMockAccountTxEnvelope(
+  accountId: string,
+  params?: { page?: number; limit?: number }
+) {
+  const items = mockAccountTx.filter((tx) => tx.accountId === accountId);
+  return buildListEnvelope(items, params?.page ?? 1, params?.limit ?? items.length);
+}
+
 // ---------------------------------------------------------------------------
 // Trades
 // ---------------------------------------------------------------------------
@@ -939,6 +978,10 @@ export async function getMockDeposits(): Promise<DepositRequest[]> {
   return [...mockDeposits];
 }
 
+export function getMockDepositsEnvelope(params?: { page?: number; limit?: number }) {
+  return buildListEnvelope([...mockDeposits], params?.page ?? 1, params?.limit ?? mockDeposits.length);
+}
+
 export async function createMockDeposit(
   dto: CreateDepositDto
 ): Promise<DepositRequest> {
@@ -1052,6 +1095,10 @@ let mockWithdrawals: WithdrawRequest[] = [
 export async function getMockWithdrawals(): Promise<WithdrawRequest[]> {
   await simulateDelay();
   return [...mockWithdrawals];
+}
+
+export function getMockWithdrawalsEnvelope(params?: { page?: number; limit?: number }) {
+  return buildListEnvelope([...mockWithdrawals], params?.page ?? 1, params?.limit ?? mockWithdrawals.length);
 }
 
 export async function createMockWithdrawal(
@@ -1196,6 +1243,16 @@ let mockFiles: FileMeta[] = [
     label: "فرم برداشت",
   },
   {
+    id: "file-5",
+    createdAt: daysAgo(3),
+    uploadedById: "u-client-3",
+    storageKey: "mock://file-5",
+    fileName: "receipt-2.png",
+    mimeType: "image/png",
+    sizeBytes: 160_000,
+    label: "رسید تکمیلی",
+  },
+  {
     id: "file-3",
     createdAt: daysAgo(1),
     uploadedById: "u-ops",
@@ -1237,13 +1294,22 @@ let mockAttachments: Attachment[] = [
     file: mockFiles[1],
   },
   {
+    id: "att-5",
+    createdAt: daysAgo(3),
+    fileId: "file-5",
+    entityType: AttachmentEntityType.DEPOSIT,
+    entityId: "d-2",
+    purpose: "receipt",
+    file: mockFiles[2],
+  },
+  {
     id: "att-3",
     createdAt: daysAgo(1),
     fileId: "file-3",
     entityType: AttachmentEntityType.TRADE,
     entityId: "t-2",
     purpose: "note",
-    file: mockFiles[2],
+    file: mockFiles[3],
   },
   {
     id: "att-4",
@@ -1252,13 +1318,17 @@ let mockAttachments: Attachment[] = [
     entityType: AttachmentEntityType.DEPOSIT,
     entityId: "d-4",
     purpose: "receipt",
-    file: mockFiles[3],
+    file: mockFiles[4],
   },
 ];
 
 export async function getMockFiles(): Promise<FileMeta[]> {
   await simulateDelay();
   return [...mockFiles];
+}
+
+export function getMockFilesEnvelope(params?: { page?: number; limit?: number }) {
+  return buildListEnvelope([...mockFiles], params?.page ?? 1, params?.limit ?? mockFiles.length);
 }
 
 export async function getMockAttachments(
@@ -1276,13 +1346,29 @@ export async function getMockAttachments(
   return result;
 }
 
+export function getMockAttachmentsEnvelope(params?: {
+  entityType?: AttachmentEntityType;
+  entityId?: string;
+  page?: number;
+  limit?: number;
+}) {
+  let result = [...mockAttachments];
+  if (params?.entityType) {
+    result = result.filter((a) => a.entityType === params.entityType);
+  }
+  if (params?.entityId) {
+    result = result.filter((a) => a.entityId === params.entityId);
+  }
+  return buildListEnvelope(result, params?.page ?? 1, params?.limit ?? result.length);
+}
+
 export async function getMockFileLinks(
   fileIds: string[],
   mode: "preview" | "download"
 ): Promise<FileLink[]> {
   await simulateDelay();
   const files = mockFiles.filter((file) => fileIds.includes(file.id));
-  return files.map((file) => buildMockFileLink(file, mode));
+  return files.map((file) => buildMockFileLinkWithExpiry(file, mode));
 }
 
 // ---------------------------------------------------------------------------
