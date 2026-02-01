@@ -15,11 +15,11 @@ export const defaultPresets: QueryPreset[] = [
   {
     id: "urgent",
     label: "فوری",
-    params: { expiresSoon: true, page: 1, limit: 20 },
+    params: { filters: { expiresSoon: true }, page: 1, limit: 20 },
   },
   {
     id: "with-proof",
     label: "با رسید",
-    params: { hasProof: true, page: 1, limit: 20 },
+    params: { filters: { hasProof: true }, page: 1, limit: 20 },
   },
 ];

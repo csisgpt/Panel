@@ -13,15 +13,18 @@ export interface ListEnvelope<T> {
   meta?: ListMeta;
 }
 
+import { unwrapApiResult } from "@/lib/api/http";
+
 export function normalizeListResponse<T>(raw: ListEnvelope<T> | null | undefined) {
-  const items = raw?.data ?? raw?.items ?? [];
+  const payload = unwrapApiResult(raw ?? undefined) as ListEnvelope<T> | null | undefined;
+  const items = payload?.data ?? payload?.items ?? [];
   const meta: ListMeta = {
-    page: raw?.meta?.page ?? 1,
-    limit: raw?.meta?.limit ?? items.length,
-    total: raw?.meta?.total ?? items.length,
-    totalPages: raw?.meta?.totalPages,
-    sort: raw?.meta?.sort,
-    filtersApplied: raw?.meta?.filtersApplied,
+    page: payload?.meta?.page ?? 1,
+    limit: payload?.meta?.limit ?? items.length,
+    total: payload?.meta?.total ?? items.length,
+    totalPages: payload?.meta?.totalPages,
+    sort: payload?.meta?.sort,
+    filtersApplied: payload?.meta?.filtersApplied,
   };
 
   return { items, meta };

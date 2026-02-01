@@ -10,6 +10,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
   }
+  if (process.env.NEXT_PUBLIC_API_ENVELOPE === "1") {
+    headers.set("x-api-envelope", "1");
+  }
   const res = await fetchWithRetry(url, {
     ...options,
     headers,

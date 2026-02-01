@@ -1,5 +1,11 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import type { ApiError } from "@/lib/contracts/errors";
+import { EmptyState } from "@/components/kit/common/EmptyState";
+import { ErrorState } from "@/components/kit/common/ErrorState";
+import { LoadingState } from "@/components/kit/common/LoadingState";
 
+/**
+ * @deprecated Use LoadingState/EmptyState/ErrorState directly.
+ */
 export function TableStates({
   isLoading,
   isEmpty,
@@ -7,22 +13,16 @@ export function TableStates({
 }: {
   isLoading?: boolean;
   isEmpty?: boolean;
-  error?: string | null;
+  error?: ApiError | string | null;
 }) {
   if (isLoading) {
-    return (
-      <div className="space-y-2">
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-8 w-full" />
-      </div>
-    );
+    return <LoadingState />;
   }
   if (error) {
-    return <p className="text-sm text-destructive">{error}</p>;
+    return <ErrorState description={typeof error === "string" ? error : undefined} error={typeof error === "string" ? null : error} />;
   }
   if (isEmpty) {
-    return <p className="text-sm text-muted-foreground">داده‌ای یافت نشد.</p>;
+    return <EmptyState />;
   }
   return null;
 }

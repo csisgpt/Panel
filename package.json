@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "gen:api-types": "openapi-typescript \"$OPENAPI_JSON\" -o lib/types/generated/api.d.ts"
+    "typecheck": "tsc --noEmit",
+    "sync:openapi": "node scripts/sync-openapi.mjs",
+    "gen:api-types": "openapi-typescript \"${OPENAPI_JSON:-docs/openapi.json}\" -o lib/types/generated/api.d.ts"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.0",

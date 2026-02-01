@@ -39,6 +39,16 @@ export async function parseResponse<T>(res: Response): Promise<T> {
   return (await res.text()) as T;
 }
 
+export function unwrapApiResult<T>(payload: T): T {
+  if (payload && typeof payload === "object") {
+    const record = payload as Record<string, unknown>;
+    if (record.ok === true && "result" in record) {
+      return record.result as T;
+    }
+  }
+  return payload;
+}
+
 export async function fetchWithRetry(
   url: string,
   options: HttpRequestOptions = {}

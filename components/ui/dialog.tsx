@@ -5,13 +5,24 @@ import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 interface DialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   children: React.ReactNode;
 }
 
+interface DialogContextValue {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+}
+
+const DialogContext = React.createContext<DialogContextValue | null>(null);
+
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
   const [mounted, setMounted] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(false);
+  const isControlled = typeof open === "boolean";
+  const currentOpen = isControlled ? open : internalOpen;
+  const setOpen = isControlled ? onOpenChange ?? (() => undefined) : setInternalOpen;
 
   React.useEffect(() => {
     setMounted(true);
@@ -20,23 +31,41 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
   React.useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onOpenChange(false);
+        setOpen(false);
       }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [onOpenChange]);
+  }, [setOpen]);
 
-  if (!open || !mounted) return null;
+  if (!currentOpen || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-      <button className="absolute inset-0 h-full w-full" aria-label="Close dialog" onClick={() => onOpenChange(false)} />
-      <div className="relative z-10 w-full max-w-lg scale-100 overflow-hidden rounded-2xl border bg-card shadow-2xl">
-        {children}
+    <DialogContext.Provider value={{ open: currentOpen, setOpen }}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+        <button className="absolute inset-0 h-full w-full" aria-label="Close dialog" onClick={() => setOpen(false)} />
+        <div className="relative z-10 w-full max-w-lg scale-100 overflow-hidden rounded-2xl border bg-card shadow-2xl">
+          {children}
+        </div>
       </div>
-    </div>,
+    </DialogContext.Provider>,
     document.body
+  );
+}
+
+export function DialogTrigger({ asChild, children }: { asChild?: boolean; children: React.ReactElement }) {
+  const context = React.useContext(DialogContext);
+  if (!context) return children;
+  const triggerProps = {
+    onClick: () => context.setOpen(true),
+  };
+  if (asChild) {
+    return React.cloneElement(children, { ...triggerProps, ...children.props });
+  }
+  return (
+    <button type="button" {...triggerProps}>
+      {children}
+    </button>
   );
 }
 

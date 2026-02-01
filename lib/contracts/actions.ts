@@ -1,5 +1,12 @@
+/**
+ * @deprecated Use ActionUIState from `action-ui-state` for local async state
+ * and ActionPermissions from `permissions` for backend permissions.
+ */
 export type ActionState = "idle" | "loading" | "success" | "error";
 
+/**
+ * @deprecated Use ActionUIState from `action-ui-state`.
+ */
 export interface ActionFlags {
   state: ActionState;
   isIdle: boolean;
@@ -8,6 +15,9 @@ export interface ActionFlags {
   isError: boolean;
 }
 
+/**
+ * @deprecated Use ActionUIState from `action-ui-state`.
+ */
 export function deriveActionFlags(state: ActionState): ActionFlags {
   return {
     state,
@@ -17,3 +27,6 @@ export function deriveActionFlags(state: ActionState): ActionFlags {
     isError: state === "error",
   };
 }
+
+export type { ActionUIState, ActionUIStatus } from "./action-ui-state";
+export type { ActionPermissions } from "./permissions";

@@ -1,7 +1,9 @@
 export const queryKeys = {
   files: {
-    links: (fileId: string) => ["files", "links", fileId] as const,
-    linksBatch: (fileIds: string[]) => ["files", "links", "batch", ...fileIds] as const,
+    links: (fileId: string, mode: "preview" | "download" = "preview") =>
+      ["files", "links", mode, fileId] as const,
+    linksBatch: (fileIds: string[], mode: "preview" | "download" = "preview") =>
+      ["files", "links", "batch", mode, ...fileIds] as const,
   },
   p2p: {
     withdrawals: {
