@@ -4,14 +4,186 @@ import type { ListParams } from "@/lib/querykit/schemas";
 import { listParamsToQuery } from "@/lib/adapters/list-params-to-query";
 import { adaptListResponse } from "@/lib/adapters/list-response-adapter";
 import { adaptP2PMeta } from "@/lib/adapters/p2p-meta-adapter";
-import { adaptAllocationActions } from "@/lib/adapters/p2p-actions-adapter";
 import type { P2PAllocation, P2POpsSummary, P2PWithdrawal } from "@/lib/contracts/p2p";
+import {
+  mapP2PAllocationVm,
+  mapP2PCandidateDepositVm,
+  mapP2PWithdrawalVm,
+  type AllocationVmDto,
+  type DepositVmDto,
+  type WithdrawalVmDto,
+} from "@/lib/adapters/p2p-vm-mappers";
+import { adaptOpsSummary, type BackendOpsSummaryDto } from "@/lib/adapters/p2p-ops-summary-adapter";
+import { buildApiError } from "@/lib/api/http";
 import {
   getMockOpsSummary,
   getMockP2PAllocationsEnvelope,
   getMockP2PWithdrawalsEnvelope,
   getMockP2PCandidates,
 } from "@/lib/mock-data";
+
+export type AssignToWithdrawalDto = {
+  items: Array<{ depositId: string; amount: string }>;
+};
+
+const withdrawalSortMap: Record<string, string | { asc?: string; desc?: string }> = {
+  createdAt: { asc: "createdAt_asc", desc: "createdAt_desc" },
+  amount: { asc: "amount_asc", desc: "amount_desc" },
+  remainingToAssign: { asc: "remainingToAssign_asc", desc: "remainingToAssign_desc" },
+  priority: "priority",
+  nearestExpire: "nearestExpire_asc",
+};
+
+const allocationSortMap: Record<string, string | { asc?: string; desc?: string }> = {
+  createdAt: "createdAt_desc",
+  expiresAt: "expiresAt_asc",
+  paidAt: "paidAt_desc",
+  amount: "amount_desc",
+};
+
+type AllocationPaymentMethod = AllocationVmDto["payment"] extends { method: infer M } ? M : never;
+
+const candidateSortMap: Record<string, string | { asc?: string; desc?: string }> = {
+  remaining: "remaining_desc",
+  createdAt: { asc: "createdAt_asc", desc: "createdAt_desc" },
+};
+
+function buildMockWithdrawalVm(withdrawal: P2PWithdrawal): WithdrawalVmDto {
+  return {
+    id: withdrawal.id,
+    purpose: withdrawal.purpose ?? "",
+    channel: withdrawal.channel ?? null,
+    amount: withdrawal.amount,
+    status: withdrawal.status,
+    totals: {
+      assigned: "0",
+      settled: "0",
+      remainingToAssign: withdrawal.remainingToAssign,
+      remainingToSettle: withdrawal.remainingToAssign,
+    },
+    destination: withdrawal.destinationSummary
+      ? { type: "CARD", masked: withdrawal.destinationSummary }
+      : null,
+    flags: {
+      hasDispute: Boolean(withdrawal.hasDispute),
+      hasProof: Boolean(withdrawal.hasProof),
+      hasExpiringAllocations: Boolean(withdrawal.hasExpiringAllocations),
+      isUrgent: Boolean(withdrawal.isUrgent ?? withdrawal.hasDispute),
+    },
+    createdAt: withdrawal.createdAt,
+    updatedAt: withdrawal.updatedAt ?? withdrawal.createdAt,
+    actions: withdrawal.actions ?? { canCancel: false, canAssign: true, canViewAllocations: true },
+  };
+}
+
+function mapLegacyAllocationStatus(status: string) {
+  if (status === "PROOF_SUBMITTED") return "PROOF_SUBMITTED" as const;
+  if (status === "NEEDS_VERIFY") return "RECEIVER_CONFIRMED" as const;
+  if (status === "DISPUTE") return "DISPUTED" as const;
+  return "ASSIGNED" as const;
+}
+
+function buildMockAllocationVm(allocation: P2PAllocation): AllocationVmDto {
+  const mappedStatus = mapLegacyAllocationStatus(allocation.status);
+  const attachments = allocation.attachments ?? [];
+  const proofAttachments = (allocation.proofFileIds ?? []).map((fileId) => ({
+    id: fileId,
+    kind: "proof",
+    file: { id: fileId, name: `file-${fileId}`, mime: "image/jpeg", size: 0 },
+    createdAt: allocation.createdAt,
+  }));
+  return {
+    id: allocation.id,
+    withdrawalId: "mock-withdrawal",
+    depositId: "mock-deposit",
+    payer: { userId: "payer", mobile: allocation.payerMobile ?? undefined, displayName: allocation.payerName ?? undefined },
+    receiver: {
+      userId: "receiver",
+      mobile: allocation.receiverMobile ?? undefined,
+      displayName: allocation.receiverName ?? undefined,
+    },
+    amount: allocation.amount,
+    status: mappedStatus,
+    expiresAt: allocation.expiresAt ?? allocation.createdAt,
+    paymentCode: allocation.paymentCode ?? undefined,
+    payment: allocation.paymentMethod
+      ? {
+          method: allocation.paymentMethod as AllocationPaymentMethod,
+          bankRef: allocation.bankRef ?? undefined,
+          paidAt: allocation.paidAt ?? undefined,
+        }
+      : undefined,
+    attachments: [...attachments.map((file) => ({
+      id: file.id,
+      kind: file.label ?? "proof",
+      file: {
+        id: file.id,
+        name: file.fileName,
+        mime: file.mimeType,
+        size: file.sizeBytes,
+      },
+      createdAt: file.createdAt,
+    })), ...proofAttachments],
+    destinationToPay: allocation.destinationSummary
+      ? { type: "CARD", masked: allocation.destinationSummary }
+      : null,
+    expiresInSeconds: allocation.expiresAt ? undefined : undefined,
+    destinationCopyText: undefined,
+    timestamps: {},
+    flags: {
+      isExpired: Boolean(allocation.isExpired),
+      expiresSoon: Boolean(allocation.expiresSoon),
+      hasProof: Boolean(allocation.hasProof),
+      isFinalizable: Boolean(allocation.isFinalizable),
+    },
+    createdAt: allocation.createdAt,
+    actions: {
+      payerCanSubmitProof: Boolean(allocation.actions?.canSubmitProof),
+      receiverCanConfirm: Boolean(allocation.actions?.canConfirmReceived),
+      adminCanFinalize: Boolean(allocation.actions?.canFinalize),
+    },
+  };
+}
+
+function buildMockDepositVm(candidate: { id: string; name: string; mobile: string }): DepositVmDto {
+  return {
+    id: candidate.id,
+    purpose: candidate.name,
+    requestedAmount: "1500000",
+    status: "PENDING",
+    totals: { assigned: "0", settled: "0", remaining: "1500000" },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    actions: { canCancel: false, canBeAssigned: true },
+    flags: { isFullyAvailable: true, isExpiring: false },
+  };
+}
+
+export function buildAdminP2PWithdrawalsQuery(params: ListParams) {
+  return listParamsToQuery(params, {
+    searchKey: "mobile",
+    sortParam: "sort",
+    sortMap: withdrawalSortMap,
+    allowOffsetParam: true,
+  });
+}
+
+export function buildAdminP2PAllocationsQuery(params: ListParams) {
+  return listParamsToQuery(params, {
+    searchKey: "bankRefSearch",
+    sortParam: "sort",
+    sortMap: allocationSortMap,
+    allowOffsetParam: true,
+  });
+}
+
+export function buildWithdrawalCandidatesQuery(params: ListParams) {
+  return listParamsToQuery(params, {
+    searchKey: "mobile",
+    sortParam: "sort",
+    sortMap: candidateSortMap,
+  });
+}
 
 export async function listAdminP2PWithdrawals(params: ListParams) {
   if (isMockMode()) {
@@ -21,12 +193,12 @@ export async function listAdminP2PWithdrawals(params: ListParams) {
       sort: params.sort ? `${params.sort.key}:${params.sort.dir}` : undefined,
       filtersApplied: params.filters,
     });
-    const items = envelope.data ?? [];
+    const items = (envelope.data ?? []).map((item) => mapP2PWithdrawalVm(buildMockWithdrawalVm(item)));
     return { items, meta: adaptP2PMeta(envelope.meta) };
   }
-  const query = listParamsToQuery(params, { offsetBased: true });
-  const response = await apiGet<{ data: P2PWithdrawal[]; meta: any }>(`/admin/p2p/withdrawals?${query}`);
-  return { items: response.data ?? [], meta: adaptP2PMeta(response.meta) };
+  const query = buildAdminP2PWithdrawalsQuery(params);
+  const response = await apiGet<{ data: WithdrawalVmDto[]; meta: any }>(`/admin/p2p/withdrawals?${query}`);
+  return { items: (response.data ?? []).map(mapP2PWithdrawalVm), meta: adaptP2PMeta(response.meta) };
 }
 
 export async function listAdminP2PAllocations(params: ListParams) {
@@ -37,40 +209,163 @@ export async function listAdminP2PAllocations(params: ListParams) {
       sort: params.sort ? `${params.sort.key}:${params.sort.dir}` : undefined,
       filtersApplied: params.filters,
     });
-    const items = (envelope.data ?? []).map((item) => ({
-      ...item,
-      actions: adaptAllocationActions(item.actions as any),
-    }));
+    const items = (envelope.data ?? []).map((item) => mapP2PAllocationVm(buildMockAllocationVm(item)));
     return { items, meta: adaptP2PMeta(envelope.meta) };
   }
-  const query = listParamsToQuery(params, { offsetBased: true });
-  const response = await apiGet<{ data: P2PAllocation[]; meta: any }>(`/admin/p2p/allocations?${query}`);
-  const items = (response.data ?? []).map((item) => ({
-    ...item,
-    actions: adaptAllocationActions((item as any).actions),
-  }));
-  return { items, meta: adaptP2PMeta(response.meta) };
+  const query = buildAdminP2PAllocationsQuery(params);
+  const response = await apiGet<{ data: AllocationVmDto[]; meta: any }>(`/admin/p2p/allocations?${query}`);
+  return { items: (response.data ?? []).map(mapP2PAllocationVm), meta: adaptP2PMeta(response.meta) };
 }
 
 export async function listWithdrawalCandidates(withdrawalId: string, params: ListParams) {
   if (isMockMode()) {
-    const data = await getMockP2PCandidates();
-    const { meta } = adaptListResponse({ items: data, meta: { page: params.page, limit: params.limit, total: data.length } });
+    const data = (await getMockP2PCandidates()).map((candidate) => mapP2PCandidateDepositVm(buildMockDepositVm(candidate)));
+    const { meta } = adaptListResponse({
+      items: data,
+      meta: { page: params.page, limit: params.limit, total: data.length },
+    });
     return { items: data, meta };
   }
-  const query = listParamsToQuery(params, { offsetBased: true });
-  const response = await apiGet<{ data: any[]; meta: any }>(`/admin/p2p/withdrawals/${withdrawalId}/candidates?${query}`);
-  return { items: response.data ?? [], meta: adaptP2PMeta(response.meta) };
+  const query = buildWithdrawalCandidatesQuery(params);
+  const response = await apiGet<{ data: DepositVmDto[]; meta: any }>(
+    `/admin/p2p/withdrawals/${withdrawalId}/candidates?${query}`
+  );
+  return { items: (response.data ?? []).map(mapP2PCandidateDepositVm), meta: adaptP2PMeta(response.meta) };
 }
 
-export async function assignToWithdrawal(withdrawalId: string, payload: { candidateId: string }) {
-  if (isMockMode()) {
-    return { success: true };
+function normalizeAssignPayload(payload: AssignToWithdrawalDto | { candidateId: string }): AssignToWithdrawalDto {
+  if ("candidateId" in payload) {
+    return { items: [{ depositId: payload.candidateId, amount: "0" }] };
   }
-  return apiPost(`/admin/p2p/withdrawals/${withdrawalId}/assign`, payload);
+  return payload;
+}
+
+export async function assignToWithdrawal(
+  withdrawalId: string,
+  payload: AssignToWithdrawalDto | { candidateId: string }
+) {
+  const dto = normalizeAssignPayload(payload);
+  if (dto.items.some((item) => !item.amount || item.amount === "0")) {
+    throw buildApiError({
+      message: "مبلغ تخصیص برای هر آیتم اجباری است",
+      code: "validation_failed",
+    });
+  }
+  if (isMockMode()) {
+    const envelope = getMockP2PWithdrawalsEnvelope();
+    const withdrawal = envelope.data?.find((item) => item.id === withdrawalId);
+    if (!withdrawal) {
+      throw buildApiError({ message: "برداشت یافت نشد", code: "not_found" });
+    }
+    const remaining = Number(withdrawal.remainingToAssign ?? 0);
+    const totalAssigned = dto.items.reduce((sum, item) => sum + Number(item.amount), 0);
+    if (totalAssigned > remaining) {
+      throw buildApiError({
+        message: "مجموع تخصیص از باقی‌مانده بیشتر است",
+        code: "validation_failed",
+        details: { remaining, totalAssigned },
+      });
+    }
+    return (getMockP2PAllocationsEnvelope().data ?? []).map((item) => mapP2PAllocationVm(buildMockAllocationVm(item)));
+  }
+  const response = await apiPost<AllocationVmDto[]>(`/admin/p2p/withdrawals/${withdrawalId}/assign`, dto);
+  return response.map(mapP2PAllocationVm);
 }
 
 export async function getOpsSummary(): Promise<P2POpsSummary> {
-  if (isMockMode()) return getMockOpsSummary();
-  return apiGet<P2POpsSummary>("/admin/p2p/ops-summary");
+  if (isMockMode()) {
+    const mock = await getMockOpsSummary();
+    return adaptOpsSummary({
+      withdrawalsWaitingAssignmentCount: mock.needsAssignment,
+      withdrawalsPartiallyAssignedCount: 0,
+      allocationsExpiringSoonCount: mock.expiringSoon,
+      allocationsProofSubmittedCount: mock.proofSubmitted,
+      allocationsDisputedCount: mock.disputes,
+      allocationsFinalizableCount: 0,
+    });
+  }
+  const response = await apiGet<BackendOpsSummaryDto>("/admin/p2p/ops-summary");
+  return adaptOpsSummary(response);
+}
+
+export async function verifyAllocation(allocationId: string, payload: { approved: boolean; note?: string }) {
+  const response = await apiPost<AllocationVmDto, { approved: boolean; note?: string }>(
+    `/admin/p2p/allocations/${allocationId}/verify`,
+    payload
+  );
+  return mapP2PAllocationVm(response);
+}
+
+export async function finalizeAllocation(allocationId: string) {
+  const response = await apiPost<AllocationVmDto, Record<string, never>>(
+    `/admin/p2p/allocations/${allocationId}/finalize`,
+    {}
+  );
+  return mapP2PAllocationVm(response);
+}
+
+export async function cancelAllocation(allocationId: string) {
+  const response = await apiPost<AllocationVmDto, Record<string, never>>(
+    `/admin/p2p/allocations/${allocationId}/cancel`,
+    {}
+  );
+  return mapP2PAllocationVm(response);
+}
+
+export async function listMyAllocationsAsPayer(params: ListParams) {
+  if (isMockMode()) {
+    const envelope = getMockP2PAllocationsEnvelope({
+      limit: params.limit,
+      offset: (params.page - 1) * params.limit,
+      sort: params.sort ? `${params.sort.key}:${params.sort.dir}` : undefined,
+      filtersApplied: params.filters,
+    });
+    const items = (envelope.data ?? []).map((item) => mapP2PAllocationVm(buildMockAllocationVm(item)));
+    return { items, meta: adaptP2PMeta(envelope.meta) };
+  }
+  const query = listParamsToQuery(params, { sortParam: "sort", sortMap: allocationSortMap });
+  const response = await apiGet<{ data: AllocationVmDto[]; meta: any }>(
+    `/p2p/allocations/my-as-payer?${query}`
+  );
+  return { items: (response.data ?? []).map(mapP2PAllocationVm), meta: adaptP2PMeta(response.meta) };
+}
+
+export async function listMyAllocationsAsReceiver(params: ListParams) {
+  if (isMockMode()) {
+    const envelope = getMockP2PAllocationsEnvelope({
+      limit: params.limit,
+      offset: (params.page - 1) * params.limit,
+      sort: params.sort ? `${params.sort.key}:${params.sort.dir}` : undefined,
+      filtersApplied: params.filters,
+    });
+    const items = (envelope.data ?? []).map((item) => mapP2PAllocationVm(buildMockAllocationVm(item)));
+    return { items, meta: adaptP2PMeta(envelope.meta) };
+  }
+  const query = listParamsToQuery(params, { sortParam: "sort", sortMap: allocationSortMap });
+  const response = await apiGet<{ data: AllocationVmDto[]; meta: any }>(
+    `/p2p/allocations/my-as-receiver?${query}`
+  );
+  return { items: (response.data ?? []).map(mapP2PAllocationVm), meta: adaptP2PMeta(response.meta) };
+}
+
+export async function submitAllocationProof(
+  allocationId: string,
+  payload: { bankRef: string; method: string; paidAt?: string; fileIds: string[] }
+) {
+  const response = await apiPost<AllocationVmDto, { bankRef: string; method: string; paidAt?: string; fileIds: string[] }>(
+    `/p2p/allocations/${allocationId}/proof`,
+    payload
+  );
+  return mapP2PAllocationVm(response);
+}
+
+export async function confirmAllocationReceipt(
+  allocationId: string,
+  payload: { confirmed: boolean; reason?: string }
+) {
+  const response = await apiPost<AllocationVmDto, { confirmed: boolean; reason?: string }>(
+    `/p2p/allocations/${allocationId}/receiver-confirm`,
+    payload
+  );
+  return mapP2PAllocationVm(response);
 }

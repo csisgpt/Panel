@@ -1,24 +1,26 @@
 # PR Summary — Panel (Frontend)
 
 ## What changed
-- Added backend-aligned **error handling** (envelope parsing + traceId handling) and success envelope unwrapping.
-- Introduced **adapters** for list responses, P2P meta conversion, actions mapping, and list param → query mapping.
-- Added **P2P and destination API modules** with mock support, plus screen configs for P2P withdrawals/allocations and destinations.
-- Added **OpenAPI sync script** and updated API types docs.
-- Expanded **dev playground** with realistic mock screens using ServerTableView + screen configs.
-- Added **backend contract notes** + error fixtures placeholders to align with backend expectations once verified.
+- Aligned backend contract notes with the verified Gold-nest API for P2P admin flows, destinations, files, and ops summary.
+- Updated P2P API modules to use the real routes, query params, assign DTO, and VM mappers for stable frontend rows.
+- Added VM adapters and ops-summary adapters to translate backend shapes into UI-ready data.
+- Updated screen configs for P2P withdrawals/allocations with backend-accurate filters/sorts and mapped row fields.
+- Updated destinations API + list screen to reflect PaymentDestinationViewDto.
+- Enhanced the dev playground to show ops-summary counts and sample query params.
 
-## How to test locally
-1. Install deps: `pnpm install`
-2. Run lint: `pnpm lint`
-3. Run typecheck: `pnpm typecheck`
-4. Run build: `pnpm build`
-5. Start dev server: `NEXT_PUBLIC_ENABLE_DEV_PLAYGROUND=1 pnpm dev`
-6. Visit `http://localhost:3000/dev/kit-playground`
+## How to validate
+1. Start the dev playground: `NEXT_PUBLIC_ENABLE_DEV_PLAYGROUND=1 pnpm dev`.
+2. Visit `http://localhost:3000/dev/kit-playground`.
+3. Verify:
+   - Withdrawals and allocations tables render with Persian chips and mapped fields.
+   - Verify/Cancel buttons enable for `PROOF_SUBMITTED` / `RECEIVER_CONFIRMED` / `ADMIN_VERIFIED` statuses.
+   - Ops summary counts render in the demo tabs.
+   - Sample query params match the backend contract in the debug panels.
 
-## Reviewer checklist
-- **Error parsing**: Toggle error simulation and verify traceId copy in ErrorState.
-- **P2P lists**: Tabs update URL, search and filters show chips, pagination works.
-- **Allocations**: Proof preview opens gallery, action buttons respect permissions.
-- **Destinations**: Masked IBAN/card and default badge render.
-- **OpenAPI**: Run `pnpm sync:openapi` then `pnpm gen:api-types` when backend is running.
+## Commands
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm build`
+
+## TODO (runtime verification)
+- Replace rule-based admin verify/cancel permissions when backend exposes explicit admin action flags.

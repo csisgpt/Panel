@@ -336,7 +336,7 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
                   onClick={() => {
                     const next = { ...(params.filters as Record<string, unknown>), [key]: undefined };
                     const cleaned = normalizeFilters<TFilters>(next);
-                    setParams({ filters: Object.keys(cleaned).length ? cleaned : undefined, page: 1 });
+                    setParams({ filters: Object.keys(cleaned as Record<string, unknown>).length ? cleaned : undefined, page: 1 });
                   }}
                 >
                   حذف

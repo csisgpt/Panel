@@ -3,20 +3,23 @@ import type { AllocationActions, DepositActions, WithdrawalActions } from "./per
 /**
  * P2P allocation permissions contract.
  */
-export interface AllocationPermissions extends AllocationActions {
+export interface AllocationPermissions {
   allocationId?: string;
+  actions: AllocationActions;
 }
 
 /**
  * P2P withdrawal permissions contract.
  */
-export interface WithdrawalPermissions extends WithdrawalActions {
+export interface WithdrawalPermissions {
   withdrawalId?: string;
+  actions: WithdrawalActions;
 }
 
 /**
  * P2P deposit permissions contract.
  */
-export interface DepositPermissions extends DepositActions {
+export interface DepositPermissions {
   depositId?: string;
+  actions: DepositActions;
 }
