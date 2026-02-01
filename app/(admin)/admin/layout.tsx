@@ -1,67 +1,43 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
 import { Sidebar, NavItem } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import {
-  Shield,
-  Users,
-  Tags,
-  FileStack,
-  Cog,
-  Activity,
-  Link as LinkIcon,
-  NotepadText,
-  Layers,
-  LayoutDashboard,
-  FileText,
-  Scale,
-  UsersRound,
-  Scale3D,
-  BadgePercent,
-} from "lucide-react";
-
-const adminNav: NavItem[] = [
-  { href: "/admin/dashboard", label: "داشبورد", icon: Shield },
-  { href: "/admin/users", label: "کاربران", icon: Users },
-  { href: "/admin/instruments", label: "ابزارها", icon: Tags },
-  { href: "/admin/pricing", label: "قیمت‌گذاری", icon: NotepadText },
-  { href: "/admin/pricing/logs", label: "گزارش قیمت", icon: Activity },
-  { href: "/admin/tahesab/overview", label: "مرور ته‌حساب", icon: LayoutDashboard },
-  { href: "/admin/tahesab/connection", label: "اتصال تاهساب", icon: LinkIcon },
-  { href: "/admin/tahesab/mapping", label: "نگاشت", icon: Layers },
-  { href: "/admin/tahesab/reconciliation", label: "مغایرت‌ها", icon: Scale },
-  { href: "/admin/tahesab/documents", label: "سندهای تاهساب", icon: FileText },
-  { href: "/admin/tahesab/raw-documents", label: "اسناد خام ته‌حساب", icon: FileStack },
-  { href: "/admin/tahesab/customers", label: "مشتریان ته‌حساب", icon: UsersRound },
-  { href: "/admin/tahesab/balances", label: "موجودی و تراز", icon: Scale3D },
-  { href: "/admin/tahesab/master-data", label: "اطلاعات پایه ته‌حساب", icon: FileText },
-  { href: "/admin/tahesab/tags", label: "اتیکت‌ها", icon: Tags },
-  { href: "/admin/tahesab/manual-documents", label: "اسناد دستی", icon: BadgePercent },
-  { href: "/admin/tahesab/logs", label: "گزارش تاهساب", icon: FileStack },
-  { href: "/admin/risk/settings", label: "تنظیمات ریسک", icon: Cog },
-  { href: "/admin/risk/monitor", label: "پایش ریسک", icon: Activity },
-  { href: "/admin/files", label: "فایل‌ها", icon: FileStack },
-  { href: "/admin/settings", label: "تنظیمات", icon: Cog },
-];
+import { useRouter, usePathname } from "next/navigation";
+import { adminNavItems, getVisibleNav } from "@/lib/navigation/registry";
+import { isAdmin } from "@/lib/auth/roles";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isAdmin, user } = useAuth();
+  const { isAuthenticated, user, hydrated } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    if (!isAuthenticated || !isAdmin) {
-      router.replace("/login");
-    }
-  }, [isAuthenticated, isAdmin, router]);
+  const navItems: NavItem[] = useMemo(() => {
+    const visible = getVisibleNav(adminNavItems);
+    return visible.map((item) => ({
+      href: item.href,
+      label: item.labelFa,
+      icon: item.icon,
+    }));
+  }, []);
 
-  if (!isAuthenticated || !isAdmin) {
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!isAuthenticated) {
+      router.replace(`/login?returnTo=${encodeURIComponent(pathname)}`);
+      return;
+    }
+    if (!isAdmin(user)) {
+      router.replace("/trader");
+    }
+  }, [hydrated, isAuthenticated, pathname, router, user]);
+
+  if (!isAuthenticated || !isAdmin(user)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-muted/30 px-6" dir="rtl">
         <div className="max-w-md space-y-4 rounded-lg border bg-card p-6 text-center shadow-sm">
@@ -82,14 +58,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="fixed inset-y-0 right-0 hidden w-72 border-l bg-card/90 backdrop-blur lg:flex">
         <Sidebar
           className="h-full"
-          navItems={adminNav}
+          navItems={navItems}
           title="پنل ادمین"
           subtitle={user?.fullName}
         />
       </div>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <Sidebar className="h-full" onNavigate={() => setOpen(false)} navItems={adminNav} title="پنل ادمین" />
+        <Sidebar className="h-full" onNavigate={() => setOpen(false)} navItems={navItems} title="پنل ادمین" />
       </Sheet>
 
       <div className="flex min-h-screen flex-1 flex-col lg:mr-72">
