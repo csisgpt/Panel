@@ -1,25 +1,23 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { login as apiLogin } from "@/lib/api/auth";
-import { LoginDto, BackendUser, UserRole } from "@/lib/types/backend";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { login as apiLogin, register as apiRegister, me as apiMe } from "@/lib/api/auth";
+import { LoginDto, BackendUser, RegisterDto } from "@/lib/types/backend";
+import { clearSession, getSession, setSession } from "@/lib/session";
+import { ApiError } from "@/lib/api/client";
 
 interface AuthContextValue {
   user: BackendUser | null;
   isAuthenticated: boolean;
-  isAdmin: boolean;
-  isTrader: boolean;
-  isClient: boolean;
-  loginAsRole: (role: UserRole) => Promise<void>;
-  loginWithCredentials: (mobile: string, password: string, role: UserRole) => Promise<void>;
+  loginWithCredentials: (mobile: string, password: string) => Promise<BackendUser>;
+  registerWithCredentials: (dto: RegisterDto) => Promise<void>;
   logout: () => void;
+  bootstrap: () => Promise<BackendUser | null>;
   accessToken: string | null;
+  hydrated: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
-const STORAGE_KEY = "panel_user_v2";
-const TOKEN_KEY = "panel_token_v2";
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<BackendUser | null>(null);
@@ -27,63 +25,66 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem(STORAGE_KEY);
-    const storedToken = localStorage.getItem(TOKEN_KEY);
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    if (storedToken) {
-      setAccessToken(storedToken);
+    const session = getSession();
+    if (session) {
+      setUser(session.user);
+      setAccessToken(session.token);
     }
     setHydrated(true);
   }, []);
 
-  const persistSession = (nextUser: BackendUser, token: string) => {
+  const persistSession = useCallback((nextUser: BackendUser, token: string) => {
     setUser(nextUser);
     setAccessToken(token);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
-    localStorage.setItem(TOKEN_KEY, token);
-  };
+    setSession({ user: nextUser, token });
+  }, []);
 
-  const loginWithCredentials = async (mobile: string, password: string, role: UserRole) => {
+  const loginWithCredentials = useCallback(async (mobile: string, password: string) => {
     const dto: LoginDto = { mobile, password };
     const response = await apiLogin(dto);
-    if (response.user.role !== role) {
-      throw new Error("نقش کاربر مطابقت ندارد");
-    }
     persistSession(response.user, response.accessToken);
-  };
+    return response.user;
+  }, [persistSession]);
 
-  const loginAsRole = async (role: UserRole) => {
-    const dto: LoginDto = { mobile: role === UserRole.ADMIN ? "09120000000" : "09121111111", password: "mock" };
-    const response = await apiLogin(dto);
-    const mappedUser = { ...response.user, role };
-    persistSession(mappedUser, response.accessToken);
-  };
+  const registerWithCredentials = useCallback(async (dto: RegisterDto) => {
+    await apiRegister(dto);
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
     setAccessToken(null);
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(TOKEN_KEY);
-  };
+    clearSession();
+  }, []);
+
+  const bootstrap = useCallback(async () => {
+    const existing = getSession();
+    if (!existing?.token) return null;
+    try {
+      const profile = await apiMe();
+      persistSession(profile, existing.token);
+      return profile;
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        logout();
+        return null;
+      }
+      throw err;
+    }
+  }, [persistSession, logout]);
 
   const value = useMemo(
     () => ({
       user,
       isAuthenticated: Boolean(user),
-      isAdmin: user?.role === UserRole.ADMIN,
-      isTrader: user?.role === UserRole.TRADER,
-      isClient: user?.role === UserRole.CLIENT,
-      loginAsRole,
       loginWithCredentials,
+      registerWithCredentials,
       logout,
+      bootstrap,
       accessToken,
+      hydrated,
     }),
-    [user, accessToken]
+    [user, accessToken, loginWithCredentials, registerWithCredentials, logout, bootstrap, hydrated]
   );
-
-  if (!hydrated) return null;
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

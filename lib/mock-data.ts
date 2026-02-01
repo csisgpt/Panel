@@ -25,6 +25,7 @@ import {
   InstrumentUnit,
   LoginDto,
   LoginResponse,
+  RegisterDto,
   SettlementMethod,
   SystemStatus,
   TahesabAssetType,
@@ -244,6 +245,44 @@ export async function mockLogin(dto: LoginDto): Promise<LoginResponse> {
     accessToken: `mock-token-${user.id}`,
     user,
   };
+}
+
+export async function mockRegister(dto: RegisterDto): Promise<{ user: BackendUser }> {
+  await simulateDelay();
+  const exists = mockUsers.some((u) => u.mobile === dto.mobile || u.email === dto.email);
+  if (exists) {
+    const error = new Error("conflict");
+    (error as { status?: number }).status = 409;
+    throw error;
+  }
+  const user: BackendUser = {
+    id: createId("u"),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    fullName: dto.fullName,
+    mobile: dto.mobile,
+    email: dto.email ?? "",
+    role: UserRole.CLIENT,
+    status: UserStatus.ACTIVE,
+  };
+  mockUsers.push(user);
+  return { user };
+}
+
+export async function mockMe(): Promise<BackendUser> {
+  await simulateDelay();
+  if (typeof window === "undefined") {
+    throw new Error("Unauthorized");
+  }
+  const token = localStorage.getItem("panel_token_v2");
+  if (!token) {
+    const error = new Error("Unauthorized");
+    (error as { status?: number }).status = 401;
+    throw error;
+  }
+  const userId = token.replace("mock-token-", "");
+  const user = mockUsers.find((u) => u.id === userId) ?? mockUsers[0];
+  return user;
 }
 
 export async function getMockUsers(): Promise<BackendUser[]> {
