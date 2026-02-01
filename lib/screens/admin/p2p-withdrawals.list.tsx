@@ -76,8 +76,53 @@ export function createAdminP2PWithdrawalsListConfig(): ServerTableViewProps<P2PW
           { label: "نیاز به تخصیص", value: "NEEDS_ASSIGNMENT" },
           { label: "رسید ارسال شد", value: "PROOF_SUBMITTED" },
           { label: "در انتظار", value: "PENDING" },
+          { label: "تکمیل شده", value: "FINALIZED" },
+          { label: "لغو شده", value: "CANCELLED" },
         ],
       },
+      {
+        type: "status",
+        key: "bucket",
+        label: "باکت",
+        options: [
+          { label: "همه", value: "all" },
+          { label: "نیاز به تخصیص", value: "needs_assignment" },
+          { label: "رسید ارسال شد", value: "proof_submitted" },
+          { label: "در شرف انقضا", value: "expiring_soon" },
+          { label: "اختلاف", value: "disputes" },
+        ],
+      },
+      {
+        type: "status",
+        key: "hasProof",
+        label: "دارای رسید",
+        options: [
+          { label: "بله", value: "true" },
+          { label: "خیر", value: "false" },
+        ],
+      },
+      {
+        type: "status",
+        key: "hasDispute",
+        label: "اختلاف",
+        options: [
+          { label: "بله", value: "true" },
+          { label: "خیر", value: "false" },
+        ],
+      },
+      {
+        type: "status",
+        key: "expiringSoonMinutes",
+        label: "نزدیک به انقضا",
+        options: [
+          { label: "۱۵ دقیقه", value: "15" },
+          { label: "۳۰ دقیقه", value: "30" },
+          { label: "۶۰ دقیقه", value: "60" },
+        ],
+      },
+      { type: "amountRange", key: "amountMin", label: "حداقل مبلغ" },
+      { type: "amountRange", key: "amountMax", label: "حداکثر مبلغ" },
+      { type: "dateRange", key: "search", label: "جستجو" },
     ],
   };
 }

@@ -5,6 +5,7 @@ import { listParamsToQuery } from "@/lib/adapters/list-params-to-query";
 import { adaptListResponse } from "@/lib/adapters/list-response-adapter";
 import { adaptP2PMeta } from "@/lib/adapters/p2p-meta-adapter";
 import { adaptAllocationActions } from "@/lib/adapters/p2p-actions-adapter";
+import { buildApiError } from "@/lib/api/http";
 import type { P2PAllocation, P2POpsSummary, P2PWithdrawal } from "@/lib/contracts/p2p";
 import {
   getMockOpsSummary,
@@ -39,7 +40,7 @@ export async function listAdminP2PAllocations(params: ListParams) {
     });
     const items = (envelope.data ?? []).map((item) => ({
       ...item,
-      actions: adaptAllocationActions(item.actions as any),
+      actions: adaptAllocationActions(item.actions as any, item.status),
     }));
     return { items, meta: adaptP2PMeta(envelope.meta) };
   }
@@ -47,7 +48,7 @@ export async function listAdminP2PAllocations(params: ListParams) {
   const response = await apiGet<{ data: P2PAllocation[]; meta: any }>(`/admin/p2p/allocations?${query}`);
   const items = (response.data ?? []).map((item) => ({
     ...item,
-    actions: adaptAllocationActions((item as any).actions),
+    actions: adaptAllocationActions((item as any).actions, item.status),
   }));
   return { items, meta: adaptP2PMeta(response.meta) };
 }
@@ -63,11 +64,48 @@ export async function listWithdrawalCandidates(withdrawalId: string, params: Lis
   return { items: response.data ?? [], meta: adaptP2PMeta(response.meta) };
 }
 
-export async function assignToWithdrawal(withdrawalId: string, payload: { candidateId: string }) {
+export type AssignToWithdrawalDto = {
+  candidateIds: string[];
+};
+
+function normalizeAssignPayload(payload: AssignToWithdrawalDto | { candidateId: string }): AssignToWithdrawalDto {
+  if ("candidateId" in payload) {
+    return { candidateIds: [payload.candidateId] };
+  }
+  return payload;
+}
+
+function getMockCandidateAmount(candidateId: string) {
+  const fallback = 1500000;
+  const numericPart = Number(candidateId.replace(/\D/g, "")) || 0;
+  return fallback + numericPart * 250000;
+}
+
+export async function assignToWithdrawal(
+  withdrawalId: string,
+  payload: AssignToWithdrawalDto | { candidateId: string }
+) {
+  const dto = normalizeAssignPayload(payload);
   if (isMockMode()) {
+    const envelope = getMockP2PWithdrawalsEnvelope();
+    const withdrawal = envelope.data?.find((item) => item.id === withdrawalId);
+    if (!withdrawal) {
+      throw buildApiError({ message: "برداشت یافت نشد", code: "not_found" });
+    }
+    const remaining = Number(withdrawal.remainingToAssign ?? 0);
+    const totalAssigned = dto.candidateIds.reduce((sum, candidateId) => {
+      return sum + getMockCandidateAmount(candidateId);
+    }, 0);
+    if (totalAssigned > remaining) {
+      throw buildApiError({
+        message: "مجموع تخصیص از باقی‌مانده بیشتر است",
+        code: "validation_failed",
+        details: { remaining, totalAssigned },
+      });
+    }
     return { success: true };
   }
-  return apiPost(`/admin/p2p/withdrawals/${withdrawalId}/assign`, payload);
+  return apiPost(`/admin/p2p/withdrawals/${withdrawalId}/assign`, dto);
 }
 
 export async function getOpsSummary(): Promise<P2POpsSummary> {

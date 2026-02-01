@@ -6,6 +6,7 @@ import { DataTable } from "@/components/kit/table/data-table";
 import { FilterBar } from "@/components/kit/table/filter-bar";
 import { SortSelect } from "@/components/kit/table/sort-select";
 import { ServerTableView } from "@/components/kit/table/server-table-view";
+import { QuickTabs } from "@/components/kit/table/quick-tabs";
 import { defaultPresets } from "@/lib/querykit/presets";
 import { StatusBadge } from "@/components/kit/ops/status-badge";
 import { CountdownBadge } from "@/components/kit/ops/countdown-badge";
@@ -27,6 +28,8 @@ import { buildApiError } from "@/lib/api/http";
 import { createAdminP2PWithdrawalsListConfig } from "@/lib/screens/admin/p2p-withdrawals.list";
 import { createAdminP2PAllocationsListConfig } from "@/lib/screens/admin/p2p-allocations.list";
 import { createUserDestinationsListConfig } from "@/lib/screens/user/destinations.list";
+import { getOpsSummary } from "@/lib/api/p2p";
+import type { P2POpsSummary } from "@/lib/contracts/p2p";
 
 interface DemoRow {
   id: string;
@@ -72,6 +75,7 @@ export function KitPlayground() {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const actionState = useActionState();
   const [simulateError, setSimulateError] = useState(false);
+  const [opsSummary, setOpsSummary] = useState<P2POpsSummary | null>(null);
 
   const [tableSearch, setTableSearch] = useState("");
   const [tableSort, setTableSort] = useState<{ key: string; dir: "asc" | "desc" } | undefined>(undefined);
@@ -166,6 +170,10 @@ export function KitPlayground() {
     getMockAttachments().then(setAttachments);
   }, []);
 
+  useEffect(() => {
+    getOpsSummary().then(setOpsSummary).catch(() => setOpsSummary(null));
+  }, []);
+
   const serverRows = useMemo<ServerRow[]>(
     () =>
       Array.from({ length: 60 }, (_, index) => ({
@@ -241,6 +249,17 @@ export function KitPlayground() {
   const withdrawalsConfig = useMemo(() => createAdminP2PWithdrawalsListConfig(), []);
   const allocationsConfig = useMemo(() => createAdminP2PAllocationsListConfig(), []);
   const destinationsConfig = useMemo(() => createUserDestinationsListConfig(), []);
+  const opsCounts = useMemo(() => {
+    if (!opsSummary) return undefined;
+    const total = opsSummary.needsAssignment + opsSummary.proofSubmitted + opsSummary.expiringSoon + opsSummary.disputes;
+    return {
+      all: total,
+      needs_assignment: opsSummary.needsAssignment,
+      proof_submitted: opsSummary.proofSubmitted,
+      expiring_soon: opsSummary.expiringSoon,
+      disputes: opsSummary.disputes,
+    };
+  }, [opsSummary]);
 
   return (
     <div className="space-y-8 p-6">
@@ -407,9 +426,18 @@ export function KitPlayground() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Admin P2P Withdrawals (mock)</CardTitle>
+          <CardTitle>Admin P2P Withdrawals Queue (mock)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {withdrawalsConfig.tabs ? (
+            <QuickTabs
+              tabs={withdrawalsConfig.tabs}
+              currentTabId={withdrawalsConfig.defaultParams?.tab ?? withdrawalsConfig.tabs[0]?.id}
+              onTabChange={() => null}
+              counts={opsCounts}
+              disabled
+            />
+          ) : null}
           <ServerTableView
             {...withdrawalsConfig}
             queryFn={async (params) => {
@@ -419,12 +447,20 @@ export function KitPlayground() {
               return withdrawalsConfig.queryFn(params);
             }}
           />
+          <div className="text-xs text-muted-foreground">
+            <p className="font-semibold">Backend endpoints (doc reference)</p>
+            <ul className="list-disc pl-4">
+              <li>GET /admin/p2p/withdrawals</li>
+              <li>GET /admin/p2p/withdrawals/:id/candidates</li>
+              <li>POST /admin/p2p/withdrawals/:id/assign</li>
+            </ul>
+          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Admin P2P Allocations (mock)</CardTitle>
+          <CardTitle>Admin P2P Allocations Review (mock)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <ServerTableView
@@ -436,6 +472,15 @@ export function KitPlayground() {
               return allocationsConfig.queryFn(params);
             }}
           />
+          <div className="text-xs text-muted-foreground">
+            <p className="font-semibold">Backend endpoints (doc reference)</p>
+            <ul className="list-disc pl-4">
+              <li>GET /admin/p2p/allocations</li>
+              <li>POST /admin/p2p/allocations/:id/verify</li>
+              <li>POST /admin/p2p/allocations/:id/finalize</li>
+              <li>POST /admin/p2p/allocations/:id/cancel</li>
+            </ul>
+          </div>
         </CardContent>
       </Card>
 

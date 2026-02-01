@@ -1,95 +1,214 @@
 # Backend Contract Notes (Gold Nest)
 
-> **Note:** The backend repository was not found in this workspace. These notes are placeholders based on expected patterns and MUST be verified against the backend codebase once available. Replace the samples and endpoint details below after inspecting `src/main.ts`, exception filters, interceptors, and controllers.
+These notes capture the backend-facing contracts that the Panel frontend consumes for the P2P admin flows, file links, and destinations. All shapes were derived from frontend API usage and contracts in this repo. Where backend behavior cannot be inferred statically, it is flagged as **runtime verification needed**.
 
-## 0.1 Error Envelope (expected parsing)
-Expected envelope (placeholder):
+## Conventions
+- **List queries** use `limit` + `offset` (P2P) and return `{ data, meta }` with offset-based meta fields.
+- **Sort** parameters are sent as `sortKey` + `sortDir`.
+- **Search** uses `search` unless otherwise noted.
+
+## Admin P2P withdrawals list
+**Method:** `GET`
+**Path:** `/admin/p2p/withdrawals`
+**Access:** Admin / Ops (runtime verification needed)
+
+**Query params (runtime verification needed):**
+- `limit` (number)
+- `offset` (number)
+- `search` (string)
+- `sortKey` (string)
+- `sortDir` (`asc` | `desc`)
+- `status` (string)
+- `bucket` (string)
+- `hasProof` (boolean)
+- `hasDispute` (boolean)
+- `expiringSoonMinutes` (number)
+- `amountMin` (number)
+- `amountMax` (number)
+
+**Response shape:**
 ```json
 {
-  "ok": false,
-  "error": {
-    "code": "validation_failed",
-    "message": "Validation failed",
-    "details": { "field": "mobile" }
-  },
-  "traceId": "TRACE-123"
+  "data": [
+    {
+      "id": "p2p-w-1",
+      "createdAt": "2024-05-01T10:00:00Z",
+      "amount": "8000000",
+      "remainingToAssign": "4000000",
+      "userMobile": "09120000000",
+      "status": "NEEDS_ASSIGNMENT",
+      "destinationSummary": "بانک ملت - ****1234",
+      "hasProof": false,
+      "hasDispute": false,
+      "expiresAt": "2024-05-01T12:00:00Z"
+    }
+  ],
+  "meta": {
+    "limit": 10,
+    "offset": 0,
+    "total": 48,
+    "sort": "createdAt:desc",
+    "filtersApplied": {}
+  }
 }
 ```
 
-### Example payloads (placeholder)
-**Validation error**
+## P2P withdrawal candidates
+**Method:** `GET`
+**Path:** `/admin/p2p/withdrawals/:id/candidates`
+**Access:** Admin / Ops (runtime verification needed)
+
+**Query params:** same list params as above (`limit`, `offset`, `search`, `sortKey`, `sortDir`).
+
+**Response shape (runtime verification needed):**
 ```json
 {
-  "ok": false,
-  "error": {
-    "code": "validation_failed",
-    "message": "Invalid payload",
-    "details": { "field": "amount", "reason": "min" }
-  },
-  "traceId": "TRACE-VALIDATION-01"
+  "data": [
+    {
+      "id": "cand-1",
+      "name": "کاندید ۱",
+      "mobile": "09120000001",
+      "amount": "1500000"
+    }
+  ],
+  "meta": {
+    "limit": 10,
+    "offset": 0,
+    "total": 2
+  }
 }
 ```
 
-**Forbidden error**
+## Assign candidates to withdrawal
+**Method:** `POST`
+**Path:** `/admin/p2p/withdrawals/:id/assign`
+**Access:** Admin / Ops (runtime verification needed)
+
+**Request DTO (multi-selection):**
 ```json
 {
-  "ok": false,
-  "error": {
-    "code": "forbidden",
-    "message": "Access denied",
-    "details": null
-  },
-  "traceId": "TRACE-FORBIDDEN-01"
+  "candidateIds": ["cand-1", "cand-2"]
 }
 ```
 
-**Not found**
+**Response:** success envelope or empty response (runtime verification needed).
+
+## Admin P2P allocations list
+**Method:** `GET`
+**Path:** `/admin/p2p/allocations`
+**Access:** Admin / Ops (runtime verification needed)
+
+**Query params:** same list params as withdrawals (`limit`, `offset`, `search`, `sortKey`, `sortDir`, plus filters like `status`, `bucket`, `hasProof`, `hasDispute`, `expiringSoonMinutes`, `amountMin`, `amountMax`).
+
+**Response shape:**
 ```json
 {
-  "ok": false,
-  "error": {
-    "code": "not_found",
-    "message": "Resource not found",
-    "details": null
-  },
-  "traceId": "TRACE-NOTFOUND-01"
+  "data": [
+    {
+      "id": "p2p-a-1",
+      "createdAt": "2024-05-01T10:00:00Z",
+      "status": "PROOF_SUBMITTED",
+      "amount": "5000000",
+      "expiresAt": "2024-05-01T12:00:00Z",
+      "payerName": "پرداخت‌کننده ۱",
+      "payerMobile": "09120000001",
+      "receiverName": "دریافت‌کننده ۱",
+      "receiverMobile": "09120000002",
+      "proofFileIds": ["file-1"],
+      "actions": {
+        "payerCanSubmitProof": false,
+        "receiverCanConfirm": false,
+        "adminCanFinalize": false,
+        "adminCanVerify": true,
+        "adminCanCancel": true
+      }
+    }
+  ],
+  "meta": {
+    "limit": 10,
+    "offset": 0,
+    "total": 36
+  }
 }
 ```
 
-## 0.2 Optional Success Envelope
-If backend supports an envelope header (e.g. `x-api-envelope: 1`), expected success shape (placeholder). Frontend can enable this via `NEXT_PUBLIC_API_ENVELOPE=1`:
+## Allocation admin ops
+**Method:** `POST`
+**Paths:**
+- `/admin/p2p/allocations/:id/verify`
+- `/admin/p2p/allocations/:id/finalize`
+- `/admin/p2p/allocations/:id/cancel`
+
+**Request DTO:** likely empty body or audit notes (runtime verification needed).
+
+**Response:** updated allocation or `{ success: true }` (runtime verification needed).
+
+## Files
+**Method:** `GET`
+**Path:** `/files/:id`
+
+**Query params:**
+- `mode=preview|download`
+
+**Response shape:**
 ```json
 {
-  "ok": true,
-  "result": { "items": [], "meta": { "page": 1, "limit": 20, "total": 0 } },
-  "traceId": "TRACE-SUCCESS-01"
+  "id": "file-1",
+  "previewUrl": "https://...",
+  "downloadUrl": "https://...",
+  "expiresInSeconds": 600
 }
 ```
 
-## 0.3 List Response Shapes
-Placeholder shapes until backend verification:
-- **Classic admin lists:** `{ items: T[]; meta: PageMeta }`
-- **P2P lists:** `{ data: T[]; meta: OffsetMeta }`
+## Destinations
+**User destinations**
+- **Method:** `GET`
+- **Path:** `/p2p/destinations`
 
-PageMeta (placeholder):
-- `page`, `limit`, `total`, `totalPages`, `hasNext`, `hasPrev`, `filtersApplied`, `sort`
+**Create destination**
+- **Method:** `POST`
+- **Path:** `/p2p/destinations`
+- **Body:** `{ label: string, iban?: string, cardNumber?: string, bankName?: string }`
 
-OffsetMeta (placeholder):
-- `limit`, `offset`, `total`, `nextCursor?`, `filtersApplied`, `sort`
+**Update destination**
+- **Method:** `PATCH`
+- **Path:** `/p2p/destinations/:id`
+- **Body:** same as create
 
-## 0.4 Endpoint Inventory (to verify)
-| Area | Endpoint | Notes / Query params (placeholder) |
-| --- | --- | --- |
-| Files | `GET /files/:id` | `mode=preview|download` |
-| Admin withdrawals | `GET /admin/withdrawals` | `page`, `limit`, `status`, `search`, `minAmount`, `maxAmount` |
-| Admin deposits | `GET /admin/deposits` | `page`, `limit`, `status`, `search` |
-| Admin P2P withdrawals | `GET /admin/p2p/withdrawals` | `limit`, `offset`, `status`, `expiringSoonMinutes`, `hasProof`, `hasDispute` |
-| Candidates | `GET /admin/p2p/withdrawals/:id/candidates` | `limit`, `offset` |
-| Assign | `POST /admin/p2p/withdrawals/:id/assign` | body includes candidate id(s) |
-| Admin P2P allocations | `GET /admin/p2p/allocations` | `limit`, `offset`, `status`, `expiringSoonMinutes` |
-| Allocation ops | `POST /admin/p2p/allocations/:id/verify|finalize|cancel` | action endpoints |
-| Ops summary | `GET /admin/p2p/ops-summary` | counts by bucket |
-| Destinations | `GET/POST/PATCH /destinations` | user destinations CRUD |
-| Admin destinations | `GET/POST/PATCH /admin/destinations` | system destinations CRUD |
+**Set default destination**
+- **Method:** `POST`
+- **Path:** `/p2p/destinations/:id/make-default`
+- **Body:** `{ id: string }`
+- **Note:** runtime verification needed on action naming.
 
-> Replace this table with exact backend endpoints and query params after verifying the backend repository.
+**Admin/system destinations**
+- **Method:** `GET`
+- **Path:** `/admin/p2p/destinations`
+
+## Ops summary
+**Method:** `GET`
+**Path:** `/admin/p2p/ops-summary`
+**Response shape:**
+```json
+{
+  "needsAssignment": 12,
+  "proofSubmitted": 8,
+  "expiringSoon": 6,
+  "disputes": 3
+}
+```
+
+## Frontend mapping decisions
+- **Offset → page meta conversion** (used in `adaptP2PMeta`):
+  - `page = floor(offset / limit) + 1`
+  - `totalPages = total ? ceil(total / limit) : page`
+  - `hasNext = total ? page < totalPages : false`
+  - `hasPrev = page > 1`
+- **Allocation actions mapping**:
+  - Backend action fields map to permissions:
+    - `payerCanSubmitProof` → `canSubmitProof`
+    - `receiverCanConfirm` → `canConfirmReceived`
+    - `adminCanFinalize` → `canFinalize`
+    - `adminCanVerify` → `canAdminVerify`
+    - `adminCanCancel` → `canCancel`
+  - **TODO:** Replace temporary status-based rules (`PROOF_SUBMITTED`, `NEEDS_VERIFY`) with explicit backend `can*` aliases when available.

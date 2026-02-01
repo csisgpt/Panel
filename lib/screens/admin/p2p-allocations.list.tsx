@@ -129,5 +129,64 @@ export function createAdminP2PAllocationsListConfig(): ServerTableViewProps<P2PA
       { key: "expiresAt", label: "نزدیک‌ترین انقضا", defaultDir: "asc" },
       { key: "amount", label: "بیشترین مبلغ", defaultDir: "desc" },
     ],
+    filtersConfig: [
+      {
+        type: "status",
+        key: "status",
+        label: "وضعیت",
+        options: [
+          { label: "رسید ارسال شد", value: "PROOF_SUBMITTED" },
+          { label: "نیاز به تایید", value: "NEEDS_VERIFY" },
+          { label: "در انتظار", value: "PENDING" },
+          { label: "تایید شد", value: "VERIFIED" },
+          { label: "نهایی شد", value: "FINALIZED" },
+          { label: "لغو شد", value: "CANCELLED" },
+        ],
+      },
+      {
+        type: "status",
+        key: "bucket",
+        label: "باکت",
+        options: [
+          { label: "همه", value: "all" },
+          { label: "رسید ارسال شد", value: "proof_submitted" },
+          { label: "نیاز به تایید", value: "needs_verify" },
+          { label: "در شرف انقضا", value: "expiring_soon" },
+          { label: "اختلاف", value: "dispute" },
+        ],
+      },
+      {
+        type: "status",
+        key: "hasProof",
+        label: "دارای رسید",
+        options: [
+          { label: "بله", value: "true" },
+          { label: "خیر", value: "false" },
+        ],
+      },
+      {
+        type: "status",
+        key: "hasDispute",
+        label: "اختلاف",
+        options: [
+          { label: "بله", value: "true" },
+          { label: "خیر", value: "false" },
+        ],
+      },
+      {
+        type: "status",
+        key: "expiringSoonMinutes",
+        label: "نزدیک به انقضا",
+        options: [
+          { label: "۱۵ دقیقه", value: "15" },
+          { label: "۳۰ دقیقه", value: "30" },
+          { label: "۶۰ دقیقه", value: "60" },
+        ],
+      },
+      { type: "amountRange", key: "amountMin", label: "حداقل مبلغ" },
+      { type: "amountRange", key: "amountMax", label: "حداکثر مبلغ" },
+      { type: "dateRange", key: "search", label: "جستجو" },
+      { type: "dateRange", key: "mobile", label: "جستجو" },
+    ],
   };
 }
