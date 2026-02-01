@@ -1,0 +1,29 @@
+{
+  "validation": {
+    "ok": false,
+    "error": {
+      "code": "validation_failed",
+      "message": "Invalid payload",
+      "details": { "field": "amount", "reason": "min" }
+    },
+    "traceId": "TRACE-VALIDATION-01"
+  },
+  "forbidden": {
+    "ok": false,
+    "error": {
+      "code": "forbidden",
+      "message": "Access denied",
+      "details": null
+    },
+    "traceId": "TRACE-FORBIDDEN-01"
+  },
+  "notFound": {
+    "ok": false,
+    "error": {
+      "code": "not_found",
+      "message": "Resource not found",
+      "details": null
+    },
+    "traceId": "TRACE-NOTFOUND-01"
+  }
+}

@@ -270,6 +270,13 @@ export interface FileMeta {
   label?: string | null;
 }
 
+export interface FileLink {
+  id: string;
+  previewUrl?: string;
+  downloadUrl?: string;
+  expiresInSeconds: number;
+}
+
 export interface Attachment {
   id: string;
   createdAt: string;

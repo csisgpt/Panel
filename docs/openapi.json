@@ -1,0 +1,168 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Panel API (Frontend Stub)",
+    "version": "0.1.0",
+    "description": "Temporary OpenAPI spec for frontend type generation. Replace with backend export."
+  },
+  "paths": {
+    "/files/{id}": {
+      "get": {
+        "summary": "Get file metadata",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File metadata",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FileMeta" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/files/links/batch": {
+      "post": {
+        "summary": "Get batch file links",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fileIds": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "mode": { "type": "string" }
+                },
+                "required": ["fileIds"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "File links",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/FileLink" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/withdrawals": {
+      "get": {
+        "summary": "List withdrawals",
+        "responses": {
+          "200": {
+            "description": "Withdrawal list",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WithdrawalsList" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deposits": {
+      "get": {
+        "summary": "List deposits",
+        "responses": {
+          "200": {
+            "description": "Deposit list",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DepositsList" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ListMeta": {
+        "type": "object",
+        "properties": {
+          "page": { "type": "integer" },
+          "limit": { "type": "integer" },
+          "total": { "type": "integer" }
+        }
+      },
+      "FileMeta": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "fileName": { "type": "string" },
+          "mimeType": { "type": "string" }
+        }
+      },
+      "FileLink": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "previewUrl": { "type": "string" },
+          "downloadUrl": { "type": "string" }
+        }
+      },
+      "WithdrawRequest": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "amount": { "type": "string" },
+          "status": { "type": "string" }
+        }
+      },
+      "DepositRequest": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "amount": { "type": "string" },
+          "status": { "type": "string" }
+        }
+      },
+      "WithdrawalsList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/WithdrawRequest" }
+          },
+          "meta": { "$ref": "#/components/schemas/ListMeta" }
+        }
+      },
+      "DepositsList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/DepositRequest" }
+          },
+          "meta": { "$ref": "#/components/schemas/ListMeta" }
+        }
+      }
+    }
+  }
+}
