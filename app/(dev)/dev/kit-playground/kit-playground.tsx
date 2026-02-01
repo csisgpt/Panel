@@ -24,6 +24,9 @@ import { useTableStatePersistence } from "@/components/kit/table/use-table-state
 import { hasPermission, type AllocationActions } from "@/lib/contracts/permissions";
 import { useActionState } from "@/lib/hooks/use-action-state";
 import { buildApiError } from "@/lib/api/http";
+import { createAdminP2PWithdrawalsListConfig } from "@/lib/screens/admin/p2p-withdrawals.list";
+import { createAdminP2PAllocationsListConfig } from "@/lib/screens/admin/p2p-allocations.list";
+import { createUserDestinationsListConfig } from "@/lib/screens/user/destinations.list";
 
 interface DemoRow {
   id: string;
@@ -235,6 +238,10 @@ export function KitPlayground() {
     [serverRows, simulateError]
   );
 
+  const withdrawalsConfig = useMemo(() => createAdminP2PWithdrawalsListConfig(), []);
+  const allocationsConfig = useMemo(() => createAdminP2PAllocationsListConfig(), []);
+  const destinationsConfig = useMemo(() => createUserDestinationsListConfig(), []);
+
   return (
     <div className="space-y-8 p-6">
       <Card>
@@ -352,7 +359,11 @@ export function KitPlayground() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant={simulateError ? "destructive" : "outline"} size="sm" onClick={() => setSimulateError((prev) => !prev)}>
+            <Button
+              variant={simulateError ? "destructive" : "outline"}
+              size="sm"
+              onClick={() => setSimulateError((prev) => !prev)}
+            >
               {simulateError ? "حالت خطا فعال است" : "شبیه‌سازی خطا"}
             </Button>
           </div>
@@ -391,6 +402,49 @@ export function KitPlayground() {
               { type: "amountRange", key: "amountRange", label: "بازه مبلغ" },
             ]}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Admin P2P Withdrawals (mock)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <ServerTableView
+            {...withdrawalsConfig}
+            queryFn={async (params) => {
+              if (simulateError) {
+                throw buildApiError({ message: "خطای سرور", traceId: "TRACE-P2P-WITHDRAWALS-01" });
+              }
+              return withdrawalsConfig.queryFn(params);
+            }}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Admin P2P Allocations (mock)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <ServerTableView
+            {...allocationsConfig}
+            queryFn={async (params) => {
+              if (simulateError) {
+                throw buildApiError({ message: "خطای سرور", traceId: "TRACE-P2P-ALLOC-01" });
+              }
+              return allocationsConfig.queryFn(params);
+            }}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Destinations (mock)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <ServerTableView {...destinationsConfig} />
         </CardContent>
       </Card>
 

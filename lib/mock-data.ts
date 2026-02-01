@@ -45,6 +45,8 @@ import {
   WithdrawRequest,
   WithdrawStatus,
 } from "@/lib/types/backend";
+import type { P2PAllocation, P2POpsSummary, P2PWithdrawal, PaymentDestination } from "@/lib/contracts/p2p";
+import type { AllocationActions } from "@/lib/contracts/permissions";
 import type {
   CreateTahesabCustomerPayload,
   TahesabBankAccount,
@@ -170,6 +172,24 @@ function buildMockFileLinkWithExpiry(file: FileMeta, mode: "preview" | "download
 async function simulateDelay(ms = 250) {
   if (typeof window === "undefined") return;
   await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function buildP2PEnvelope<T>(
+  items: T[],
+  params?: { limit?: number; offset?: number; sort?: string; filtersApplied?: Record<string, unknown> }
+) {
+  const limit = params?.limit ?? 20;
+  const offset = params?.offset ?? 0;
+  return {
+    data: items,
+    meta: {
+      limit,
+      offset,
+      total: items.length,
+      sort: params?.sort,
+      filtersApplied: params?.filtersApplied,
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -2322,4 +2342,139 @@ export async function getMockTahesabRawDocumentById(id: string) {
 export async function mockCreateTahesabDocument() {
   await simulateDelay(200);
   return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// P2P (Admin Ops) - Mock Data
+// ---------------------------------------------------------------------------
+
+const mockP2PWithdrawals: P2PWithdrawal[] = Array.from({ length: 48 }, (_, index) => ({
+  id: `p2p-w-${index + 1}`,
+  createdAt: daysAgo(index % 12),
+  amount: String(8000000 + index * 125000),
+  remainingToAssign: String(4000000 + (index % 5) * 250000),
+  userMobile: `0912${String(1000000 + index).slice(1)}`,
+  status: index % 3 === 0 ? "NEEDS_ASSIGNMENT" : index % 3 === 1 ? "PROOF_SUBMITTED" : "PENDING",
+  destinationSummary: index % 2 === 0 ? "بانک ملت - ****1234" : "بانک ملی - ****5678",
+  hasProof: index % 2 === 0,
+  hasDispute: index % 7 === 0,
+  expiresAt: daysAgo(-((index % 5) + 1)),
+}));
+
+const mockP2PAllocations: P2PAllocation[] = Array.from({ length: 36 }, (_, index) => {
+  const actions: AllocationActions = {
+    canSubmitProof: index % 2 === 0,
+    canConfirmReceived: index % 3 === 0,
+    canDispute: index % 5 === 0,
+    canCancel: index % 4 === 0,
+    canAdminVerify: index % 2 === 0,
+    canFinalize: index % 3 === 0,
+    canViewAttachments: true,
+    canDownloadAttachments: false,
+  };
+  return {
+    id: `p2p-a-${index + 1}`,
+    createdAt: daysAgo(index % 8),
+    status: index % 3 === 0 ? "PROOF_SUBMITTED" : index % 3 === 1 ? "NEEDS_VERIFY" : "PENDING",
+    amount: String(5000000 + index * 95000),
+    expiresAt: daysAgo(-((index % 4) + 1)),
+    payerName: `پرداخت‌کننده ${index + 1}`,
+    payerMobile: `0912${String(9000000 + index).slice(1)}`,
+    receiverName: `دریافت‌کننده ${index + 1}`,
+    receiverMobile: `0912${String(8000000 + index).slice(1)}`,
+    proofFileIds: index % 2 === 0 ? ["file-1", "file-2"] : ["file-5"],
+    actions,
+  };
+});
+
+const mockOpsSummary: P2POpsSummary = {
+  needsAssignment: 12,
+  proofSubmitted: 8,
+  expiringSoon: 6,
+  disputes: 3,
+};
+
+const mockUserDestinations: PaymentDestination[] = [
+  {
+    id: "dest-1",
+    label: "حساب شخصی",
+    iban: "IR120580000000000000000001",
+    bankName: "بانک ملی",
+    isDefault: true,
+  },
+  {
+    id: "dest-2",
+    label: "حساب همکار",
+    iban: "IR780170000000000000000044",
+    bankName: "بانک ملت",
+    isDefault: false,
+  },
+];
+
+export async function getMockP2PWithdrawals() {
+  await simulateDelay();
+  return [...mockP2PWithdrawals];
+}
+
+export async function getMockP2PAllocations() {
+  await simulateDelay();
+  return [...mockP2PAllocations];
+}
+
+export async function getMockP2PCandidates() {
+  await simulateDelay();
+  return [
+    { id: "cand-1", name: "کاندید ۱", mobile: "09120000001" },
+    { id: "cand-2", name: "کاندید ۲", mobile: "09120000002" },
+  ];
+}
+
+export async function getMockOpsSummary() {
+  await simulateDelay();
+  return mockOpsSummary;
+}
+
+export async function getMockUserDestinations() {
+  await simulateDelay();
+  return [...mockUserDestinations];
+}
+
+export async function createMockDestination(payload: PaymentDestination) {
+  await simulateDelay();
+  const created = { ...payload, id: createId("dest") };
+  mockUserDestinations.unshift(created);
+  return created;
+}
+
+export async function updateMockDestination(payload: PaymentDestination) {
+  await simulateDelay();
+  const idx = mockUserDestinations.findIndex((item) => item.id === payload.id);
+  if (idx >= 0) mockUserDestinations[idx] = payload;
+  return payload;
+}
+
+export async function setMockDefaultDestination(id: string) {
+  await simulateDelay();
+  mockUserDestinations.forEach((item) => {
+    item.isDefault = item.id === id;
+  });
+  return mockUserDestinations;
+}
+
+export function getMockP2PWithdrawalsEnvelope(params?: {
+  limit?: number;
+  offset?: number;
+  sort?: string;
+  filtersApplied?: Record<string, unknown>;
+}) {
+  return buildP2PEnvelope([...mockP2PWithdrawals], params);
+}
+
+export function getMockP2PAllocationsEnvelope(params?: {
+  limit?: number;
+  offset?: number;
+  sort?: string;
+  filtersApplied?: Record<string, unknown>;
+}) {
+  return buildP2PEnvelope([...mockP2PAllocations], params);
 }

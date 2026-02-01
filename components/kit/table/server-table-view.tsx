@@ -47,7 +47,7 @@ export type ServerTableFilterConfig<TFilters> =
       label: string;
     };
 
-interface ServerTableViewProps<TItem, TFilters> {
+export interface ServerTableViewProps<TItem, TFilters> {
   title?: string;
   description?: string;
   storageKey: string;
@@ -207,6 +207,22 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
     }));
   }, [sortOptions]);
 
+  const filterLabels = useMemo(() => {
+    const map = new Map<string, { label: string; values?: Record<string, string> }>();
+    (filtersConfig ?? []).forEach((filter) => {
+      if (filter.type === "status") {
+        const values = filter.options.reduce<Record<string, string>>((acc, option) => {
+          acc[option.value] = option.label;
+          return acc;
+        }, {});
+        map.set(filter.key, { label: filter.label, values });
+      } else {
+        map.set(filter.key, { label: filter.label });
+      }
+    });
+    return map;
+  }, [filtersConfig]);
+
   return (
     <Card>
       <CardHeader className="space-y-2">
@@ -309,7 +325,9 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
             <span>فیلترهای اعمال‌شده:</span>
             {filterEntries.map(([key, value]) => (
               <Badge key={key} variant="secondary" className="gap-2">
-                <span>{`${key}: ${String(value)}`}</span>
+                <span>
+                  {(filterLabels.get(key)?.label ?? key) + ": "}{String(filterLabels.get(key)?.values?.[String(value)] ?? value)}
+                </span>
                 <Button
                   type="button"
                   variant="ghost"
@@ -342,6 +360,7 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
           }}
           getRowId={getRowId ? (row) => getRowId(row) : undefined}
           showPagination={false}
+          emptyState={emptyState}
         />
 
         {meta ? (

@@ -8,15 +8,21 @@ This project generates TypeScript types from an OpenAPI 3.x document using `open
 
 > Replace `docs/openapi.json` with the backend export once available.
 
-## Regenerating types
+## Regenerating types (recommended flow)
+1. Run the backend locally and expose Swagger JSON.
+2. Sync OpenAPI:
 ```bash
-yarn gen:api-types
+pnpm sync:openapi
+```
+3. Generate types:
+```bash
+pnpm gen:api-types
 ```
 
 ### Using a backend export
 If you have a backend export at a custom path, set `OPENAPI_JSON`:
 ```bash
-OPENAPI_JSON=/path/to/openapi.json yarn gen:api-types
+OPENAPI_JSON=/path/to/openapi.json pnpm gen:api-types
 ```
 
 ## Notes

@@ -18,11 +18,29 @@ export async function normalizeApiError(
     }
 
     if (body && typeof body === "object") {
+      if (body.ok === false) {
+        return buildApiError({
+          status: response.status,
+          code: body.error?.code ?? "unknown_error",
+          message: body.error?.message ?? "Request failed",
+          traceId: body.traceId ?? body.trace_id ?? null,
+          details: body.error?.details ?? body.details ?? null,
+        });
+      }
+      if (body.error && typeof body.error === "object") {
+        return buildApiError({
+          status: response.status,
+          code: body.error?.code ?? "unknown_error",
+          message: body.error?.message ?? "Request failed",
+          traceId: body.traceId ?? body.trace_id ?? null,
+          details: body.error?.details ?? body.details ?? null,
+        });
+      }
       return buildApiError({
         status: response.status,
         code: body.code ?? body.errorCode,
         message: body.message ?? body.error ?? response.statusText,
-        traceId: body.traceId,
+        traceId: body.traceId ?? body.trace_id,
         details: body.details ?? body.meta,
       });
     }

@@ -30,6 +30,12 @@ interface DataTableProps<TData> {
   onSearchChange?: (search: string) => void;
   getRowId?: (row: TData, index: number) => string;
   showPagination?: boolean;
+  emptyState?: {
+    title?: string;
+    description?: string;
+    actionLabel?: string;
+    onAction?: () => void;
+  };
 }
 
 /**
@@ -49,6 +55,7 @@ export function DataTable<TData>({
   onSearchChange,
   getRowId,
   showPagination = true,
+  emptyState,
 }: DataTableProps<TData>) {
   void onSortChange;
   void onFiltersChange;
@@ -99,7 +106,12 @@ export function DataTable<TData>({
             ) : data.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={colSpan}>
-                  <EmptyState />
+                  <EmptyState
+                    title={emptyState?.title}
+                    description={emptyState?.description}
+                    actionLabel={emptyState?.actionLabel}
+                    onAction={emptyState?.onAction}
+                  />
                 </TableCell>
               </TableRow>
             ) : (
