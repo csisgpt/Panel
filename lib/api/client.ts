@@ -2,6 +2,24 @@ import { API_BASE_URL } from "./config";
 import { normalizeApiError } from "./error-normalizer";
 import { fetchWithRetry, getAuthToken, parseResponse } from "./http";
 
+export class ApiError extends Error {
+  status: number;
+  body: string;
+
+  constructor(status: number, body: string) {
+    super(body || `API error ${status}`);
+    this.status = status;
+    this.body = body;
+  }
+}
+
+function getAuthHeader() {
+  if (typeof window === "undefined") return undefined;
+  const token = localStorage.getItem("panel_token_v2");
+  if (!token) return undefined;
+  return `Bearer ${token}`;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
   const token = getAuthToken();

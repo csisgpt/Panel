@@ -24,3 +24,17 @@
 
 ## TODO (runtime verification)
 - Replace rule-based admin verify/cancel permissions when backend exposes explicit admin action flags.
+# خلاصه تغییرات
+- اضافهشدن صفحههای ایندکس برای مسیرهای /trader و /admin که به داشبوردها ریدایرکت میشوند.
+- یکسانسازی منطق خروج و حذف فراخوانی مستقیم clearSession در لایه UI.
+- تجمیع منطق returnTo امن و ریدایرکتهای بعد از ورود با توجه به نقش کاربر.
+
+# نحوه تست
+- pnpm lint
+- pnpm typecheck
+- pnpm build
+- اجرای اپ و تست دستی:
+  - /login (ورود و بررسی returnTo)
+  - /register (ثبتنام و بازگشت به ورود)
+  - /trader (ریدایرکت به داشبورد)
+  - /admin (ریدایرکت به داشبورد)

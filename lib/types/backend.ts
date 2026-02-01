@@ -304,6 +304,17 @@ export interface LoginResponse {
   user: BackendUser;
 }
 
+export interface RegisterDto {
+  fullName: string;
+  mobile: string;
+  password: string;
+  email?: string;
+}
+
+export interface RegisterResponse {
+  user: BackendUser;
+}
+
 export interface CreateTradeDto {
   instrumentCode: string;
   side: TradeSide;
