@@ -323,7 +323,7 @@ export async function listMyAllocationsAsPayer(params: ListParams) {
     const items = (envelope.data ?? []).map((item) => mapP2PAllocationVm(buildMockAllocationVm(item)));
     return { items, meta: adaptP2PMeta(envelope.meta) };
   }
-  const query = listParamsToQuery(params, { sortParam: "sort" });
+  const query = listParamsToQuery(params, { sortParam: "sort", sortMap: allocationSortMap });
   const response = await apiGet<{ data: AllocationVmDto[]; meta: any }>(
     `/p2p/allocations/my-as-payer?${query}`
   );
@@ -341,7 +341,7 @@ export async function listMyAllocationsAsReceiver(params: ListParams) {
     const items = (envelope.data ?? []).map((item) => mapP2PAllocationVm(buildMockAllocationVm(item)));
     return { items, meta: adaptP2PMeta(envelope.meta) };
   }
-  const query = listParamsToQuery(params, { sortParam: "sort" });
+  const query = listParamsToQuery(params, { sortParam: "sort", sortMap: allocationSortMap });
   const response = await apiGet<{ data: AllocationVmDto[]; meta: any }>(
     `/p2p/allocations/my-as-receiver?${query}`
   );

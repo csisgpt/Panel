@@ -25,11 +25,12 @@ export function adaptAllocationActions(
   input?: BackendAllocationActions | null,
   status?: string | null
 ): AllocationActions {
+  const normalizedStatus = status?.toUpperCase();
   const canAdminVerify = isProofSubmittedStatus(status);
   const canCancel = Boolean(
-    status &&
-      !isTerminalStatus(status) &&
-      ["ASSIGNED", "PROOF_SUBMITTED", "RECEIVER_CONFIRMED", "ADMIN_VERIFIED"].includes(status)
+    normalizedStatus &&
+      !isTerminalStatus(normalizedStatus) &&
+      ["ASSIGNED", "PROOF_SUBMITTED", "RECEIVER_CONFIRMED", "ADMIN_VERIFIED"].includes(normalizedStatus)
   );
   const canFinalize = Boolean(input?.adminCanFinalize);
   return {
