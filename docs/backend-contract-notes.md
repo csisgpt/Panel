@@ -1,214 +1,317 @@
-# Backend Contract Notes (Gold Nest)
+# Backend Contract Notes (Gold-nest)
 
-These notes capture the backend-facing contracts that the Panel frontend consumes for the P2P admin flows, file links, and destinations. All shapes were derived from frontend API usage and contracts in this repo. Where backend behavior cannot be inferred statically, it is flagged as **runtime verification needed**.
+Source of truth: **Verified backend contract** provided in the task prompt.
 
-## Conventions
-- **List queries** use `limit` + `offset` (P2P) and return `{ data, meta }` with offset-based meta fields.
-- **Sort** parameters are sent as `sortKey` + `sortDir`.
-- **Search** uses `search` unless otherwise noted.
-
-## Admin P2P withdrawals list
-**Method:** `GET`
+## P2P Admin Withdrawals
+**Method:** `GET`  
 **Path:** `/admin/p2p/withdrawals`
-**Access:** Admin / Ops (runtime verification needed)
 
-**Query params (runtime verification needed):**
-- `limit` (number)
-- `offset` (number)
-- `search` (string)
-- `sortKey` (string)
-- `sortDir` (`asc` | `desc`)
-- `status` (string)
-- `bucket` (string)
-- `hasProof` (boolean)
+**Query**
+- `page` (int, default 1)
+- `limit` (int, default 20, max 100)
+- `offset` (int, optional; overrides page/limit if present)
+- `sort` enum:
+  - `createdAt_desc` | `createdAt_asc`
+  - `amount_desc` | `amount_asc`
+  - `remainingToAssign_desc` | `remainingToAssign_asc`
+  - `priority` (default)
+  - `nearestExpire_asc`
+- `status` (comma-separated string list)
+- `userId`
+- `mobile`
+- `amountMin`, `amountMax` (integer string)
+- `remainingToAssignMin`, `remainingToAssignMax` (integer string)
+- `createdFrom`, `createdTo` (ISO 8601)
+- `destinationBank`
+- `destinationType` enum: `IBAN` | `CARD` | `ACCOUNT`
 - `hasDispute` (boolean)
-- `expiringSoonMinutes` (number)
-- `amountMin` (number)
-- `amountMax` (number)
+- `hasProof` (boolean)
+- `expiringSoonMinutes` (number string)
 
-**Response shape:**
+**Response**
 ```json
 {
-  "data": [
-    {
-      "id": "p2p-w-1",
-      "createdAt": "2024-05-01T10:00:00Z",
-      "amount": "8000000",
-      "remainingToAssign": "4000000",
-      "userMobile": "09120000000",
-      "status": "NEEDS_ASSIGNMENT",
-      "destinationSummary": "بانک ملت - ****1234",
-      "hasProof": false,
-      "hasDispute": false,
-      "expiresAt": "2024-05-01T12:00:00Z"
-    }
-  ],
+  "data": [WithdrawalVmDto],
   "meta": {
-    "limit": 10,
+    "total": 0,
+    "nextCursor": null,
+    "limit": 20,
     "offset": 0,
-    "total": 48,
-    "sort": "createdAt:desc",
+    "sort": "priority",
     "filtersApplied": {}
   }
 }
 ```
 
-## P2P withdrawal candidates
-**Method:** `GET`
+**WithdrawalVmDto**
+```json
+{
+  "id": "",
+  "purpose": "",
+  "channel": null,
+  "amount": "0",
+  "status": "",
+  "totals": {
+    "assigned": "0",
+    "settled": "0",
+    "remainingToAssign": "0",
+    "remainingToSettle": "0"
+  },
+  "destination": {
+    "type": "IBAN",
+    "masked": "IR**",
+    "bankName": "",
+    "title": ""
+  },
+  "flags": {
+    "hasDispute": false,
+    "hasProof": false,
+    "hasExpiringAllocations": false,
+    "isUrgent": false
+  },
+  "createdAt": "2024-01-01T00:00:00Z",
+  "updatedAt": "2024-01-01T00:00:00Z",
+  "actions": {
+    "canCancel": false,
+    "canAssign": false,
+    "canViewAllocations": false
+  }
+}
+```
+
+## P2P Withdrawal Candidates
+**Method:** `GET`  
 **Path:** `/admin/p2p/withdrawals/:id/candidates`
-**Access:** Admin / Ops (runtime verification needed)
 
-**Query params:** same list params as above (`limit`, `offset`, `search`, `sortKey`, `sortDir`).
+**Query**
+- `page`, `limit`
+- `sort` enum: `remaining_desc` (default) | `createdAt_asc` | `createdAt_desc`
+- `status` (comma-separated)
+- `userId`
+- `mobile`
+- `remainingMin` (integer string)
+- `createdFrom`, `createdTo` (ISO 8601)
+- `excludeUserId`
 
-**Response shape (runtime verification needed):**
+**Response**
 ```json
 {
-  "data": [
-    {
-      "id": "cand-1",
-      "name": "کاندید ۱",
-      "mobile": "09120000001",
-      "amount": "1500000"
-    }
-  ],
-  "meta": {
-    "limit": 10,
-    "offset": 0,
-    "total": 2
+  "data": [DepositVmDto],
+  "meta": { "total": 0, "limit": 20, "offset": 0 }
+}
+```
+
+**DepositVmDto**
+```json
+{
+  "id": "",
+  "purpose": "",
+  "requestedAmount": "0",
+  "status": "",
+  "totals": {
+    "assigned": "0",
+    "settled": "0",
+    "remaining": "0"
+  },
+  "createdAt": "2024-01-01T00:00:00Z",
+  "updatedAt": "2024-01-01T00:00:00Z",
+  "actions": {
+    "canCancel": false,
+    "canBeAssigned": false
+  },
+  "flags": {
+    "isFullyAvailable": false,
+    "isExpiring": false
   }
 }
 ```
 
-## Assign candidates to withdrawal
-**Method:** `POST`
+## Assign Allocations
+**Method:** `POST`  
 **Path:** `/admin/p2p/withdrawals/:id/assign`
-**Access:** Admin / Ops (runtime verification needed)
 
-**Request DTO (multi-selection):**
+**Headers**: `Idempotency-Key` (optional)
+
+**Body**
 ```json
 {
-  "candidateIds": ["cand-1", "cand-2"]
+  "items": [
+    { "depositId": "", "amount": "100000" }
+  ]
 }
 ```
 
-**Response:** success envelope or empty response (runtime verification needed).
+**Response**: `AllocationVmDto[]`
 
-## Admin P2P allocations list
-**Method:** `GET`
+## P2P Admin Allocations
+**Method:** `GET`  
 **Path:** `/admin/p2p/allocations`
-**Access:** Admin / Ops (runtime verification needed)
 
-**Query params:** same list params as withdrawals (`limit`, `offset`, `search`, `sortKey`, `sortDir`, plus filters like `status`, `bucket`, `hasProof`, `hasDispute`, `expiringSoonMinutes`, `amountMin`, `amountMax`).
+**Query**
+- `page`, `limit`
+- `sort` enum: `createdAt_desc` (default) | `expiresAt_asc` | `paidAt_desc` | `amount_desc`
+- `status` (comma-separated)
+- `withdrawalId`, `depositId`, `payerUserId`, `receiverUserId`
+- `method` enum: `CARD_TO_CARD` | `SATNA` | `PAYA` | `TRANSFER` | `UNKNOWN`
+- `hasProof` (boolean)
+- `receiverConfirmed` (boolean)
+- `adminVerified` (boolean)
+- `expired` (boolean)
+- `expiresSoonMinutes` (number string)
+- `bankRef`
+- `bankRefSearch`
+- `createdFrom`, `createdTo` (ISO 8601)
+- `paidFrom`, `paidTo` (ISO 8601)
 
-**Response shape:**
+**Response**
 ```json
 {
-  "data": [
+  "data": [AllocationVmDto],
+  "meta": { "total": 0, "limit": 20, "offset": 0 }
+}
+```
+
+**AllocationVmDto**
+```json
+{
+  "id": "",
+  "withdrawalId": "",
+  "depositId": "",
+  "payer": { "userId": "", "mobile": "", "displayName": "" },
+  "receiver": { "userId": "", "mobile": "", "displayName": "" },
+  "amount": "0",
+  "status": "ASSIGNED",
+  "expiresAt": "2024-01-01T00:00:00Z",
+  "paymentCode": "",
+  "payment": { "method": "TRANSFER", "bankRef": "", "paidAt": "" },
+  "attachments": [
     {
-      "id": "p2p-a-1",
-      "createdAt": "2024-05-01T10:00:00Z",
-      "status": "PROOF_SUBMITTED",
-      "amount": "5000000",
-      "expiresAt": "2024-05-01T12:00:00Z",
-      "payerName": "پرداخت‌کننده ۱",
-      "payerMobile": "09120000001",
-      "receiverName": "دریافت‌کننده ۱",
-      "receiverMobile": "09120000002",
-      "proofFileIds": ["file-1"],
-      "actions": {
-        "payerCanSubmitProof": false,
-        "receiverCanConfirm": false,
-        "adminCanFinalize": false,
-        "adminCanVerify": true,
-        "adminCanCancel": true
-      }
+      "id": "",
+      "kind": "proof",
+      "file": { "id": "", "name": "", "mime": "", "size": 0 },
+      "createdAt": "2024-01-01T00:00:00Z"
     }
   ],
-  "meta": {
-    "limit": 10,
-    "offset": 0,
-    "total": 36
+  "destinationToPay": {
+    "type": "IBAN",
+    "bankName": "",
+    "ownerName": "",
+    "title": "",
+    "fullValue": "",
+    "masked": ""
+  },
+  "expiresInSeconds": 0,
+  "destinationCopyText": "",
+  "timestamps": {
+    "proofSubmittedAt": "",
+    "receiverConfirmedAt": "",
+    "adminVerifiedAt": "",
+    "settledAt": ""
+  },
+  "flags": {
+    "isExpired": false,
+    "expiresSoon": false,
+    "hasProof": false,
+    "isFinalizable": false
+  },
+  "createdAt": "2024-01-01T00:00:00Z",
+  "actions": {
+    "payerCanSubmitProof": false,
+    "receiverCanConfirm": false,
+    "adminCanFinalize": false
   }
 }
 ```
 
-## Allocation admin ops
-**Method:** `POST`
-**Paths:**
-- `/admin/p2p/allocations/:id/verify`
-- `/admin/p2p/allocations/:id/finalize`
-- `/admin/p2p/allocations/:id/cancel`
+**Allocation status enum**
+`ASSIGNED` | `PROOF_SUBMITTED` | `RECEIVER_CONFIRMED` | `ADMIN_VERIFIED` | `SETTLED` | `DISPUTED` | `CANCELLED` | `EXPIRED`
 
-**Request DTO:** likely empty body or audit notes (runtime verification needed).
+## Admin Allocation Actions
+- `POST /admin/p2p/allocations/:id/verify`  
+  Body: `{ approved: boolean, note?: string }`
+- `POST /admin/p2p/allocations/:id/finalize`
+- `POST /admin/p2p/allocations/:id/cancel`
 
-**Response:** updated allocation or `{ success: true }` (runtime verification needed).
+Responses: `AllocationVmDto`
+
+## Ops Summary
+**Method:** `GET`  
+**Path:** `/admin/p2p/ops-summary`
+
+**Response**
+```json
+{
+  "withdrawalsWaitingAssignmentCount": 0,
+  "withdrawalsPartiallyAssignedCount": 0,
+  "allocationsExpiringSoonCount": 0,
+  "allocationsProofSubmittedCount": 0,
+  "allocationsDisputedCount": 0,
+  "allocationsFinalizableCount": 0
+}
+```
+
+## User Allocations
+- `GET /p2p/allocations/my-as-payer` (query: page, limit, status, expiresSoon, sort)
+- `GET /p2p/allocations/my-as-receiver` (query: page, limit, status, expiresSoon, sort)
+- `POST /p2p/allocations/:id/proof`  
+  Body: `{ bankRef: string, method: PaymentMethod, paidAt?: ISO8601, fileIds: string[] }`
+- `POST /p2p/allocations/:id/receiver-confirm`  
+  Body: `{ confirmed: boolean, reason?: string }`
+
+## Payment Destinations
+- `GET /me/payout-destinations` → `PaymentDestinationViewDto[]`
+- `POST /me/payout-destinations` → `PaymentDestinationViewDto`
+- `PATCH /me/payout-destinations/:id` → `PaymentDestinationViewDto`
+- `POST /me/payout-destinations/:id/make-default` → `PaymentDestinationViewDto`
+
+- `GET /admin/destinations?direction=PAYOUT|COLLECTION` → `PaymentDestinationViewDto[]`
+- `POST /admin/destinations/system` → `PaymentDestinationViewDto`
+
+**PaymentDestinationViewDto**
+```json
+{
+  "id": "",
+  "type": "IBAN",
+  "maskedValue": "",
+  "bankName": "",
+  "ownerNameMasked": "",
+  "title": "",
+  "isDefault": false,
+  "status": "ACTIVE",
+  "lastUsedAt": ""
+}
+```
 
 ## Files
-**Method:** `GET`
-**Path:** `/files/:id`
+- `POST /files` (multipart: file + optional label)
+- `GET /files/:id` → `FileDownloadLinkDto`
+- `GET /files/:id/raw?disposition=inline|attachment` → binary
+- `GET /files/:id/meta` → metadata (admin sees more)
 
-**Query params:**
-- `mode=preview|download`
-
-**Response shape:**
+**FileDownloadLinkDto**
 ```json
 {
-  "id": "file-1",
-  "previewUrl": "https://...",
-  "downloadUrl": "https://...",
-  "expiresInSeconds": 600
-}
-```
-
-## Destinations
-**User destinations**
-- **Method:** `GET`
-- **Path:** `/p2p/destinations`
-
-**Create destination**
-- **Method:** `POST`
-- **Path:** `/p2p/destinations`
-- **Body:** `{ label: string, iban?: string, cardNumber?: string, bankName?: string }`
-
-**Update destination**
-- **Method:** `PATCH`
-- **Path:** `/p2p/destinations/:id`
-- **Body:** same as create
-
-**Set default destination**
-- **Method:** `POST`
-- **Path:** `/p2p/destinations/:id/make-default`
-- **Body:** `{ id: string }`
-- **Note:** runtime verification needed on action naming.
-
-**Admin/system destinations**
-- **Method:** `GET`
-- **Path:** `/admin/p2p/destinations`
-
-## Ops summary
-**Method:** `GET`
-**Path:** `/admin/p2p/ops-summary`
-**Response shape:**
-```json
-{
-  "needsAssignment": 12,
-  "proofSubmitted": 8,
-  "expiringSoon": 6,
-  "disputes": 3
+  "id": "",
+  "name": "",
+  "mimeType": "",
+  "sizeBytes": 0,
+  "label": "",
+  "method": "presigned",
+  "previewUrl": "",
+  "downloadUrl": "",
+  "url": "",
+  "expiresInSeconds": 0
 }
 ```
 
 ## Frontend mapping decisions
-- **Offset → page meta conversion** (used in `adaptP2PMeta`):
+- **P2P meta conversion:** uses `adaptP2PMeta` to convert offset-based meta to `page/limit/total`.
   - `page = floor(offset / limit) + 1`
   - `totalPages = total ? ceil(total / limit) : page`
   - `hasNext = total ? page < totalPages : false`
   - `hasPrev = page > 1`
-- **Allocation actions mapping**:
-  - Backend action fields map to permissions:
-    - `payerCanSubmitProof` → `canSubmitProof`
-    - `receiverCanConfirm` → `canConfirmReceived`
-    - `adminCanFinalize` → `canFinalize`
-    - `adminCanVerify` → `canAdminVerify`
-    - `adminCanCancel` → `canCancel`
-  - **TODO:** Replace temporary status-based rules (`PROOF_SUBMITTED`, `NEEDS_VERIFY`) with explicit backend `can*` aliases when available.
+- **Allocation actions:** backend flags are mapped to frontend permissions. Admin verify/cancel are rule-based for now:
+  - `canAdminVerify` when status is `PROOF_SUBMITTED` or `RECEIVER_CONFIRMED`
+  - `canAdminCancel` when status in `ASSIGNED | PROOF_SUBMITTED | RECEIVER_CONFIRMED | ADMIN_VERIFIED` and not terminal `SETTLED | CANCELLED | EXPIRED`
+  - **TODO:** replace rule-based flags if backend adds explicit admin action flags.
+- **Assign compatibility:** legacy `{ candidateId }` payloads cannot be mapped without an amount; frontend throws a validation error if amount is missing.

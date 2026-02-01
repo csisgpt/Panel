@@ -28,8 +28,9 @@ import { buildApiError } from "@/lib/api/http";
 import { createAdminP2PWithdrawalsListConfig } from "@/lib/screens/admin/p2p-withdrawals.list";
 import { createAdminP2PAllocationsListConfig } from "@/lib/screens/admin/p2p-allocations.list";
 import { createUserDestinationsListConfig } from "@/lib/screens/user/destinations.list";
-import { getOpsSummary } from "@/lib/api/p2p";
+import { buildAdminP2PAllocationsQuery, buildAdminP2PWithdrawalsQuery, getOpsSummary } from "@/lib/api/p2p";
 import type { P2POpsSummary } from "@/lib/contracts/p2p";
+import { useListQueryState } from "@/lib/querykit/use-list-query-state";
 
 interface DemoRow {
   id: string;
@@ -249,17 +250,35 @@ export function KitPlayground() {
   const withdrawalsConfig = useMemo(() => createAdminP2PWithdrawalsListConfig(), []);
   const allocationsConfig = useMemo(() => createAdminP2PAllocationsListConfig(), []);
   const destinationsConfig = useMemo(() => createUserDestinationsListConfig(), []);
+  const { params: withdrawalsParams } = useListQueryState({ defaultParams: withdrawalsConfig.defaultParams });
+  const { params: allocationsParams } = useListQueryState({ defaultParams: allocationsConfig.defaultParams });
   const opsCounts = useMemo(() => {
     if (!opsSummary) return undefined;
-    const total = opsSummary.needsAssignment + opsSummary.proofSubmitted + opsSummary.expiringSoon + opsSummary.disputes;
+    const total =
+      opsSummary.needsAssignment +
+      (opsSummary.partiallyAssigned ?? 0) +
+      opsSummary.proofSubmitted +
+      opsSummary.expiringSoon +
+      opsSummary.disputes +
+      (opsSummary.finalizable ?? 0);
     return {
       all: total,
       needs_assignment: opsSummary.needsAssignment,
+      partially_assigned: opsSummary.partiallyAssigned ?? 0,
       proof_submitted: opsSummary.proofSubmitted,
       expiring_soon: opsSummary.expiringSoon,
       disputes: opsSummary.disputes,
+      finalizable: opsSummary.finalizable ?? 0,
     };
   }, [opsSummary]);
+  const withdrawalsQuery = useMemo(
+    () => buildAdminP2PWithdrawalsQuery(withdrawalsParams).toString(),
+    [withdrawalsParams]
+  );
+  const allocationsQuery = useMemo(
+    () => buildAdminP2PAllocationsQuery(allocationsParams).toString(),
+    [allocationsParams]
+  );
 
   return (
     <div className="space-y-8 p-6">
@@ -386,7 +405,7 @@ export function KitPlayground() {
               {simulateError ? "حالت خطا فعال است" : "شبیه‌سازی خطا"}
             </Button>
           </div>
-          <ServerTableView
+          <ServerTableView<ServerRow, Record<string, unknown>>
             storageKey="kit-playground.server-table"
             title="لیست سرورمحور"
             description="نمونه ترکیب QueryKit + React Query + TableKit"
@@ -431,8 +450,11 @@ export function KitPlayground() {
         <CardContent className="space-y-4">
           {withdrawalsConfig.tabs ? (
             <QuickTabs
-              tabs={withdrawalsConfig.tabs}
-              currentTabId={withdrawalsConfig.defaultParams?.tab ?? withdrawalsConfig.tabs[0]?.id}
+              tabs={[
+                { id: "needs_assignment", label: "نیاز تخصیص" },
+                { id: "partially_assigned", label: "تخصیص ناقص" },
+              ]}
+              currentTabId="needs_assignment"
               onTabChange={() => null}
               counts={opsCounts}
               disabled
@@ -454,6 +476,8 @@ export function KitPlayground() {
               <li>GET /admin/p2p/withdrawals/:id/candidates</li>
               <li>POST /admin/p2p/withdrawals/:id/assign</li>
             </ul>
+            <p className="mt-2 font-semibold">Sample query params</p>
+            <code className="block rounded bg-muted px-2 py-1 text-xs">{withdrawalsQuery || "(none)"}</code>
           </div>
         </CardContent>
       </Card>
@@ -463,6 +487,18 @@ export function KitPlayground() {
           <CardTitle>Admin P2P Allocations Review (mock)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <QuickTabs
+            tabs={[
+              { id: "proof_submitted", label: "رسید ارسال شد" },
+              { id: "expiring_soon", label: "نزدیک به انقضا" },
+              { id: "disputes", label: "اختلاف" },
+              { id: "finalizable", label: "نهایی‌سازی" },
+            ]}
+            currentTabId="proof_submitted"
+            onTabChange={() => null}
+            counts={opsCounts}
+            disabled
+          />
           <ServerTableView
             {...allocationsConfig}
             queryFn={async (params) => {
@@ -480,6 +516,8 @@ export function KitPlayground() {
               <li>POST /admin/p2p/allocations/:id/finalize</li>
               <li>POST /admin/p2p/allocations/:id/cancel</li>
             </ul>
+            <p className="mt-2 font-semibold">Sample query params</p>
+            <code className="block rounded bg-muted px-2 py-1 text-xs">{allocationsQuery || "(none)"}</code>
           </div>
         </CardContent>
       </Card>

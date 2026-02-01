@@ -4,6 +4,9 @@ export interface ListQueryMapOptions {
   searchKey?: string;
   filterKeyMap?: Record<string, string>;
   offsetBased?: boolean;
+  sortParam?: string;
+  sortMap?: Record<string, string | { asc?: string; desc?: string }>;
+  allowOffsetParam?: boolean;
 }
 
 export function listParamsToQuery<TFilters>(
@@ -15,8 +18,16 @@ export function listParamsToQuery<TFilters>(
   if (params.search) searchParams.set(searchKey, params.search);
 
   if (params.sort?.key) {
-    searchParams.set("sortKey", params.sort.key);
-    searchParams.set("sortDir", params.sort.dir);
+    const sortParam = options.sortParam ?? "sort";
+    const mapping = options.sortMap?.[params.sort.key];
+    if (typeof mapping === "string") {
+      searchParams.set(sortParam, mapping);
+    } else if (mapping) {
+      const mapped = params.sort.dir === "asc" ? mapping.asc : mapping.desc;
+      if (mapped) searchParams.set(sortParam, mapped);
+    } else {
+      searchParams.set(sortParam, `${params.sort.key}_${params.sort.dir}`);
+    }
   }
 
   if (options.offsetBased) {
@@ -32,7 +43,19 @@ export function listParamsToQuery<TFilters>(
   if (filters) {
     Object.entries(filters).forEach(([key, value]) => {
       if (value === undefined || value === null || value === "") return;
+      if (key === "offset" && options.allowOffsetParam) {
+        searchParams.set("offset", String(value));
+        return;
+      }
       const mappedKey = options.filterKeyMap?.[key] ?? key;
+      if (Array.isArray(value)) {
+        searchParams.set(mappedKey, value.join(","));
+        return;
+      }
+      if (value instanceof Date) {
+        searchParams.set(mappedKey, value.toISOString());
+        return;
+      }
       searchParams.set(mappedKey, String(value));
     });
   }

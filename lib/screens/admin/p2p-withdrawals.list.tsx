@@ -12,9 +12,7 @@ export function createAdminP2PWithdrawalsListConfig(): ServerTableViewProps<P2PW
     {
       id: "createdAt",
       header: "زمان ثبت",
-      cell: ({ row }) => (
-        <CountdownBadge targetDate={row.original.expiresAt ?? row.original.createdAt} />
-      ),
+      cell: ({ row }) => <CountdownBadge targetDate={row.original.createdAt} />,
     },
     {
       id: "amount",
@@ -34,7 +32,7 @@ export function createAdminP2PWithdrawalsListConfig(): ServerTableViewProps<P2PW
     {
       id: "mobile",
       header: "موبایل",
-      cell: ({ row }) => row.original.userMobile,
+      cell: ({ row }) => row.original.userMobile ?? "-",
     },
     {
       id: "status",
@@ -44,7 +42,7 @@ export function createAdminP2PWithdrawalsListConfig(): ServerTableViewProps<P2PW
     {
       id: "urgent",
       header: "فوریت",
-      cell: ({ row }) => (row.original.hasDispute ? <UrgentChip /> : null),
+      cell: ({ row }) => (row.original.isUrgent ? <UrgentChip /> : null),
     },
   ];
 
@@ -58,38 +56,26 @@ export function createAdminP2PWithdrawalsListConfig(): ServerTableViewProps<P2PW
     defaultParams: { page: 1, limit: 10, tab: "all" },
     tabs: [
       { id: "all", label: "همه", paramsPatch: { filters: {} } },
-      { id: "needs_assignment", label: "نیاز به تخصیص", paramsPatch: { filters: { status: "NEEDS_ASSIGNMENT" } } },
-      { id: "proof_submitted", label: "رسید ارسال شد", paramsPatch: { filters: { status: "PROOF_SUBMITTED" } } },
-      { id: "expiring_soon", label: "در شرف انقضا", paramsPatch: { filters: { bucket: "expiring_soon" } } },
+      { id: "proofs", label: "دارای رسید", paramsPatch: { filters: { hasProof: true } } },
       { id: "disputes", label: "اختلاف", paramsPatch: { filters: { hasDispute: true } } },
+      { id: "expiring_soon", label: "در شرف انقضا", paramsPatch: { filters: { expiringSoonMinutes: "60" } } },
     ],
     sortOptions: [
-      { key: "createdAt", label: "جدیدترین", defaultDir: "desc" },
+      { key: "priority", label: "اولویت", defaultDir: "desc" },
+      { key: "nearestExpire", label: "نزدیک‌ترین انقضا", defaultDir: "asc" },
+      { key: "createdAt", label: "زمان ثبت", defaultDir: "desc" },
       { key: "amount", label: "بیشترین مبلغ", defaultDir: "desc" },
+      { key: "remainingToAssign", label: "بیشترین باقیمانده", defaultDir: "desc" },
     ],
     filtersConfig: [
       {
         type: "status",
-        key: "status",
-        label: "وضعیت",
+        key: "destinationType",
+        label: "نوع مقصد",
         options: [
-          { label: "نیاز به تخصیص", value: "NEEDS_ASSIGNMENT" },
-          { label: "رسید ارسال شد", value: "PROOF_SUBMITTED" },
-          { label: "در انتظار", value: "PENDING" },
-          { label: "تکمیل شده", value: "FINALIZED" },
-          { label: "لغو شده", value: "CANCELLED" },
-        ],
-      },
-      {
-        type: "status",
-        key: "bucket",
-        label: "باکت",
-        options: [
-          { label: "همه", value: "all" },
-          { label: "نیاز به تخصیص", value: "needs_assignment" },
-          { label: "رسید ارسال شد", value: "proof_submitted" },
-          { label: "در شرف انقضا", value: "expiring_soon" },
-          { label: "اختلاف", value: "disputes" },
+          { label: "شبا", value: "IBAN" },
+          { label: "کارت", value: "CARD" },
+          { label: "حساب", value: "ACCOUNT" },
         ],
       },
       {
@@ -115,14 +101,16 @@ export function createAdminP2PWithdrawalsListConfig(): ServerTableViewProps<P2PW
         key: "expiringSoonMinutes",
         label: "نزدیک به انقضا",
         options: [
-          { label: "۱۵ دقیقه", value: "15" },
           { label: "۳۰ دقیقه", value: "30" },
           { label: "۶۰ دقیقه", value: "60" },
         ],
       },
       { type: "amountRange", key: "amountMin", label: "حداقل مبلغ" },
       { type: "amountRange", key: "amountMax", label: "حداکثر مبلغ" },
-      { type: "dateRange", key: "search", label: "جستجو" },
+      { type: "amountRange", key: "remainingToAssignMin", label: "حداقل باقی‌مانده" },
+      { type: "amountRange", key: "remainingToAssignMax", label: "حداکثر باقی‌مانده" },
+      { type: "dateRange", key: "createdFrom", label: "از تاریخ" },
+      { type: "dateRange", key: "createdTo", label: "تا تاریخ" },
     ],
   };
 }

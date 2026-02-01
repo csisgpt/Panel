@@ -1,7 +1,7 @@
 import type { ApiError } from "./errors";
 
 /** Generic permissions map for action gates. */
-export type ActionPermissions = Record<string, boolean>;
+export type ActionPermissions = Record<string, boolean | undefined>;
 
 /**
  * Safely checks a permission flag by key.
@@ -11,7 +11,7 @@ export function hasPermission(actions: ActionPermissions | null | undefined, key
   return Boolean(actions[key]);
 }
 
-export interface AllocationActions {
+export interface AllocationActions extends ActionPermissions {
   canSubmitProof: boolean;
   canConfirmReceived: boolean;
   canDispute: boolean;
@@ -22,13 +22,14 @@ export interface AllocationActions {
   canDownloadAttachments: boolean;
 }
 
-export interface WithdrawalActions {
-  canSelectDestination: boolean;
+export interface WithdrawalActions extends ActionPermissions {
+  canSelectDestination?: boolean;
   canCancel: boolean;
   canViewAllocations: boolean;
+  canAssign?: boolean;
 }
 
-export interface DepositActions {
+export interface DepositActions extends ActionPermissions {
   canCancel: boolean;
   canViewAttachments: boolean;
 }

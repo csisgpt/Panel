@@ -71,16 +71,35 @@ export async function getAttachments(
   return items;
 }
 
+export interface FileDownloadLinkDto {
+  id: string;
+  name: string;
+  mimeType: string;
+  sizeBytes: number;
+  label?: string | null;
+  method: "presigned" | "raw";
+  previewUrl?: string;
+  downloadUrl?: string;
+  url?: string;
+  expiresInSeconds?: number;
+}
+
+function mapFileDownloadToLink(input: FileDownloadLinkDto): FileLink {
+  return {
+    id: input.id,
+    previewUrl: input.previewUrl ?? input.url,
+    downloadUrl: input.downloadUrl ?? input.url,
+    expiresInSeconds: input.expiresInSeconds ?? 0,
+  };
+}
+
 export async function getFileLinksBatch(
   fileIds: string[],
   mode: "preview" | "download" = "preview"
 ): Promise<FileLink[]> {
   if (isMockMode()) return getMockFileLinks(fileIds, mode);
-  const response = await apiPost<{ data: FileLink[] }, { fileIds: string[]; mode: string }>(
-    "/files/links/batch",
-    { fileIds, mode }
-  );
-  return response.data ?? [];
+  const responses = await Promise.all(fileIds.map((fileId) => apiGet<FileDownloadLinkDto>(`/files/${fileId}`)));
+  return responses.map(mapFileDownloadToLink);
 }
 
 export async function getFileLink(
@@ -88,5 +107,6 @@ export async function getFileLink(
   mode: "preview" | "download" = "preview"
 ): Promise<FileLink | null> {
   if (isMockMode()) return (await getMockFileLinks([fileId], mode))[0] ?? null;
-  return apiGet<FileLink>(`/files/${fileId}?mode=${mode}`);
+  const response = await apiGet<FileDownloadLinkDto>(`/files/${fileId}`);
+  return mapFileDownloadToLink(response);
 }

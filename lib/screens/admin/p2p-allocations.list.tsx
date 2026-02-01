@@ -13,31 +13,15 @@ import { formatMoney } from "@/lib/format/money";
 import { listAdminP2PAllocations } from "@/lib/api/p2p";
 import type { P2PAllocation } from "@/lib/contracts/p2p";
 import type { ServerTableViewProps } from "@/components/kit/table/server-table-view";
-import type { FileMeta } from "@/lib/types/backend";
-
-function buildStubFile(fileId: string): FileMeta {
-  return {
-    id: fileId,
-    createdAt: new Date().toISOString(),
-    uploadedById: "",
-    storageKey: "",
-    fileName: `فایل ${fileId}`,
-    mimeType: "image/jpeg",
-    sizeBytes: 0,
-    label: "رسید",
-  };
-}
 
 function ProofAttachmentsCell({ allocation }: { allocation: P2PAllocation }) {
   const [open, setOpen] = useState(false);
   const files = useMemo(() => {
-    if (allocation.proofAttachments?.length) {
-      return allocation.proofAttachments
-        .map((attachment) => attachment.file)
-        .filter(Boolean) as FileMeta[];
+    if (allocation.attachments?.length) {
+      return allocation.attachments;
     }
-    return (allocation.proofFileIds ?? []).map(buildStubFile);
-  }, [allocation.proofAttachments, allocation.proofFileIds]);
+    return [];
+  }, [allocation.attachments]);
 
   if (!files.length) return <span className="text-xs text-muted-foreground">بدون پیوست</span>;
 
@@ -104,6 +88,21 @@ export function createAdminP2PAllocationsListConfig(): ServerTableViewProps<P2PA
       cell: ({ row }) => <ProofAttachmentsCell allocation={row.original} />,
     },
     {
+      id: "paymentMethod",
+      header: "روش پرداخت",
+      cell: ({ row }) => row.original.paymentMethod ?? "-",
+    },
+    {
+      id: "bankRef",
+      header: "شماره مرجع",
+      cell: ({ row }) => row.original.bankRef ?? "-",
+    },
+    {
+      id: "destination",
+      header: "مقصد پرداخت",
+      cell: ({ row }) => row.original.destinationSummary ?? "-",
+    },
+    {
       id: "actions",
       header: "اقدامات",
       cell: ({ row }) => <AllocationActionsCell allocation={row.original} />,
@@ -121,12 +120,15 @@ export function createAdminP2PAllocationsListConfig(): ServerTableViewProps<P2PA
     tabs: [
       { id: "all", label: "همه", paramsPatch: { filters: {} } },
       { id: "proof_submitted", label: "رسید ارسال شد", paramsPatch: { filters: { status: "PROOF_SUBMITTED" } } },
-      { id: "needs_verify", label: "نیاز به تایید", paramsPatch: { filters: { status: "NEEDS_VERIFY" } } },
-      { id: "expiring_soon", label: "در شرف انقضا", paramsPatch: { filters: { bucket: "expiring_soon" } } },
-      { id: "dispute", label: "اختلاف", paramsPatch: { filters: { hasDispute: true } } },
+      { id: "receiver_confirmed", label: "تایید گیرنده", paramsPatch: { filters: { status: "RECEIVER_CONFIRMED" } } },
+      { id: "admin_verified", label: "تایید ادمین", paramsPatch: { filters: { status: "ADMIN_VERIFIED" } } },
+      { id: "disputed", label: "اختلاف", paramsPatch: { filters: { status: "DISPUTED" } } },
+      { id: "expiring_soon", label: "در شرف انقضا", paramsPatch: { filters: { expiresSoonMinutes: "60" } } },
     ],
     sortOptions: [
+      { key: "createdAt", label: "جدیدترین", defaultDir: "desc" },
       { key: "expiresAt", label: "نزدیک‌ترین انقضا", defaultDir: "asc" },
+      { key: "paidAt", label: "آخرین پرداخت", defaultDir: "desc" },
       { key: "amount", label: "بیشترین مبلغ", defaultDir: "desc" },
     ],
     filtersConfig: [
@@ -135,24 +137,26 @@ export function createAdminP2PAllocationsListConfig(): ServerTableViewProps<P2PA
         key: "status",
         label: "وضعیت",
         options: [
+          { label: "تخصیص شده", value: "ASSIGNED" },
           { label: "رسید ارسال شد", value: "PROOF_SUBMITTED" },
-          { label: "نیاز به تایید", value: "NEEDS_VERIFY" },
-          { label: "در انتظار", value: "PENDING" },
-          { label: "تایید شد", value: "VERIFIED" },
-          { label: "نهایی شد", value: "FINALIZED" },
-          { label: "لغو شد", value: "CANCELLED" },
+          { label: "تایید گیرنده", value: "RECEIVER_CONFIRMED" },
+          { label: "تایید ادمین", value: "ADMIN_VERIFIED" },
+          { label: "تسویه شده", value: "SETTLED" },
+          { label: "اختلاف", value: "DISPUTED" },
+          { label: "لغو شده", value: "CANCELLED" },
+          { label: "منقضی", value: "EXPIRED" },
         ],
       },
       {
         type: "status",
-        key: "bucket",
-        label: "باکت",
+        key: "method",
+        label: "روش پرداخت",
         options: [
-          { label: "همه", value: "all" },
-          { label: "رسید ارسال شد", value: "proof_submitted" },
-          { label: "نیاز به تایید", value: "needs_verify" },
-          { label: "در شرف انقضا", value: "expiring_soon" },
-          { label: "اختلاف", value: "dispute" },
+          { label: "کارت به کارت", value: "CARD_TO_CARD" },
+          { label: "ساتنا", value: "SATNA" },
+          { label: "پایا", value: "PAYA" },
+          { label: "انتقال", value: "TRANSFER" },
+          { label: "نامشخص", value: "UNKNOWN" },
         ],
       },
       {
@@ -166,8 +170,8 @@ export function createAdminP2PAllocationsListConfig(): ServerTableViewProps<P2PA
       },
       {
         type: "status",
-        key: "hasDispute",
-        label: "اختلاف",
+        key: "receiverConfirmed",
+        label: "تایید گیرنده",
         options: [
           { label: "بله", value: "true" },
           { label: "خیر", value: "false" },
@@ -175,18 +179,37 @@ export function createAdminP2PAllocationsListConfig(): ServerTableViewProps<P2PA
       },
       {
         type: "status",
-        key: "expiringSoonMinutes",
+        key: "adminVerified",
+        label: "تایید ادمین",
+        options: [
+          { label: "بله", value: "true" },
+          { label: "خیر", value: "false" },
+        ],
+      },
+      {
+        type: "status",
+        key: "expired",
+        label: "منقضی",
+        options: [
+          { label: "بله", value: "true" },
+          { label: "خیر", value: "false" },
+        ],
+      },
+      {
+        type: "status",
+        key: "expiresSoonMinutes",
         label: "نزدیک به انقضا",
         options: [
-          { label: "۱۵ دقیقه", value: "15" },
           { label: "۳۰ دقیقه", value: "30" },
           { label: "۶۰ دقیقه", value: "60" },
         ],
       },
       { type: "amountRange", key: "amountMin", label: "حداقل مبلغ" },
       { type: "amountRange", key: "amountMax", label: "حداکثر مبلغ" },
-      { type: "dateRange", key: "search", label: "جستجو" },
-      { type: "dateRange", key: "mobile", label: "جستجو" },
+      { type: "dateRange", key: "createdFrom", label: "از تاریخ ایجاد" },
+      { type: "dateRange", key: "createdTo", label: "تا تاریخ ایجاد" },
+      { type: "dateRange", key: "paidFrom", label: "از تاریخ پرداخت" },
+      { type: "dateRange", key: "paidTo", label: "تا تاریخ پرداخت" },
     ],
   };
 }
