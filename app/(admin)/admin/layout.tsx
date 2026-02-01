@@ -33,7 +33,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       return;
     }
     if (!isAdmin(user)) {
-      router.replace("/trader");
+      router.replace("/trader/dashboard");
     }
   }, [hydrated, isAuthenticated, pathname, router, user]);
 

@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api/client";
+import { resolvePostLoginRedirect } from "@/lib/auth/redirects";
 
 const mobileRegex = /^09\d{9}$/;
 
@@ -58,7 +59,7 @@ function LoginPageContent() {
     setLoading(true);
     try {
       const user = await loginWithCredentials(values.mobile, values.password);
-      const target = resolveRedirect(user.role, returnTo);
+      const target = resolvePostLoginRedirect({ userRole: user.role, returnTo });
       router.replace(target);
     } catch (err) {
       const status = getErrorStatus(err);
@@ -157,17 +158,6 @@ function LoginPageContent() {
       </Card>
     </motion.div>
   );
-}
-
-function resolveRedirect(role: string, returnTo: string) {
-  const safeTarget = returnTo && returnTo.startsWith("/") ? returnTo : "";
-  if (safeTarget) {
-    if (safeTarget.startsWith("/admin") && role === "ADMIN") return safeTarget;
-    if (safeTarget.startsWith("/trader") && (role === "CLIENT" || role === "TRADER")) return safeTarget;
-  }
-  if (role === "ADMIN") return "/admin";
-  if (role === "CLIENT" || role === "TRADER") return "/trader";
-  return "/login";
 }
 
 function getErrorStatus(error: unknown) {

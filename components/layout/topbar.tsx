@@ -3,13 +3,13 @@
 import { Search, Sun, Moon, Menu, LogOut } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
 
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
 import { Avatar } from "../ui/avatar";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
-import { clearSession } from "@/lib/session";
 
 interface TopbarProps {
   onMenuClick?: () => void;
@@ -17,7 +17,6 @@ interface TopbarProps {
   userRole?: string;
   pageTitle?: string;
   badge?: string;
-  onLogout?: () => void;
 }
 
 export function Topbar({
@@ -26,14 +25,13 @@ export function Topbar({
   userRole,
   pageTitle,
   badge,
-  onLogout,
 }: TopbarProps) {
   const { setTheme, theme } = useTheme();
   const router = useRouter();
+  const { logout } = useAuth();
 
   const handleLogout = () => {
-    clearSession();
-    onLogout?.();
+    logout();
     router.replace("/login");
   };
 

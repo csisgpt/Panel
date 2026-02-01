@@ -6,7 +6,6 @@ import { Topbar } from "@/components/layout/topbar";
 import { Sheet } from "@/components/ui/sheet";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter, usePathname } from "next/navigation";
-import { clearSession } from "@/lib/session";
 import { isAdmin, isUserPanel } from "@/lib/auth/roles";
 import { getVisibleNav, traderNavItems } from "@/lib/navigation/registry";
 import BottomNav from "@/components/navigation/BottomNav";
@@ -34,7 +33,7 @@ export default function TraderLayout({ children }: { children: React.ReactNode }
       return;
     }
     if (isAdmin(user)) {
-      router.replace("/admin");
+      router.replace("/admin/dashboard");
       return;
     }
     if (!isUserPanel(user)) {
@@ -45,11 +44,6 @@ export default function TraderLayout({ children }: { children: React.ReactNode }
   const initials = useMemo(() => (user?.fullName ? user.fullName.slice(0, 2) : ""), [user?.fullName]);
 
   if (!user) return null;
-
-  const handleLogout = () => {
-    clearSession();
-    router.replace("/login");
-  };
 
   return (
     <div className="flex min-h-screen bg-muted/30" dir="rtl">
@@ -68,7 +62,6 @@ export default function TraderLayout({ children }: { children: React.ReactNode }
           userRole="کاربر"
           pageTitle="پنل کاربری"
           badge={initials}
-          onLogout={handleLogout}
         />
         <main className="flex-1 pb-24">
           <div className="mx-auto w-full max-w-6xl px-3 py-5 sm:px-4 md:px-6 lg:px-10">{children}</div>

@@ -14,7 +14,7 @@ function buildLoginUrl(pathname: string) {
 }
 
 export default function SessionBootstrap() {
-  const { bootstrap, hydrated, user } = useAuth();
+  const { bootstrap, hydrated, user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
@@ -36,6 +36,7 @@ export default function SessionBootstrap() {
               description: "لطفاً دوباره وارد شوید.",
               variant: "destructive",
             });
+            logout();
           }
           if (!AUTH_PATHS.includes(pathname)) {
             router.replace(buildLoginUrl(pathname));
@@ -43,18 +44,19 @@ export default function SessionBootstrap() {
           return;
         }
         if (pathname.startsWith("/admin") && !isAdmin(profile)) {
-          router.replace(isUserPanel(profile) ? "/trader" : buildLoginUrl(pathname));
+          router.replace(isUserPanel(profile) ? "/trader/dashboard" : buildLoginUrl(pathname));
         }
         if (pathname.startsWith("/trader") && !isUserPanel(profile)) {
-          router.replace(isAdmin(profile) ? "/admin" : buildLoginUrl(pathname));
+          router.replace(isAdmin(profile) ? "/admin/dashboard" : buildLoginUrl(pathname));
         }
       })
       .catch((err) => {
         if (err instanceof Error && err.message.toLowerCase().includes("unauthorized")) {
+          logout();
           router.replace(buildLoginUrl(pathname));
         }
       });
-  }, [bootstrap, hydrated, pathname, router, toast]);
+  }, [bootstrap, hydrated, pathname, router, toast, logout]);
 
   useEffect(() => {
     if (!user || AUTH_PATHS.includes(pathname)) return;

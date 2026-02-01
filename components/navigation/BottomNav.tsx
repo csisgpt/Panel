@@ -6,18 +6,19 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import { traderBottomNav } from "@/lib/navigation/registry";
-import { clearSession } from "@/lib/session";
+import { useAuth } from "@/lib/auth-context";
 
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const { logout } = useAuth();
   const [open, setOpen] = useState(false);
 
   const tabs = traderBottomNav.tabs;
   const moreItems = traderBottomNav.moreItems.filter((item) => item.featureFlag !== false);
 
   const handleLogout = () => {
-    clearSession();
+    logout();
     router.replace("/login");
   };
 
