@@ -3,7 +3,8 @@
 ## What changed
 - Added Phase 2 trader flows (dashboard, requests hub, destinations, withdrawals/deposits wizards, P2P payer/receiver, history) with Stepper + Sheet patterns.
 - Added admin P2P ops dashboard, withdrawals queue with manual assignment drawer, and allocations list with verify/finalize flows.
-- Implemented file upload support, enhanced attachment gallery (swipe + zoom), and expanded P2P status/type contracts.
+- Implemented file upload support, enhanced attachment gallery (swipe + zoom), expanded P2P status/type contracts, and aligned withdrawal to use `payoutDestinationId`.
+- Removed userId from deposit/withdraw requests (token-based), added P2P feature flags, and extended deposit wizard with refNo + optional files.
 
 ## New routes
 ### Trader

@@ -6,12 +6,16 @@ export const features = {
     settlement: false,
     prices: false,
     positions: false,
+    p2p: true,
+    destinations: true,
+    requests: true,
   },
   admin: {
     tahesab: false,
     risk: false,
     files: false,
     settings: false,
+    p2p: true,
   },
 };
 

@@ -52,7 +52,7 @@ export const traderNavItems: NavigationItem[] = [
     href: "/trader/requests",
     icon: Receipt,
     roles: userPanelRoles,
-    featureFlag: true,
+    featureFlag: features.trader.requests,
   },
   {
     key: "payer",
@@ -60,7 +60,7 @@ export const traderNavItems: NavigationItem[] = [
     href: "/trader/p2p/payer",
     icon: Banknote,
     roles: userPanelRoles,
-    featureFlag: true,
+    featureFlag: features.trader.p2p,
   },
   {
     key: "receiver",
@@ -68,7 +68,7 @@ export const traderNavItems: NavigationItem[] = [
     href: "/trader/p2p/receiver",
     icon: ScrollText,
     roles: userPanelRoles,
-    featureFlag: true,
+    featureFlag: features.trader.p2p,
   },
   {
     key: "destinations",
@@ -76,7 +76,7 @@ export const traderNavItems: NavigationItem[] = [
     href: "/trader/destinations",
     icon: Users,
     roles: userPanelRoles,
-    featureFlag: true,
+    featureFlag: features.trader.destinations,
   },
   {
     key: "history",
@@ -91,9 +91,9 @@ export const traderNavItems: NavigationItem[] = [
 export const traderBottomNav = {
   tabs: [
     { key: "dashboard", labelFa: "خانه", href: "/trader/dashboard", icon: LayoutDashboard },
-    { key: "requests", labelFa: "درخواست‌ها", href: "/trader/requests", icon: Receipt },
-    { key: "payer", labelFa: "پرداخت‌ها", href: "/trader/p2p/payer", icon: Banknote },
-    { key: "receiver", labelFa: "دریافت‌ها", href: "/trader/p2p/receiver", icon: ScrollText },
+    { key: "requests", labelFa: "درخواست‌ها", href: "/trader/requests", icon: Receipt, featureFlag: features.trader.requests },
+    { key: "payer", labelFa: "پرداخت‌ها", href: "/trader/p2p/payer", icon: Banknote, featureFlag: features.trader.p2p },
+    { key: "receiver", labelFa: "دریافت‌ها", href: "/trader/p2p/receiver", icon: ScrollText, featureFlag: features.trader.p2p },
     { key: "more", labelFa: "بیشتر", href: "#more", icon: MoreHorizontal },
   ],
   moreItems: [
@@ -102,7 +102,7 @@ export const traderBottomNav = {
       labelFa: "مقصدها",
       href: "/trader/destinations",
       icon: MapPinned,
-      featureFlag: true,
+      featureFlag: features.trader.destinations,
     },
     {
       key: "history",
@@ -124,9 +124,9 @@ export const traderBottomNav = {
 
 export const adminNavItems: NavigationItem[] = [
   { key: "dashboard", labelFa: "داشبورد", href: "/admin/dashboard", icon: Shield, roles: [UserRole.ADMIN], featureFlag: true },
-  { key: "p2p-ops", labelFa: "عملیات P2P", href: "/admin/p2p/ops", icon: Activity, roles: [UserRole.ADMIN], featureFlag: true },
-  { key: "p2p-withdrawals", labelFa: "صف برداشت P2P", href: "/admin/p2p/withdrawals", icon: FileStack, roles: [UserRole.ADMIN], featureFlag: true },
-  { key: "p2p-allocations", labelFa: "تخصیص‌های P2P", href: "/admin/p2p/allocations", icon: ScrollText, roles: [UserRole.ADMIN], featureFlag: true },
+  { key: "p2p-ops", labelFa: "عملیات P2P", href: "/admin/p2p/ops", icon: Activity, roles: [UserRole.ADMIN], featureFlag: features.admin.p2p },
+  { key: "p2p-withdrawals", labelFa: "صف برداشت P2P", href: "/admin/p2p/withdrawals", icon: FileStack, roles: [UserRole.ADMIN], featureFlag: features.admin.p2p },
+  { key: "p2p-allocations", labelFa: "تخصیص‌های P2P", href: "/admin/p2p/allocations", icon: ScrollText, roles: [UserRole.ADMIN], featureFlag: features.admin.p2p },
   { key: "users", labelFa: "کاربران", href: "/admin/users", icon: Users, roles: [UserRole.ADMIN], featureFlag: true },
   { key: "instruments", labelFa: "ابزارها", href: "/admin/instruments", icon: Tags, roles: [UserRole.ADMIN], featureFlag: true },
   { key: "pricing", labelFa: "قیمت‌گذاری", href: "/admin/pricing", icon: NotepadText, roles: [UserRole.ADMIN], featureFlag: true },

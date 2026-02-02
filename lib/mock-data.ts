@@ -1051,11 +1051,12 @@ export async function createMockDeposit(
   dto: CreateDepositDto
 ): Promise<DepositRequest> {
   await simulateDelay();
+  const userId = dto.userId ?? mockUsers[0]?.id ?? "u-client";
   const dep: DepositRequest = {
     id: createId("d"),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    userId: dto.userId,
+    userId,
     amount: dto.amount,
     method: dto.method,
     status: DepositStatus.PENDING,
@@ -1064,7 +1065,7 @@ export async function createMockDeposit(
     processedAt: null,
     processedById: null,
     accountTxId: null,
-    user: mockUsers.find((u) => u.id === dto.userId)!,
+    user: mockUsers.find((u) => u.id === userId)!,
   };
   mockDeposits.unshift(dep);
   return dep;
@@ -1175,11 +1176,12 @@ export async function createMockWithdrawal(
   dto: CreateWithdrawalDto
 ): Promise<WithdrawRequest> {
   await simulateDelay();
+  const userId = dto.userId ?? mockUsers[0]?.id ?? "u-client";
   const w: WithdrawRequest = {
     id: createId("w"),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    userId: dto.userId,
+    userId,
     amount: dto.amount,
     status: WithdrawStatus.PENDING,
     bankName: dto.bankName,
@@ -1189,7 +1191,7 @@ export async function createMockWithdrawal(
     processedAt: null,
     processedById: null,
     accountTxId: null,
-    user: mockUsers.find((u) => u.id === dto.userId)!,
+    user: mockUsers.find((u) => u.id === userId)!,
   };
   mockWithdrawals.unshift(w);
   return w;

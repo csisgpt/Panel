@@ -14,7 +14,7 @@ export default function BottomNav() {
   const { logout } = useAuth();
   const [open, setOpen] = useState(false);
 
-  const tabs = traderBottomNav.tabs;
+  const tabs = traderBottomNav.tabs.filter((tab) => tab.featureFlag !== false);
   const moreItems = traderBottomNav.moreItems.filter((item) => item.featureFlag !== false);
 
   const handleLogout = () => {

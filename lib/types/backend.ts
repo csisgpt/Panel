@@ -334,19 +334,21 @@ export interface CreateTradeDto {
 }
 
 export interface CreateDepositDto {
-  userId: string;
+  userId?: string;
   amount: string;
   method: PaymentMethod;
+  purpose?: "P2P" | "DIRECT";
   refNo?: string;
   note?: string;
   fileIds?: string[];
 }
 
 export interface CreateWithdrawalDto {
-  userId: string;
+  userId?: string;
   amount: string;
-  purpose?: string;
-  channel?: string;
+  purpose?: "P2P" | "DIRECT";
+  channel?: "USER_TO_USER" | "USER_TO_ORG";
+  payoutDestinationId: string;
   bankName?: string;
   iban?: string;
   cardNumber?: string;

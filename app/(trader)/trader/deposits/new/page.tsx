@@ -11,6 +11,7 @@ import { createDeposit } from "@/lib/api/deposits";
 import { useToast } from "@/hooks/use-toast";
 import { PaymentMethod } from "@/lib/types/backend";
 import { Textarea } from "@/components/ui/textarea";
+import { FileUploader } from "@/components/kit/files/file-uploader";
 
 const steps = [
   { key: "amount", title: "مبلغ" },
@@ -34,6 +35,8 @@ export default function CreateDepositPage() {
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<PaymentMethod | "">("");
   const [note, setNote] = useState("");
+  const [refNo, setRefNo] = useState("");
+  const [fileIds, setFileIds] = useState<string[]>([]);
 
   const completedKeys = useMemo(() => {
     const keys: string[] = [];
@@ -45,7 +48,14 @@ export default function CreateDepositPage() {
   const handleSubmit = async () => {
     if (!user || !method) return;
     try {
-      await createDeposit({ userId: user.id, amount, method, note: note || undefined });
+      await createDeposit({
+        amount,
+        method,
+        purpose: "P2P",
+        refNo: refNo || undefined,
+        note: note || undefined,
+        fileIds: fileIds.length ? fileIds : undefined,
+      });
       toast({ title: "واریز ثبت شد" });
       router.push("/trader/history?tab=deposits");
     } catch (error) {
@@ -82,9 +92,14 @@ export default function CreateDepositPage() {
             </Select>
           </div>
           <div className="space-y-2">
+            <label className="text-sm">شناسه/پیگیری بانکی (اختیاری)</label>
+            <Input value={refNo} onChange={(event) => setRefNo(event.target.value)} />
+          </div>
+          <div className="space-y-2">
             <label className="text-sm">یادداشت (اختیاری)</label>
             <Textarea value={note} onChange={(event) => setNote(event.target.value)} />
           </div>
+          <FileUploader maxFiles={3} accept="image/*,application/pdf" label="پیوست (اختیاری)" onUploaded={setFileIds} />
         </div>
       ) : null}
 
@@ -92,7 +107,9 @@ export default function CreateDepositPage() {
         <div className="space-y-2 rounded-lg border p-4 text-sm">
           <p>مبلغ: {amount}</p>
           <p>روش پرداخت: {methodOptions.find((item) => item.value === method)?.label}</p>
+          <p>شناسه: {refNo || "-"}</p>
           <p>یادداشت: {note || "-"}</p>
+          <p>تعداد فایل: {fileIds.length}</p>
         </div>
       ) : null}
 

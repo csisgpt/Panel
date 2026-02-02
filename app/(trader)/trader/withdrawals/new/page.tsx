@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { LoadingState } from "@/components/kit/common/LoadingState";
 import { ErrorState } from "@/components/kit/common/ErrorState";
 import { createWithdrawal } from "@/lib/api/withdrawals";
@@ -34,8 +35,9 @@ export default function CreateWithdrawalPage() {
   const { toast } = useToast();
   const [activeIndex, setActiveIndex] = useState(0);
   const [amount, setAmount] = useState("");
-  const [purpose, setPurpose] = useState("P2P");
-  const [channel, setChannel] = useState("P2P");
+  const [purpose] = useState<"P2P" | "DIRECT">("P2P");
+  const [channel, setChannel] = useState<"USER_TO_USER" | "USER_TO_ORG">("USER_TO_USER");
+  const [note, setNote] = useState("");
   const [destinations, setDestinations] = useState<PaymentDestination[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,10 +62,10 @@ export default function CreateWithdrawalPage() {
 
   const completedKeys = useMemo(() => {
     const keys: string[] = [];
-    if (amount && purpose) keys.push("amount");
+    if (amount) keys.push("amount");
     if (selectedId) keys.push("destination");
     return keys;
-  }, [amount, purpose, selectedId]);
+  }, [amount, selectedId]);
 
   const selectedDestination = destinations.find((item) => item.id === selectedId) ?? null;
 
@@ -71,13 +73,11 @@ export default function CreateWithdrawalPage() {
     if (!user || !selectedDestination) return;
     try {
       await createWithdrawal({
-        userId: user.id,
         amount,
         purpose,
         channel,
-        bankName: selectedDestination.bankName,
-        iban: selectedDestination.type === "IBAN" ? selectedDestination.iban ?? selectedDestination.maskedValue : undefined,
-        cardNumber: selectedDestination.type === "CARD" ? selectedDestination.cardNumber ?? selectedDestination.maskedValue : undefined,
+        payoutDestinationId: selectedDestination.id,
+        note: note || undefined,
       });
       toast({ title: "برداشت ثبت شد" });
       router.push("/trader/history?tab=withdrawals");
@@ -117,20 +117,20 @@ export default function CreateWithdrawalPage() {
             <Input value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="مثلا ۵۰۰۰۰۰۰۰" />
           </div>
           <div className="space-y-2">
-            <label className="text-sm">هدف</label>
-            <Select value={purpose} onValueChange={setPurpose}>
+            <label className="text-sm">کانال</label>
+            <Select value={channel} onValueChange={(value) => setChannel(value as "USER_TO_USER" | "USER_TO_ORG")}>
               <SelectTrigger>
-                <SelectValue placeholder="انتخاب هدف" />
+                <SelectValue placeholder="انتخاب کانال" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="P2P">P2P</SelectItem>
-                <SelectItem value="GENERAL">عمومی</SelectItem>
+                <SelectItem value="USER_TO_USER">کاربر به کاربر</SelectItem>
+                <SelectItem value="USER_TO_ORG">کاربر به سازمان</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <label className="text-sm">کانال</label>
-            <Input value={channel} onChange={(event) => setChannel(event.target.value)} placeholder="مثلا P2P" />
+            <label className="text-sm">توضیحات (اختیاری)</label>
+            <Textarea value={note} onChange={(event) => setNote(event.target.value)} />
           </div>
         </div>
       ) : null}
@@ -143,31 +143,38 @@ export default function CreateWithdrawalPage() {
               افزودن مقصد
             </Button>
           </div>
-          <div className="grid gap-3">
-            {destinations.map((item) => (
-              <Card
-                key={item.id}
-                className={`cursor-pointer border p-4 ${selectedId === item.id ? "border-primary" : "border-border"}`}
-                onClick={() => setSelectedId(item.id)}
-              >
-                <div className="space-y-1 text-sm">
-                  <p className="font-medium">{item.title ?? "بدون عنوان"}</p>
-                  <p className="text-muted-foreground">{item.maskedValue ?? item.iban ?? item.cardNumber}</p>
-                  <p className="text-muted-foreground">{item.bankName ?? "-"}</p>
-                </div>
-              </Card>
-            ))}
-          </div>
+          {destinations.length ? (
+            <div className="grid gap-3">
+              {destinations.map((item) => (
+                <Card
+                  key={item.id}
+                  className={`cursor-pointer border p-4 ${selectedId === item.id ? "border-primary" : "border-border"}`}
+                  onClick={() => setSelectedId(item.id)}
+                >
+                  <div className="space-y-1 text-sm">
+                    <p className="font-medium">{item.title ?? "بدون عنوان"}</p>
+                    <p className="text-muted-foreground">{item.maskedValue ?? item.iban ?? item.cardNumber}</p>
+                    <p className="text-muted-foreground">{item.bankName ?? "-"}</p>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+              مقصدی ثبت نشده است. برای ادامه، یک مقصد اضافه کنید.
+            </div>
+          )}
         </div>
       ) : null}
 
       {activeIndex === 2 ? (
         <div className="space-y-4 rounded-lg border p-4 text-sm">
           <p>مبلغ: {amount}</p>
-          <p>هدف: {purpose}</p>
-          <p>کانال: {channel}</p>
+          <p>هدف: {purpose === "P2P" ? "P2P" : "مستقیم"}</p>
+          <p>کانال: {channel === "USER_TO_USER" ? "کاربر به کاربر" : "کاربر به سازمان"}</p>
           <p>مقصد: {selectedDestination?.title ?? "-"}</p>
           <p>شماره: {selectedDestination?.maskedValue ?? selectedDestination?.iban ?? selectedDestination?.cardNumber}</p>
+          <p>توضیحات: {note || "-"}</p>
         </div>
       ) : null}
 
