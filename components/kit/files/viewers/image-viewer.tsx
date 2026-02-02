@@ -2,12 +2,14 @@ export function ImageViewer({
   src,
   alt,
   fit = true,
+  zoom = 1,
   onError,
   onLoad,
 }: {
   src: string;
   alt: string;
   fit?: boolean;
+  zoom?: number;
   onError?: () => void;
   onLoad?: () => void;
 }) {
@@ -19,6 +21,7 @@ export function ImageViewer({
         onError={onError}
         onLoad={onLoad}
         className={fit ? "max-h-full max-w-full object-contain" : "h-auto w-auto object-none"}
+        style={{ transform: `scale(${zoom})`, transformOrigin: "center" }}
       />
     </div>
   );

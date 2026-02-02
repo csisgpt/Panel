@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { FileLink, FileMeta } from "@/lib/types/backend";
 import { useFileLinks } from "./data/use-file-links";
@@ -29,8 +29,10 @@ export function AttachmentGalleryModal({
   const fileIds = useMemo(() => files.map((file) => file.id), [files]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [fit, setFit] = useState(true);
+  const [zoom, setZoom] = useState(1);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [retryCounts, setRetryCounts] = useState<Record<string, number>>({});
+  const touchStartX = useRef<number | null>(null);
 
   const shouldFetch = !links;
   const { data = [], isLoading, refetch, isFetching } = useFileLinks({ fileIds: shouldFetch ? fileIds : [], mode });
@@ -38,7 +40,7 @@ export function AttachmentGalleryModal({
 
   const activeFile = files[activeIndex];
   const activeLink = useMemo(
-    () => resolvedLinks.find((link) => link.id === activeFile?.id),
+    () => resolvedLinks.find((link: FileLink) => link.id === activeFile?.id),
     [resolvedLinks, activeFile]
   );
 
@@ -56,6 +58,7 @@ export function AttachmentGalleryModal({
 
   useEffect(() => {
     setLoadError(null);
+    setZoom(1);
   }, [activeIndex]);
 
   useEffect(() => {
@@ -84,6 +87,24 @@ export function AttachmentGalleryModal({
     setLoadError(null);
   };
 
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    touchStartX.current = event.touches[0]?.clientX ?? null;
+  };
+
+  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (touchStartX.current === null) return;
+    const endX = event.changedTouches[0]?.clientX ?? touchStartX.current;
+    const diff = touchStartX.current - endX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) goNext();
+      else goPrev();
+    }
+    touchStartX.current = null;
+  };
+
+  const canZoomIn = zoom < 3;
+  const canZoomOut = zoom > 1;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl">
@@ -92,19 +113,28 @@ export function AttachmentGalleryModal({
         </DialogHeader>
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap gap-2">
-              {files.map((file, index) => (
-                <Button
-                  key={file.id}
-                  variant={index === activeIndex ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setActiveIndex(index)}
-                >
-                  {file.fileName}
-                </Button>
-              ))}
+            <div className="space-y-1">
+              <p className="text-sm font-medium">{activeFile?.fileName ?? "فایل"}</p>
+              {activeLink?.downloadUrl ? (
+                <a className="text-xs text-primary underline" href={activeLink.downloadUrl} target="_blank" rel="noreferrer">
+                  دانلود فایل
+                </a>
+              ) : null}
             </div>
             <div className="flex items-center gap-2">
+              {activeFile?.mimeType.startsWith("image/") ? (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => setZoom(1)} disabled={zoom === 1}>
+                    ۱۰۰٪
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setZoom((prev) => Math.min(prev + 0.5, 3))} disabled={!canZoomIn}>
+                    بزرگ‌نمایی
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setZoom((prev) => Math.max(prev - 0.5, 1))} disabled={!canZoomOut}>
+                    کوچک‌نمایی
+                  </Button>
+                </>
+              ) : null}
               <Button variant="outline" size="sm" onClick={() => setFit((prev) => !prev)}>
                 {fit ? "نمایش ۱۰۰٪" : "نمایش فیت"}
               </Button>
@@ -117,6 +147,19 @@ export function AttachmentGalleryModal({
             </div>
           </div>
 
+          <div className="flex flex-wrap gap-2">
+            {files.map((file, index) => (
+              <Button
+                key={file.id}
+                variant={index === activeIndex ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveIndex(index)}
+              >
+                {file.fileName}
+              </Button>
+            ))}
+          </div>
+
           {isLoading && !links ? <p className="text-sm text-muted-foreground">در حال دریافت لینک‌ها...</p> : null}
           {isFetching && !isLoading ? (
             <p className="text-xs text-muted-foreground">در حال تازه‌سازی لینک‌ها...</p>
@@ -125,15 +168,24 @@ export function AttachmentGalleryModal({
           {loadError ? (
             <ErrorState description={loadError} onAction={() => refetch()} />
           ) : activeLink?.previewUrl ? (
-            activeFile?.mimeType.startsWith("image/") ? (
-              <ImageViewer src={activeLink.previewUrl} alt={activeFile.fileName} fit={fit} onError={handlePreviewError} onLoad={handlePreviewLoad} />
-            ) : activeFile?.mimeType === "application/pdf" ? (
-              <PdfViewer src={activeLink.previewUrl} fit={fit} onError={handlePreviewError} onLoad={handlePreviewLoad} />
-            ) : (
-              <a className="text-sm text-primary underline" href={activeLink.previewUrl}>
-                مشاهده فایل
-              </a>
-            )
+            <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} className="rounded-md">
+              {activeFile?.mimeType.startsWith("image/") ? (
+                <ImageViewer
+                  src={activeLink.previewUrl}
+                  alt={activeFile.fileName}
+                  fit={fit}
+                  zoom={zoom}
+                  onError={handlePreviewError}
+                  onLoad={handlePreviewLoad}
+                />
+              ) : activeFile?.mimeType === "application/pdf" ? (
+                <PdfViewer src={activeLink.previewUrl} fit={fit} onError={handlePreviewError} onLoad={handlePreviewLoad} />
+              ) : (
+                <a className="text-sm text-primary underline" href={activeLink.previewUrl}>
+                  مشاهده فایل
+                </a>
+              )}
+            </div>
           ) : (
             <EmptyState description="لینکی برای نمایش موجود نیست." />
           )}

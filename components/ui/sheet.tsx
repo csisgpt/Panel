@@ -49,3 +49,18 @@ export function Sheet({ open, onOpenChange, children }: SheetProps) {
 export function SheetHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("p-4", className)} {...props} />;
 }
+
+export function SheetContent({
+  className,
+  children,
+}: React.HTMLAttributes<HTMLDivElement> & { side?: "right" | "left" }) {
+  return <div className={cn("flex h-full w-full flex-col", className)}>{children}</div>;
+}
+
+export function SheetFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("border-t p-4", className)} {...props} />;
+}
+
+export function SheetTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+  return <h2 className={cn("text-base font-semibold", className)} {...props} />;
+}

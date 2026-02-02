@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from "./client";
+import { apiGet, apiPost, apiPostForm } from "./client";
 import { isMockMode } from "./config";
 import {
   getMockAttachments,
@@ -6,6 +6,7 @@ import {
   getMockFileLinks,
   getMockFiles,
   getMockFilesEnvelope,
+  uploadMockFile,
 } from "@/lib/mock-data";
 import { Attachment, AttachmentEntityType, FileLink, FileMeta } from "@/lib/types/backend";
 import { normalizeListResponse, type ListEnvelope, type ListMeta } from "@/lib/contracts/list";
@@ -109,4 +110,14 @@ export async function getFileLink(
   if (isMockMode()) return (await getMockFileLinks([fileId], mode))[0] ?? null;
   const response = await apiGet<FileDownloadLinkDto>(`/files/${fileId}`);
   return mapFileDownloadToLink(response);
+}
+
+export async function uploadFile(file: File, label?: string): Promise<FileMeta> {
+  if (isMockMode()) return uploadMockFile(file, label);
+  const formData = new FormData();
+  formData.append("file", file);
+  if (label) {
+    formData.append("label", label);
+  }
+  return apiPostForm<FileMeta>("/files", formData);
 }

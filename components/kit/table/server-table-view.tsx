@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EmptyState } from "@/components/kit/common/EmptyState";
+import { ErrorState } from "@/components/kit/common/ErrorState";
+import { LoadingState } from "@/components/kit/common/LoadingState";
 import type { ApiError } from "@/lib/contracts/errors";
 import type { ListMeta } from "@/lib/contracts/list";
 import { cleanDefaults, type ListParams, type SortDir, withDefaults } from "@/lib/querykit/schemas";
@@ -59,6 +62,7 @@ export interface ServerTableViewProps<TItem, TFilters> {
   filtersConfig?: Array<ServerTableFilterConfig<TFilters>>;
   sortOptions?: Array<ServerTableSortOption>;
   rowActions?: (row: TItem) => React.ReactNode;
+  renderCard?: (row: TItem) => React.ReactNode;
   getRowId?: (row: TItem) => string;
   emptyState?: { title: string; description?: string; actionLabel?: string; onAction?: () => void };
   refetchIntervalMs?: number;
@@ -101,6 +105,7 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
   filtersConfig,
   sortOptions,
   rowActions,
+  renderCard,
   getRowId,
   emptyState,
   refetchIntervalMs,
@@ -130,13 +135,13 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
 
   const queryKey = useMemo(() => queryKeyFactory(cleanedParams as ListParams<TFilters>), [queryKeyFactory, cleanedParams]);
 
-  const query = useQuery({
+  const query = useQuery<{ items: TItem[]; meta: ListMeta }, ApiError>({
     queryKey,
     queryFn: () => queryFn(params),
     refetchInterval: refetchIntervalMs,
   });
 
-  const data = query.data?.items ?? [];
+  const data: TItem[] = query.data?.items ?? [];
   const meta = query.data?.meta;
   const error = (query.error ?? null) as ApiError | null;
 
@@ -346,22 +351,38 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
           </div>
         ) : null}
 
-        <DataTable
-          data={data}
-          columns={visibleColumns}
-          meta={meta}
-          loading={query.isLoading}
-          error={error}
-          onRetry={() => query.refetch()}
-          onPageChange={(page) => setParams({ page })}
-          onLimitChange={(limit) => {
-            setParams({ limit, page: 1 });
-            setPageSize(limit);
-          }}
-          getRowId={getRowId ? (row) => getRowId(row) : undefined}
-          showPagination={false}
-          emptyState={emptyState}
-        />
+        {renderCard ? (
+          <div className="space-y-3 md:hidden">
+            {query.isLoading ? (
+              <LoadingState />
+            ) : error ? (
+              <ErrorState error={error} onAction={() => query.refetch()} />
+            ) : data.length === 0 ? (
+              <EmptyState title={emptyState?.title} description={emptyState?.description} actionLabel={emptyState?.actionLabel} onAction={emptyState?.onAction} />
+            ) : (
+              data.map((row, index) => <div key={getRowId ? getRowId(row) : index}>{renderCard(row)}</div>)
+            )}
+          </div>
+        ) : null}
+
+        <div className={renderCard ? "hidden md:block" : ""}>
+          <DataTable
+            data={data}
+            columns={visibleColumns}
+            meta={meta}
+            loading={query.isLoading}
+            error={error}
+            onRetry={() => query.refetch()}
+            onPageChange={(page) => setParams({ page })}
+            onLimitChange={(limit) => {
+              setParams({ limit, page: 1 });
+              setPageSize(limit);
+            }}
+            getRowId={getRowId ? (row) => getRowId(row) : undefined}
+            showPagination={false}
+            emptyState={emptyState}
+          />
+        </div>
 
         {meta ? (
           <Pagination
