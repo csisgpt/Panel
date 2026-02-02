@@ -45,6 +45,14 @@ export enum SettlementMethod {
   CASH = "CASH",
 }
 
+export enum PaymentMethod {
+  CARD_TO_CARD = "CARD_TO_CARD",
+  SATNA = "SATNA",
+  PAYA = "PAYA",
+  TRANSFER = "TRANSFER",
+  UNKNOWN = "UNKNOWN",
+}
+
 export enum AccountTxType {
   DEPOSIT = "DEPOSIT",
   WITHDRAW = "WITHDRAW",
@@ -210,7 +218,7 @@ export interface DepositRequest {
 
   userId: string;
   amount: string;
-  method: string;
+  method: PaymentMethod;
   status: DepositStatus;
 
   refNo?: string | null;
@@ -326,17 +334,21 @@ export interface CreateTradeDto {
 }
 
 export interface CreateDepositDto {
-  userId: string;
+  userId?: string;
   amount: string;
-  method: string;
+  method: PaymentMethod;
+  purpose?: "P2P" | "DIRECT";
   refNo?: string;
   note?: string;
   fileIds?: string[];
 }
 
 export interface CreateWithdrawalDto {
-  userId: string;
+  userId?: string;
   amount: string;
+  purpose?: "P2P" | "DIRECT";
+  channel?: "USER_TO_USER" | "USER_TO_ORG";
+  payoutDestinationId: string;
   bankName?: string;
   iban?: string;
   cardNumber?: string;

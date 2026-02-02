@@ -1,38 +1,74 @@
 # PR Summary — Panel (Frontend)
 
 ## What changed
-- Aligned backend contract notes with the verified Gold-nest API for P2P admin flows, destinations, files, and ops summary.
-- Updated P2P API modules to use the real routes, query params, assign DTO, and VM mappers for stable frontend rows.
-- Added VM adapters and ops-summary adapters to translate backend shapes into UI-ready data.
-- Updated screen configs for P2P withdrawals/allocations with backend-accurate filters/sorts and mapped row fields.
-- Updated destinations API + list screen to reflect PaymentDestinationViewDto.
-- Enhanced the dev playground to show ops-summary counts and sample query params.
+- Added Phase 2 trader flows (dashboard, requests hub, destinations, withdrawals/deposits wizards, P2P payer/receiver, history) with Stepper + Sheet patterns.
+- Added admin P2P ops dashboard, withdrawals queue with manual assignment drawer, and allocations list with verify/finalize flows.
+- Implemented file upload support, enhanced attachment gallery (swipe + zoom), expanded P2P status/type contracts, and aligned withdrawal to use `payoutDestinationId`.
+- Removed userId from deposit/withdraw requests (token-based), added P2P feature flags, and extended deposit wizard with refNo + optional files.
 
-## How to validate
-1. Start the dev playground: `NEXT_PUBLIC_ENABLE_DEV_PLAYGROUND=1 pnpm dev`.
-2. Visit `http://localhost:3000/dev/kit-playground`.
-3. Verify:
-   - Withdrawals and allocations tables render with Persian chips and mapped fields.
-   - Verify/Cancel buttons enable for `PROOF_SUBMITTED` / `RECEIVER_CONFIRMED` / `ADMIN_VERIFIED` statuses.
-   - Ops summary counts render in the demo tabs.
-   - Sample query params match the backend contract in the debug panels.
+## New routes
+### Trader
+- `/trader/dashboard`
+- `/trader/requests`
+- `/trader/destinations`
+- `/trader/withdrawals/new`
+- `/trader/deposits/new`
+- `/trader/p2p/payer`
+- `/trader/p2p/receiver`
+- `/trader/history`
+
+### Admin
+- `/admin/p2p/ops`
+- `/admin/p2p/withdrawals`
+- `/admin/p2p/allocations`
+
+## Endpoints used
+### User
+- `GET /deposits/my`
+- `POST /deposits`
+- `GET /withdrawals/my`
+- `POST /withdrawals`
+- `GET /me/payout-destinations`
+- `POST /me/payout-destinations`
+- `PATCH /me/payout-destinations/:id`
+- `POST /me/payout-destinations/:id/make-default`
+
+### P2P User
+- `GET /p2p/allocations/my-as-payer`
+- `POST /p2p/allocations/:id/proof`
+- `GET /p2p/allocations/my-as-receiver`
+- `POST /p2p/allocations/:id/receiver-confirm`
+
+### Files
+- `POST /files`
+- `GET /files/:id`
+- `GET /files/:id/raw`
+
+### Admin P2P
+- `GET /admin/p2p/withdrawals`
+- `GET /admin/p2p/withdrawals/:id/candidates`
+- `POST /admin/p2p/withdrawals/:id/assign`
+- `GET /admin/p2p/allocations`
+- `POST /admin/p2p/allocations/:id/verify`
+- `POST /admin/p2p/allocations/:id/finalize`
+- `GET /admin/p2p/ops-summary`
+
+## Manual test plan (end-to-end)
+1. **Trader**
+   - Add a destination: `/trader/destinations` → "افزودن مقصد".
+   - Create withdrawal: `/trader/withdrawals/new` → select destination → submit.
+   - Create deposit: `/trader/deposits/new` → choose method → submit.
+   - P2P payer: `/trader/p2p/payer` → "ثبت پرداخت" → upload proof.
+   - P2P receiver: `/trader/p2p/receiver` → "تایید دریافت" یا "اعتراض".
+2. **Admin**
+   - Ops dashboard: `/admin/p2p/ops` → review KPIs.
+   - Withdrawals queue: `/admin/p2p/withdrawals` → "تخصیص" → assign candidates.
+   - Allocations: `/admin/p2p/allocations` → "بررسی" → "نهایی‌سازی".
 
 ## Commands
 - `pnpm lint`
 - `pnpm typecheck`
 - `pnpm build`
-
-## TODO (runtime verification)
-- Replace rule-based admin verify/cancel permissions when backend exposes explicit admin action flags.
-# خلاصه تغییرات
-- اضافهشدن صفحههای ایندکس برای مسیرهای /trader و /admin که به داشبوردها ریدایرکت میشوند.
-- یکسانسازی منطق خروج و حذف فراخوانی مستقیم clearSession در لایه UI.
-- تجمیع منطق returnTo امن و ریدایرکتهای بعد از ورود با توجه به نقش کاربر.
-
-# نحوه تست
-- pnpm lint
-- pnpm typecheck
-- pnpm build
 - اجرای اپ و تست دستی:
   - /login (ورود و بررسی returnTo)
   - /register (ثبتنام و بازگشت به ورود)

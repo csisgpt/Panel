@@ -1,6 +1,6 @@
 import { apiGet, apiPost } from "./client";
 import { isMockMode } from "./config";
-import { createMockDeposit, getMockDeposits, getMockDepositsEnvelope } from "@/lib/mock-data";
+import { createMockDeposit, getMockDeposits, getMockDepositsEnvelope, getMockMyDeposits } from "@/lib/mock-data";
 import { CreateDepositDto, DepositRequest } from "@/lib/types/backend";
 import { normalizeListResponse, type ListEnvelope, type ListMeta } from "@/lib/contracts/list";
 
@@ -29,6 +29,12 @@ export async function getDeposits(): Promise<DepositRequest[]> {
   if (isMockMode()) return getMockDeposits();
   const { items } = await listDeposits();
   return items;
+}
+
+export async function getMyDeposits(): Promise<DepositRequest[]> {
+  if (isMockMode()) return getMockMyDeposits();
+  const response = await apiGet<DepositRequest[]>("/deposits/my");
+  return response;
 }
 
 export async function createDeposit(dto: CreateDepositDto): Promise<DepositRequest> {
