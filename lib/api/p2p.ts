@@ -4,7 +4,13 @@ import type { ListParams } from "@/lib/querykit/schemas";
 import { listParamsToQuery } from "@/lib/adapters/list-params-to-query";
 import { adaptListResponse } from "@/lib/adapters/list-response-adapter";
 import { adaptP2PMeta } from "@/lib/adapters/p2p-meta-adapter";
-import type { P2PAllocation, P2POpsSummary, P2PWithdrawal } from "@/lib/contracts/p2p";
+import type {
+  AllocationProofDto,
+  AllocationReceiverConfirmDto,
+  P2PAllocation,
+  P2POpsSummary,
+  P2PWithdrawal,
+} from "@/lib/contracts/p2p";
 import {
   mapP2PAllocationVm,
   mapP2PCandidateDepositVm,
@@ -348,22 +354,16 @@ export async function listMyAllocationsAsReceiver(params: ListParams) {
   return { items: (response.data ?? []).map(mapP2PAllocationVm), meta: adaptP2PMeta(response.meta) };
 }
 
-export async function submitAllocationProof(
-  allocationId: string,
-  payload: { bankRef: string; method: string; paidAt?: string; fileIds: string[] }
-) {
-  const response = await apiPost<AllocationVmDto, { bankRef: string; method: string; paidAt?: string; fileIds: string[] }>(
+export async function submitAllocationProof(allocationId: string, payload: AllocationProofDto) {
+  const response = await apiPost<AllocationVmDto, AllocationProofDto>(
     `/p2p/allocations/${allocationId}/proof`,
     payload
   );
   return mapP2PAllocationVm(response);
 }
 
-export async function confirmAllocationReceipt(
-  allocationId: string,
-  payload: { confirmed: boolean; reason?: string }
-) {
-  const response = await apiPost<AllocationVmDto, { confirmed: boolean; reason?: string }>(
+export async function confirmAllocationReceipt(allocationId: string, payload: AllocationReceiverConfirmDto) {
+  const response = await apiPost<AllocationVmDto, AllocationReceiverConfirmDto>(
     `/p2p/allocations/${allocationId}/receiver-confirm`,
     payload
   );

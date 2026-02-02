@@ -2,13 +2,11 @@
 
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/kit/ops/status-badge";
 import { CountdownBadge } from "@/components/kit/ops/countdown-badge";
 import { AttachmentBadge } from "@/components/kit/files/attachment-badge";
 import { AttachmentPreviewButton } from "@/components/kit/files/attachment-preview-button";
 import { AttachmentGalleryModal } from "@/components/kit/files/attachment-gallery-modal";
-import { hasPermission } from "@/lib/contracts/permissions";
 import { formatMoney } from "@/lib/format/money";
 import { listAdminP2PAllocations } from "@/lib/api/p2p";
 import type { P2PAllocation } from "@/lib/contracts/p2p";
@@ -32,23 +30,6 @@ function ProofAttachmentsCell({ allocation }: { allocation: P2PAllocation }) {
       ))}
       <AttachmentPreviewButton onClick={() => setOpen(true)} label="مشاهده" />
       <AttachmentGalleryModal open={open} onOpenChange={setOpen} files={files} />
-    </div>
-  );
-}
-
-function AllocationActionsCell({ allocation }: { allocation: P2PAllocation }) {
-  const actions = allocation.actions;
-  return (
-    <div className="flex flex-wrap gap-2">
-      <Button size="sm" variant="outline" disabled={!hasPermission(actions ?? {}, "canAdminVerify")}>
-        تایید
-      </Button>
-      <Button size="sm" variant="outline" disabled={!hasPermission(actions ?? {}, "canFinalize")}>
-        نهایی‌سازی
-      </Button>
-      <Button size="sm" variant="outline" disabled={!hasPermission(actions ?? {}, "canCancel")}>
-        لغو
-      </Button>
     </div>
   );
 }
@@ -101,11 +82,6 @@ export function createAdminP2PAllocationsListConfig(): ServerTableViewProps<P2PA
       id: "destination",
       header: "مقصد پرداخت",
       cell: ({ row }) => row.original.destinationSummary ?? "-",
-    },
-    {
-      id: "actions",
-      header: "اقدامات",
-      cell: ({ row }) => <AllocationActionsCell allocation={row.original} />,
     },
   ];
 

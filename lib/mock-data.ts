@@ -26,6 +26,7 @@ import {
   InstrumentUnit,
   LoginDto,
   LoginResponse,
+  PaymentMethod,
   RegisterDto,
   SettlementMethod,
   SystemStatus,
@@ -961,7 +962,7 @@ let mockDeposits: DepositRequest[] = [
     updatedAt: daysAgo(13),
     userId: "u-client",
     amount: "200000000",
-    method: "bank-transfer",
+    method: PaymentMethod.TRANSFER,
     status: DepositStatus.APPROVED,
     refNo: "DEP001",
     note: "واریز اولیه",
@@ -976,7 +977,7 @@ let mockDeposits: DepositRequest[] = [
     updatedAt: daysAgo(2),
     userId: "u-client-2",
     amount: "120000000",
-    method: "atm",
+    method: PaymentMethod.CARD_TO_CARD,
     status: DepositStatus.PENDING,
     refNo: "DEP127",
     note: "واریز جهت خرید سکه",
@@ -991,7 +992,7 @@ let mockDeposits: DepositRequest[] = [
     updatedAt: isoNow,
     userId: "u-client-3",
     amount: "35000000",
-    method: "bank-transfer",
+    method: PaymentMethod.TRANSFER,
     status: DepositStatus.REJECTED,
     refNo: "DEP199",
     note: "برگشت به دلیل مغایرت",
@@ -1006,7 +1007,7 @@ let mockDeposits: DepositRequest[] = [
     updatedAt: daysAgo(7),
     userId: "u-client-4",
     amount: "480000000",
-    method: "bank-transfer",
+    method: PaymentMethod.TRANSFER,
     status: DepositStatus.APPROVED,
     refNo: "DEP230",
     note: "واریز جهت خرید ۲۵ گرم",
@@ -1021,7 +1022,7 @@ let mockDeposits: DepositRequest[] = [
     updatedAt: daysAgo(21),
     userId: "u-client-5",
     amount: "950000000",
-    method: "atm",
+    method: PaymentMethod.CARD_TO_CARD,
     status: DepositStatus.APPROVED,
     refNo: "DEP312",
     note: "واریز خرید سکه",
@@ -1033,6 +1034,11 @@ let mockDeposits: DepositRequest[] = [
 ];
 
 export async function getMockDeposits(): Promise<DepositRequest[]> {
+  await simulateDelay();
+  return [...mockDeposits];
+}
+
+export async function getMockMyDeposits(): Promise<DepositRequest[]> {
   await simulateDelay();
   return [...mockDeposits];
 }
@@ -1152,6 +1158,11 @@ let mockWithdrawals: WithdrawRequest[] = [
 ];
 
 export async function getMockWithdrawals(): Promise<WithdrawRequest[]> {
+  await simulateDelay();
+  return [...mockWithdrawals];
+}
+
+export async function getMockMyWithdrawals(): Promise<WithdrawRequest[]> {
   await simulateDelay();
   return [...mockWithdrawals];
 }
@@ -1332,6 +1343,22 @@ let mockFiles: FileMeta[] = [
     label: "رسید واریز علی",
   },
 ];
+
+export async function uploadMockFile(file: File, label?: string): Promise<FileMeta> {
+  await simulateDelay();
+  const created: FileMeta = {
+    id: createId("file"),
+    createdAt: new Date().toISOString(),
+    uploadedById: "u-client",
+    storageKey: `mock://${file.name}`,
+    fileName: file.name,
+    mimeType: file.type || "application/octet-stream",
+    sizeBytes: file.size,
+    label,
+  };
+  mockFiles = [created, ...mockFiles];
+  return created;
+}
 
 let mockAttachments: Attachment[] = [
   {
@@ -2456,6 +2483,16 @@ export async function getMockP2PWithdrawals() {
 }
 
 export async function getMockP2PAllocations() {
+  await simulateDelay();
+  return [...mockP2PAllocations];
+}
+
+export async function getMockMyAllocationsAsPayer() {
+  await simulateDelay();
+  return [...mockP2PAllocations];
+}
+
+export async function getMockMyAllocationsAsReceiver() {
   await simulateDelay();
   return [...mockP2PAllocations];
 }
