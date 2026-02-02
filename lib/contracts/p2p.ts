@@ -1,5 +1,17 @@
 import type { AllocationActions, WithdrawalActions } from "@/lib/contracts/permissions";
-import type { FileMeta } from "@/lib/types/backend";
+import type { FileMeta, PaymentMethod } from "@/lib/types/backend";
+
+export enum P2PAllocationStatus {
+  ASSIGNED = "ASSIGNED",
+  PROOF_SUBMITTED = "PROOF_SUBMITTED",
+  RECEIVER_CONFIRMED = "RECEIVER_CONFIRMED",
+  ADMIN_VERIFIED = "ADMIN_VERIFIED",
+  FINALIZED = "FINALIZED",
+  SETTLED = "SETTLED",
+  DISPUTED = "DISPUTED",
+  CANCELLED = "CANCELLED",
+  EXPIRED = "EXPIRED",
+}
 
 export interface P2PWithdrawal {
   id: string;
@@ -23,14 +35,14 @@ export interface P2PWithdrawal {
 export interface P2PAllocation {
   id: string;
   createdAt: string;
-  status: string;
+  status: P2PAllocationStatus | string;
   amount: string;
   expiresAt?: string | null;
   payerName?: string | null;
   payerMobile?: string | null;
   receiverName?: string | null;
   receiverMobile?: string | null;
-  paymentMethod?: string | null;
+  paymentMethod?: PaymentMethod | string | null;
   bankRef?: string | null;
   paidAt?: string | null;
   attachments?: FileMeta[];
@@ -83,4 +95,16 @@ export interface DestinationForm {
 export interface AllocationProofInfo {
   fileId: string;
   file?: FileMeta;
+}
+
+export interface AllocationProofDto {
+  bankRef: string;
+  method: PaymentMethod;
+  paidAt?: string;
+  fileIds: string[];
+}
+
+export interface AllocationReceiverConfirmDto {
+  confirmed: boolean;
+  reason?: string;
 }

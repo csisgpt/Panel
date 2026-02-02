@@ -1,6 +1,11 @@
 import { apiGet, apiPost } from "./client";
 import { isMockMode } from "./config";
-import { createMockWithdrawal, getMockWithdrawals, getMockWithdrawalsEnvelope } from "@/lib/mock-data";
+import {
+  createMockWithdrawal,
+  getMockMyWithdrawals,
+  getMockWithdrawals,
+  getMockWithdrawalsEnvelope,
+} from "@/lib/mock-data";
 import { CreateWithdrawalDto, WithdrawRequest } from "@/lib/types/backend";
 import { normalizeListResponse, type ListEnvelope, type ListMeta } from "@/lib/contracts/list";
 
@@ -29,6 +34,12 @@ export async function getWithdrawals(): Promise<WithdrawRequest[]> {
   if (isMockMode()) return getMockWithdrawals();
   const { items } = await listWithdrawals();
   return items;
+}
+
+export async function getMyWithdrawals(): Promise<WithdrawRequest[]> {
+  if (isMockMode()) return getMockMyWithdrawals();
+  const response = await apiGet<WithdrawRequest[]>("/withdrawals/my");
+  return response;
 }
 
 export async function createWithdrawal(dto: CreateWithdrawalDto): Promise<WithdrawRequest> {
