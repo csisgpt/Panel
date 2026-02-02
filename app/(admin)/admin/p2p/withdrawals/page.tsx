@@ -27,13 +27,10 @@ export default function AdminP2PWithdrawalsPage() {
   const [checked, setChecked] = useState<Record<string, boolean>>({});
 
   const candidatesQuery = useQuery({
-    queryKey: ["admin", "p2p", "withdrawals", selectedWithdrawal?.id, "candidates"],
-    queryFn: () =>
-      selectedWithdrawal
-        ? listWithdrawalCandidates(selectedWithdrawal.id, { page: 1, limit: 20 })
-        : Promise.resolve({ items: [], meta: { page: 1, limit: 10, total: 0 } }),
-    enabled: Boolean(selectedWithdrawal),
-  });
+  queryKey: ["admin", "p2p", "withdrawals", selectedWithdrawal?.id ?? "none", "candidates"],
+  enabled: !!selectedWithdrawal,
+  queryFn: () => listWithdrawalCandidates(selectedWithdrawal!.id, { page: 1, limit: 20 }),
+});
 
   const candidates = (candidatesQuery.data?.items ?? []) as CandidateRow[];
 
