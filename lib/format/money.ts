@@ -22,13 +22,13 @@ function normalizeNumeric(value: number | string | bigint): number | bigint | nu
 
 export function formatNumber(n: number | string | bigint): string {
   const normalized = normalizeNumeric(n);
-  if (normalized === null) return "";
+  if (normalized === null) return "-";
   return latinNumberFormatter.format(normalized as number | bigint);
 }
 
 export function formatMoneyIRR(amount: number | string | bigint, unit: "rial" | "toman" = "rial"): string {
   const normalized = normalizeNumeric(amount);
-  if (normalized === null) return "";
+  if (normalized === null) return "-";
 
   const value = unit === "toman"
     ? typeof normalized === "bigint"
@@ -39,7 +39,17 @@ export function formatMoneyIRR(amount: number | string | bigint, unit: "rial" | 
   return formatNumber(value);
 }
 
+export function formatMoney(amount: number | string | bigint, currency = "IRR") {
+  const normalized = normalizeNumeric(amount);
+  if (normalized === null) return "-";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(Number(normalized));
+}
+
 export function formatMoneyCompact(amount: number): string {
-  if (!Number.isFinite(amount)) return "";
+  if (!Number.isFinite(amount)) return "-";
   return compactFormatter.format(amount);
 }
