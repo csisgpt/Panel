@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import * as Primitive from "@radix-ui/react-primitive";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
@@ -27,22 +26,21 @@ const textareaVariants = cva(
 );
 
 export interface TextareaProps
-  extends React.ComponentPropsWithoutRef<typeof Primitive.textarea>,
+  extends React.ComponentPropsWithoutRef<"textarea">,
     VariantProps<typeof textareaVariants> {
   error?: boolean | string;
 }
 
-const Textarea = React.forwardRef<
-  React.ElementRef<typeof Primitive.textarea>,
-  TextareaProps
->(({ className, size, error, ...props }, ref) => (
-  <Primitive.textarea
-    ref={ref}
-    className={cn(textareaVariants({ size, error: Boolean(error), className }))}
-    aria-invalid={Boolean(error)}
-    {...props}
-  />
-));
+const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
+  ({ className, size, error, ...props }, ref) => (
+    <textarea
+      ref={ref}
+      className={cn(textareaVariants({ size, error: Boolean(error), className }))}
+      aria-invalid={Boolean(error)}
+      {...props}
+    />
+  )
+);
 Textarea.displayName = "Textarea";
 
 export { Textarea };

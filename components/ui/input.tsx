@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import * as Primitive from "@radix-ui/react-primitive";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
@@ -27,22 +26,21 @@ const inputVariants = cva(
 );
 
 export interface InputProps
-  extends React.ComponentPropsWithoutRef<typeof Primitive.input>,
+  extends React.ComponentPropsWithoutRef<"input">,
     VariantProps<typeof inputVariants> {
   error?: boolean | string;
 }
 
-const Input = React.forwardRef<
-  React.ElementRef<typeof Primitive.input>,
-  InputProps
->(({ className, size, error, ...props }, ref) => (
-  <Primitive.input
-    ref={ref}
-    className={cn(inputVariants({ size, error: Boolean(error), className }))}
-    aria-invalid={Boolean(error)}
-    {...props}
-  />
-));
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, size, error, ...props }, ref) => (
+    <input
+      ref={ref}
+      className={cn(inputVariants({ size, error: Boolean(error), className }))}
+      aria-invalid={Boolean(error)}
+      {...props}
+    />
+  )
+);
 Input.displayName = "Input";
 
 export { Input };
