@@ -1,87 +1,42 @@
-'use client';
+"use client";
 
 import * as React from "react";
-
+import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { cn } from "@/lib/utils";
 
-export interface TabItem {
-  value: string;
-  label: string;
-  content: React.ReactNode;
-}
+export const Tabs = TabsPrimitive.Root;
 
-interface TabsContextValue {
-  value: string;
-  setValue: (value: string) => void;
-}
+export const TabsList = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.List>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
+>(({ className, ...props }, ref) => (
+  <TabsPrimitive.List
+    ref={ref}
+    className={cn("inline-flex items-center gap-2 rounded-xl bg-muted p-1", className)}
+    {...props}
+  />
+));
+TabsList.displayName = TabsPrimitive.List.displayName;
 
-const TabsContext = React.createContext<TabsContextValue | null>(null);
+export const TabsTrigger = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
+>(({ className, ...props }, ref) => (
+  <TabsPrimitive.Trigger
+    ref={ref}
+    className={cn(
+      "inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+      className
+    )}
+    {...props}
+  />
+));
+TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;
 
-function useTabsContext() {
-  const context = React.useContext(TabsContext);
-
-  if (!context) {
-    throw new Error("Tabs components must be used within a Tabs provider");
-  }
-
-  return context;
-}
-
-export function Tabs({ items, defaultValue }: { items: TabItem[]; defaultValue?: string }) {
-  const [active, setActive] = React.useState(defaultValue ?? items[0]?.value ?? "");
-
-  return (
-    <TabsContext.Provider value={{ value: active, setValue: setActive }}>
-      <div className="w-full">
-        <TabsList>
-          {items.map((item) => (
-            <TabsTrigger key={item.value} value={item.value}>
-              {item.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        {items.map((item) => (
-          <TabsContent key={item.value} value={item.value}>
-            {item.content}
-          </TabsContent>
-        ))}
-      </div>
-    </TabsContext.Provider>
-  );
-}
-
-export function TabsList({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("mb-4 flex flex-wrap gap-2 rounded-2xl bg-muted/60 p-2", className)}>{children}</div>;
-}
-
-export function TabsTrigger({ value, children }: { value: string; children: React.ReactNode }) {
-  const { value: active, setValue } = useTabsContext();
-  const isActive = active === value;
-
-  return (
-    <button
-      type="button"
-      onClick={() => setValue(value)}
-      className={cn(
-        "rounded-xl px-4 py-2 text-sm font-medium transition",
-        isActive ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-export function TabsContent({ value, children }: { value: string; children: React.ReactNode }) {
-  const { value: active } = useTabsContext();
-
-  if (active !== value) return null;
-
-  return <div className="rounded-2xl border bg-card/70 p-4 shadow-sm">{children}</div>;
-}
-
-export function TabsRoot({ children, defaultValue }: { children: React.ReactNode; defaultValue?: string }) {
-  const [active, setActive] = React.useState(defaultValue ?? "");
-
-  return <TabsContext.Provider value={{ value: active, setValue: setActive }}>{children}</TabsContext.Provider>;
-}
+export const TabsContent = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
+>(({ className, ...props }, ref) => (
+  <TabsPrimitive.Content ref={ref} className={cn("mt-3 outline-none", className)} {...props} />
+));
+TabsContent.displayName = TabsPrimitive.Content.displayName;

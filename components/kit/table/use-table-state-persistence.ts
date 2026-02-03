@@ -6,6 +6,8 @@ interface PersistedTableState {
   columnVisibility?: Record<string, boolean>;
   columnOrder?: string[];
   pageSize?: number;
+  density?: "comfortable" | "compact";
+  savedViewId?: string;
 }
 
 /**
@@ -51,10 +53,22 @@ export function useTableStatePersistence(storageKey: string) {
     [persist, state]
   );
 
+  const setDensity = useCallback(
+    (density: PersistedTableState["density"]) => persist({ ...state, density }),
+    [persist, state]
+  );
+
+  const setSavedViewId = useCallback(
+    (savedViewId: string | undefined) => persist({ ...state, savedViewId }),
+    [persist, state]
+  );
+
   return {
     state,
     setColumnVisibility,
     setColumnOrder,
     setPageSize,
+    setDensity,
+    setSavedViewId,
   };
 }
