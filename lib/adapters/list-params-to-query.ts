@@ -60,9 +60,9 @@ export function listParamsToQuery<TFilters>(
     });
   }
 
-  if (params.tab) {
-    searchParams.set("tab", params.tab);
-  }
+  // if (params.tab) {
+  //   searchParams.set("tab", params.tab);
+  // }
 
   return searchParams;
 }
