@@ -43,13 +43,13 @@ export interface ButtonProps
 const assertSingleElementChild = (
   children: React.ReactNode
 ): React.ReactElement => {
-  const childArray = React.Children.toArray(children);
-  if (childArray.length !== 1 || !React.isValidElement(childArray[0])) {
+  const elements = React.Children.toArray(children).filter(React.isValidElement);
+  if (elements.length !== 1) {
     throw new Error(
       "Button: when asChild is true, it must receive exactly one React element child (e.g. <Link />)."
     );
   }
-  return childArray[0];
+  return elements[0] as React.ReactElement;
 };
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -70,10 +70,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const loadingStyles = isLoading ? "opacity-50 cursor-not-allowed" : "";
 
     if (asChild) {
-      assertSingleElementChild(children);
+      const onlyChild = assertSingleElementChild(children);
       return (
         <Comp
-          ref={ref}
+          ref={ref as any}
           className={cn(
             buttonVariants({ variant, size, className }),
             loadingStyles
@@ -82,7 +82,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           data-loading={isLoading ? "true" : undefined}
           {...props}
         >
-          {children}
+          {onlyChild}
         </Comp>
       );
     }
