@@ -8,6 +8,8 @@ import type { P2PWithdrawal } from "@/lib/contracts/p2p";
 import type { ServerTableViewProps } from "@/components/kit/table/server-table-view";
 import { serializeListParams } from "@/lib/querykit/serialize";
 
+const supportsBooleanQuery = process.env.NEXT_PUBLIC_API_SUPPORTS_BOOLEAN_QUERY === "true";
+
 export function createAdminP2PWithdrawalsListConfig(): ServerTableViewProps<P2PWithdrawal, Record<string, unknown>> {
   const columns: ColumnDef<P2PWithdrawal>[] = [
     {
@@ -57,8 +59,12 @@ export function createAdminP2PWithdrawalsListConfig(): ServerTableViewProps<P2PW
     defaultParams: { page: 1, limit: 10, tab: "all" },
     tabs: [
       { id: "all", label: "همه", paramsPatch: { filters: {} } },
-      { id: "proofs", label: "دارای رسید", paramsPatch: { filters: { hasProof: true } } },
-      { id: "disputes", label: "اختلاف", paramsPatch: { filters: { hasDispute: true } } },
+      ...(supportsBooleanQuery
+        ? [
+            { id: "proofs", label: "دارای رسید", paramsPatch: { filters: { hasProof: true } } },
+            { id: "disputes", label: "اختلاف", paramsPatch: { filters: { hasDispute: true } } },
+          ]
+        : []),
       { id: "expiring_soon", label: "در شرف انقضا", paramsPatch: { filters: { expiringSoonMinutes: "60" } } },
     ],
     sortOptions: [
@@ -79,24 +85,28 @@ export function createAdminP2PWithdrawalsListConfig(): ServerTableViewProps<P2PW
           { label: "حساب", value: "ACCOUNT" },
         ],
       },
-      {
-        type: "status",
-        key: "hasProof",
-        label: "دارای رسید",
-        options: [
-          { label: "بله", value: "true" },
-          { label: "خیر", value: "false" },
-        ],
-      },
-      {
-        type: "status",
-        key: "hasDispute",
-        label: "اختلاف",
-        options: [
-          { label: "بله", value: "true" },
-          { label: "خیر", value: "false" },
-        ],
-      },
+      ...(supportsBooleanQuery
+        ? [
+            {
+              type: "status" as const,
+              key: "hasProof",
+              label: "دارای رسید",
+              options: [
+                { label: "بله", value: "true" },
+                { label: "خیر", value: "false" },
+              ],
+            },
+            {
+              type: "status" as const,
+              key: "hasDispute",
+              label: "اختلاف",
+              options: [
+                { label: "بله", value: "true" },
+                { label: "خیر", value: "false" },
+              ],
+            },
+          ]
+        : []),
       {
         type: "status",
         key: "expiringSoonMinutes",
