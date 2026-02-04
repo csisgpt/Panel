@@ -1,7 +1,12 @@
 import { apiGet, apiPost } from "./client";
 import { isMockMode } from "./config";
 import type { ListParams } from "@/lib/querykit/schemas";
-import { listParamsToQuery } from "@/lib/adapters/list-params-to-query";
+import {
+  buildAdminAllocationsQuery as buildAdminAllocationsQueryInternal,
+  buildAdminWithdrawalsQuery as buildAdminWithdrawalsQueryInternal,
+  buildTraderHistoryQuery,
+  buildWithdrawalCandidatesQuery as buildWithdrawalCandidatesQueryInternal,
+} from "@/lib/adapters/list-query-builders";
 import { adaptListResponse } from "@/lib/adapters/list-response-adapter";
 import { adaptP2PMeta } from "@/lib/adapters/p2p-meta-adapter";
 import type {
@@ -32,27 +37,7 @@ export type AssignToWithdrawalDto = {
   items: Array<{ depositId: string; amount: string }>;
 };
 
-const withdrawalSortMap: Record<string, string | { asc?: string; desc?: string }> = {
-  createdAt: { asc: "createdAt_asc", desc: "createdAt_desc" },
-  amount: { asc: "amount_asc", desc: "amount_desc" },
-  remainingToAssign: { asc: "remainingToAssign_asc", desc: "remainingToAssign_desc" },
-  priority: "priority",
-  nearestExpire: "nearestExpire_asc",
-};
-
-const allocationSortMap: Record<string, string | { asc?: string; desc?: string }> = {
-  createdAt: "createdAt_desc",
-  expiresAt: "expiresAt_asc",
-  paidAt: "paidAt_desc",
-  amount: "amount_desc",
-};
-
 type AllocationPaymentMethod = AllocationVmDto["payment"] extends { method: infer M } ? M : never;
-
-const candidateSortMap: Record<string, string | { asc?: string; desc?: string }> = {
-  remaining: "remaining_desc",
-  createdAt: { asc: "createdAt_asc", desc: "createdAt_desc" },
-};
 
 function buildMockWithdrawalVm(withdrawal: P2PWithdrawal): WithdrawalVmDto {
   return {
@@ -166,29 +151,15 @@ function buildMockDepositVm(candidate: { id: string; name: string; mobile: strin
 }
 
 export function buildAdminP2PWithdrawalsQuery(params: ListParams) {
-  return listParamsToQuery(params, {
-    searchKey: "mobile",
-    sortParam: "sort",
-    sortMap: withdrawalSortMap,
-    allowOffsetParam: true,
-  });
+  return buildAdminWithdrawalsQueryInternal(params);
 }
 
 export function buildAdminP2PAllocationsQuery(params: ListParams) {
-  return listParamsToQuery(params, {
-    searchKey: "bankRefSearch",
-    sortParam: "sort",
-    sortMap: allocationSortMap,
-    allowOffsetParam: true,
-  });
+  return buildAdminAllocationsQueryInternal(params);
 }
 
 export function buildWithdrawalCandidatesQuery(params: ListParams) {
-  return listParamsToQuery(params, {
-    searchKey: "mobile",
-    sortParam: "sort",
-    sortMap: candidateSortMap,
-  });
+  return buildWithdrawalCandidatesQueryInternal(params);
 }
 
 export async function listAdminP2PWithdrawals(params: ListParams) {
@@ -329,7 +300,7 @@ export async function listMyAllocationsAsPayer(params: ListParams) {
     const items = (envelope.data ?? []).map((item) => mapP2PAllocationVm(buildMockAllocationVm(item)));
     return { items, meta: adaptP2PMeta(envelope.meta) };
   }
-  const query = listParamsToQuery(params, { sortParam: "sort", sortMap: allocationSortMap });
+  const query = buildTraderHistoryQuery(params);
   const response = await apiGet<{ data: AllocationVmDto[]; meta: any }>(
     `/p2p/allocations/my-as-payer?${query}`
   );
@@ -347,7 +318,7 @@ export async function listMyAllocationsAsReceiver(params: ListParams) {
     const items = (envelope.data ?? []).map((item) => mapP2PAllocationVm(buildMockAllocationVm(item)));
     return { items, meta: adaptP2PMeta(envelope.meta) };
   }
-  const query = listParamsToQuery(params, { sortParam: "sort", sortMap: allocationSortMap });
+  const query = buildTraderHistoryQuery(params);
   const response = await apiGet<{ data: AllocationVmDto[]; meta: any }>(
     `/p2p/allocations/my-as-receiver?${query}`
   );

@@ -178,7 +178,7 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
 
   const query = useQuery<{ items: TItem[]; meta: ListMeta }, ApiError>({
     queryKey,
-    queryFn: () => queryFn(params),
+    queryFn: () => queryFn(cleanedParams as ListParams<TFilters>),
     refetchInterval: refetchIntervalMs,
     placeholderData: (previous) => previous,
   });

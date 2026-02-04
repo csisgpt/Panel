@@ -122,7 +122,7 @@ export function AttachmentGalleryModal({
               ) : null}
             </div>
             <div className="flex items-center gap-2">
-              {activeFile?.mimeType.startsWith("image/") ? (
+              {activeFile?.mimeType?.startsWith("image/") ? (
                 <>
                   <Button variant="outline" size="sm" onClick={() => setZoom(1)} disabled={zoom === 1}>
                     ۱۰۰٪
@@ -165,11 +165,13 @@ export function AttachmentGalleryModal({
             <p className="text-xs text-muted-foreground">در حال تازه‌سازی لینک‌ها...</p>
           ) : null}
 
-          {loadError ? (
+          {files.length === 0 ? (
+            <EmptyState description="فایلی برای نمایش وجود ندارد." />
+          ) : loadError ? (
             <ErrorState description={loadError} onAction={() => refetch()} />
           ) : activeLink?.previewUrl ? (
             <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} className="rounded-md">
-              {activeFile?.mimeType.startsWith("image/") ? (
+              {activeFile?.mimeType?.startsWith("image/") ? (
                 <ImageViewer
                   src={activeLink.previewUrl}
                   alt={activeFile.fileName}

@@ -1,4 +1,5 @@
 import type { ListParams } from "@/lib/querykit/schemas";
+import { serializeQueryValue } from "@/lib/querykit/serialize";
 
 export interface ListQueryMapOptions {
   searchKey?: string;
@@ -40,23 +41,19 @@ export function listParamsToQuery<TFilters>(
   }
 
   const filters = params.filters as Record<string, unknown> | undefined;
-  if (filters) {
+  if (filters && options.filterKeyMap) {
     Object.entries(filters).forEach(([key, value]) => {
       if (value === undefined || value === null || value === "") return;
       if (key === "offset" && options.allowOffsetParam) {
         searchParams.set("offset", String(value));
         return;
       }
-      const mappedKey = options.filterKeyMap?.[key] ?? key;
-      if (Array.isArray(value)) {
-        searchParams.set(mappedKey, value.join(","));
-        return;
+      const mappedKey = options.filterKeyMap[key];
+      if (!mappedKey) return;
+      const serialized = serializeQueryValue(value);
+      if (serialized !== undefined) {
+        searchParams.set(mappedKey, serialized);
       }
-      if (value instanceof Date) {
-        searchParams.set(mappedKey, value.toISOString());
-        return;
-      }
-      searchParams.set(mappedKey, String(value));
     });
   }
 

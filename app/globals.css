@@ -200,6 +200,12 @@ body {
 }
 
 @layer utilities {
+  .animate-accordion-down {
+    animation: accordion-down 200ms ease-out;
+  }
+  .animate-accordion-up {
+    animation: accordion-up 200ms ease-out;
+  }
   .z-dropdown {
     z-index: var(--z-dropdown);
   }
