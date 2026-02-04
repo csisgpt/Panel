@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 
 export interface AdvancedFilterBarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -11,6 +12,7 @@ export interface AdvancedFilterBarProps extends React.HTMLAttributes<HTMLDivElem
   onReset?: () => void;
   onApply?: () => void;
   autoApply?: boolean;
+  accordionLabel?: string;
 }
 
 export function AdvancedFilterBar({
@@ -22,6 +24,7 @@ export function AdvancedFilterBar({
   onReset,
   onApply,
   autoApply = true,
+  accordionLabel = "بیشتر",
   className,
   ...props
 }: AdvancedFilterBarProps) {
@@ -29,11 +32,6 @@ export function AdvancedFilterBar({
     <div className={cn("space-y-3 rounded-xl border bg-card p-4", className)} {...props}>
       <div className="flex flex-wrap items-center gap-2">
         {primaryFilters}
-        {secondaryFilters ? (
-          <Button type="button" variant="ghost" size="sm" onClick={onToggleSecondary}>
-            فیلترهای بیشتر {secondaryCount > 0 ? `(+${secondaryCount})` : ""}
-          </Button>
-        ) : null}
         {onReset ? (
           <Button type="button" variant="outline" size="sm" onClick={onReset}>
             بازنشانی
@@ -45,7 +43,26 @@ export function AdvancedFilterBar({
           </Button>
         ) : null}
       </div>
-      {!collapsed && secondaryFilters ? <div className="flex flex-wrap gap-2">{secondaryFilters}</div> : null}
+      {secondaryFilters ? (
+        <Accordion
+          type="single"
+          collapsible
+          value={collapsed ? undefined : "advanced"}
+          onValueChange={(value) => {
+            if (!onToggleSecondary) return;
+            onToggleSecondary();
+          }}
+        >
+          <AccordionItem value="advanced" className="border-none">
+            <AccordionTrigger className="py-0 text-sm">
+              {accordionLabel} {secondaryCount > 0 ? `(+${secondaryCount})` : ""}
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="flex flex-wrap gap-2 pt-3">{secondaryFilters}</div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      ) : null}
     </div>
   );
 }

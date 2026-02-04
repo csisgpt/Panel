@@ -5,9 +5,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { PageHeader } from "@/components/layout/page-header";
+import { PageShell } from "@/components/layout/page-shell";
 import { LoadingState } from "@/components/kit/common/LoadingState";
 import { ErrorState } from "@/components/kit/common/ErrorState";
 import { StatusBadge } from "@/components/kit/ops/status-badge";
+import { DetailsDrawer } from "@/components/kit/table/details-drawer";
+import { RowActionsMenu } from "@/components/kit/table/row-actions-menu";
 import { ServerTableView } from "@/components/kit/table/server-table-view";
 import { createAdminP2PWithdrawalsListConfig } from "@/lib/screens/admin/p2p-withdrawals.list";
 import { assignToWithdrawal, listWithdrawalCandidates } from "@/lib/api/p2p";
@@ -15,6 +19,7 @@ import type { P2PWithdrawal } from "@/lib/contracts/p2p";
 import type { CandidateRow } from "@/lib/adapters/p2p-vm-mappers";
 import { formatMoney } from "@/lib/format/money";
 import { useToast } from "@/hooks/use-toast";
+import { TabsContent, TabsList, TabsRoot, TabsTrigger } from "@/components/ui/tabs";
 
 export default function AdminP2PWithdrawalsPage() {
   const config = useMemo(() => createAdminP2PWithdrawalsListConfig(), []);
@@ -22,15 +27,16 @@ export default function AdminP2PWithdrawalsPage() {
   const { toast } = useToast();
 
   const [open, setOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<P2PWithdrawal | null>(null);
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [checked, setChecked] = useState<Record<string, boolean>>({});
 
   const candidatesQuery = useQuery({
-  queryKey: ["admin", "p2p", "withdrawals", selectedWithdrawal?.id ?? "none", "candidates"],
-  enabled: !!selectedWithdrawal,
-  queryFn: () => listWithdrawalCandidates(selectedWithdrawal!.id, { page: 1, limit: 20 }),
-});
+    queryKey: ["admin", "p2p", "withdrawals", selectedWithdrawal?.id ?? "none", "candidates"],
+    enabled: open && !!selectedWithdrawal,
+    queryFn: () => listWithdrawalCandidates(selectedWithdrawal!.id, { page: 1, limit: 20 }),
+  });
 
   const candidates = (candidatesQuery.data?.items ?? []) as CandidateRow[];
 
@@ -65,7 +71,11 @@ export default function AdminP2PWithdrawalsPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <PageShell>
+      <PageHeader
+        title="برداشت‌های P2P"
+        subtitle="مدیریت صف برداشت‌ها، بررسی وضعیت و تخصیص دستی"
+      />
       <ServerTableView<P2PWithdrawal>
         {...config}
         renderCard={(row) => (
@@ -84,26 +94,92 @@ export default function AdminP2PWithdrawalsPage() {
               className="mt-3"
               onClick={() => {
                 setSelectedWithdrawal(row);
-                setOpen(true);
+                setDetailsOpen(true);
               }}
             >
-              تخصیص
+              مشاهده جزئیات
             </Button>
           </div>
         )}
         rowActions={(row) => (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              setSelectedWithdrawal(row);
-              setOpen(true);
-            }}
-          >
-            تخصیص
-          </Button>
+          <RowActionsMenu
+            actions={[
+              {
+                label: "مشاهده جزئیات",
+                onClick: () => {
+                  setSelectedWithdrawal(row);
+                  setDetailsOpen(true);
+                },
+              },
+              {
+                label: "تخصیص دستی",
+                onClick: () => {
+                  setSelectedWithdrawal(row);
+                  setOpen(true);
+                },
+              },
+            ]}
+          />
         )}
       />
+
+      <DetailsDrawer
+        open={detailsOpen}
+        onOpenChange={(next) => {
+          setDetailsOpen(next);
+          if (!next) setSelectedWithdrawal(null);
+        }}
+        title="جزئیات برداشت"
+      >
+        {selectedWithdrawal ? (
+          <div className="space-y-6">
+            <div className="rounded-lg border p-4 text-sm">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <p className="text-xs text-muted-foreground">شناسه برداشت</p>
+                  <p className="font-medium">{selectedWithdrawal.id}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">وضعیت</p>
+                  <StatusBadge status={selectedWithdrawal.status} />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">مبلغ</p>
+                  <p className="font-medium">{formatMoney(selectedWithdrawal.amount)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">باقی‌مانده تخصیص</p>
+                  <p className="font-medium">{formatMoney(selectedWithdrawal.remainingToAssign)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">مقصد</p>
+                  <p className="font-medium">{selectedWithdrawal.destinationSummary ?? "-"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">موبایل</p>
+                  <p className="font-medium">{selectedWithdrawal.userMobile ?? "-"}</p>
+                </div>
+              </div>
+            </div>
+            <TabsRoot defaultValue="overview">
+              <TabsList>
+                <TabsTrigger value="overview">نمای کلی</TabsTrigger>
+                <TabsTrigger value="attachments">پیوست‌ها</TabsTrigger>
+                <TabsTrigger value="logs">لاگ‌ها</TabsTrigger>
+              </TabsList>
+              <TabsContent value="overview" className="text-sm text-muted-foreground">
+                خلاصه عملیات این برداشت به‌زودی تکمیل می‌شود.
+              </TabsContent>
+              <TabsContent value="attachments" className="text-sm text-muted-foreground">
+                فایلی برای نمایش وجود ندارد.
+              </TabsContent>
+              <TabsContent value="logs" className="text-sm text-muted-foreground">
+                لاگ‌های عملیات در این بخش نمایش داده خواهد شد.
+              </TabsContent>
+            </TabsRoot>
+          </div>
+        ) : null}
+      </DetailsDrawer>
 
       <Sheet
         open={open}
@@ -116,7 +192,7 @@ export default function AdminP2PWithdrawalsPage() {
           }
         }}
       >
-        <SheetContent side="right" className="flex w-full flex-col gap-4 sm:max-w-3xl">
+        <SheetContent side="right" size="lg" className="flex w-full flex-col gap-4" stickyHeader stickyFooter>
           <SheetHeader>
             <SheetTitle>تخصیص دستی</SheetTitle>
           </SheetHeader>
@@ -186,6 +262,6 @@ export default function AdminP2PWithdrawalsPage() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
-    </div>
+    </PageShell>
   );
 }

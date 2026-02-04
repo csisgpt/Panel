@@ -6,6 +6,7 @@ import { formatMoney } from "@/lib/format/money";
 import { listAdminP2PWithdrawals } from "@/lib/api/p2p";
 import type { P2PWithdrawal } from "@/lib/contracts/p2p";
 import type { ServerTableViewProps } from "@/components/kit/table/server-table-view";
+import { serializeListParams } from "@/lib/querykit/serialize";
 
 export function createAdminP2PWithdrawalsListConfig(): ServerTableViewProps<P2PWithdrawal, Record<string, unknown>> {
   const columns: ColumnDef<P2PWithdrawal>[] = [
@@ -51,7 +52,7 @@ export function createAdminP2PWithdrawalsListConfig(): ServerTableViewProps<P2PW
     title: "صف برداشت‌های P2P",
     description: "مدیریت صف برداشت‌های نیازمند تخصیص و بررسی",
     columns,
-    queryKeyFactory: (params) => ["admin", "p2p", "withdrawals", params],
+    queryKeyFactory: (params) => ["admin", "p2p", "withdrawals", serializeListParams(params)],
     queryFn: listAdminP2PWithdrawals,
     defaultParams: { page: 1, limit: 10, tab: "all" },
     tabs: [
@@ -112,5 +113,7 @@ export function createAdminP2PWithdrawalsListConfig(): ServerTableViewProps<P2PW
       { type: "dateRange", key: "createdFrom", label: "از تاریخ" },
       { type: "dateRange", key: "createdTo", label: "تا تاریخ" },
     ],
+    enableAdvancedFilters: true,
+    enableDensityToggle: true,
   };
 }
