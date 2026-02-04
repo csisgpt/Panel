@@ -3,9 +3,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
-import { Sidebar, NavItem } from "@/components/layout/sidebar";
+import { AppShell } from "@/components/layout/app-shell";
+import { Sidebar, NavSection } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
-import { Sheet } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useRouter, usePathname } from "next/navigation";
 import { adminNavItems, getVisibleNav } from "@/lib/navigation/registry";
@@ -17,13 +18,55 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
-  const navItems: NavItem[] = useMemo(() => {
+  const navItems = useMemo(() => {
     const visible = getVisibleNav(adminNavItems);
-    return visible.map((item) => ({
+    const mapItem = (item: typeof visible[number]) => ({
       href: item.href,
       label: item.labelFa,
       icon: item.icon,
-    }));
+    });
+    const byKey = (keys: string[]) => visible.filter((item) => keys.includes(item.key)).map(mapItem);
+    const sections: NavSection[] = [
+      {
+        id: "ops",
+        label: "عملیات",
+        items: byKey(["dashboard", "p2p-ops", "p2p-withdrawals", "p2p-allocations"]),
+      },
+      {
+        id: "management",
+        label: "مدیریت",
+        items: byKey(["users", "instruments", "pricing", "pricing-logs"]),
+      },
+      {
+        id: "tahesab",
+        label: "ته‌حساب",
+        items: byKey([
+          "tahesab-overview",
+          "tahesab-connection",
+          "tahesab-mapping",
+          "tahesab-reconciliation",
+          "tahesab-documents",
+          "tahesab-raw-documents",
+          "tahesab-customers",
+          "tahesab-balances",
+          "tahesab-master-data",
+          "tahesab-tags",
+          "tahesab-manual-documents",
+          "tahesab-logs",
+        ]),
+      },
+      {
+        id: "risk",
+        label: "ریسک",
+        items: byKey(["risk-settings", "risk-monitor"]),
+      },
+      {
+        id: "system",
+        label: "سیستم",
+        items: byKey(["files", "settings"]),
+      },
+    ];
+    return sections.filter((section) => section.items.length > 0);
   }, []);
 
   useEffect(() => {
@@ -54,26 +97,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="flex min-h-screen bg-muted/30" dir="rtl">
-      <div className="fixed inset-y-0 right-0 hidden w-72 border-l bg-card/90 backdrop-blur lg:flex">
-        <Sidebar
-          className="h-full"
-          navItems={navItems}
-          title="پنل ادمین"
-          subtitle={user?.fullName}
-        />
-      </div>
+    <div dir="rtl">
+      <AppShell
+        sidebar={
+          <Sidebar
+            className="h-full"
+            sections={navItems}
+            navItems={navItems.flatMap((section) => section.items)}
+            title="پنل ادمین"
+            subtitle={user?.fullName}
+          />
+        }
+        topbar={<Topbar onMenuClick={() => setOpen(true)} userName={user?.fullName} pageTitle="ادمین" />}
+      >
+        <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</div>
+      </AppShell>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <Sidebar className="h-full" onNavigate={() => setOpen(false)} navItems={navItems} title="پنل ادمین" />
+        <SheetContent side="right" size="sm" className="p-0">
+          <Sidebar
+            className="h-full"
+            onNavigate={() => setOpen(false)}
+            sections={navItems}
+            navItems={navItems.flatMap((section) => section.items)}
+            title="پنل ادمین"
+            subtitle={user?.fullName}
+          />
+        </SheetContent>
       </Sheet>
-
-      <div className="flex min-h-screen flex-1 flex-col lg:mr-72">
-        <Topbar onMenuClick={() => setOpen(true)} userName={user?.fullName} pageTitle="ادمین" />
-        <main className="flex-1 pb-8">
-          <div className="mx-auto w-full max-w-6xl px-3 py-5 sm:px-4 md:px-6 lg:px-10">{children}</div>
-        </main>
-      </div>
     </div>
   );
 }

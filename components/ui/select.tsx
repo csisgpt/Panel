@@ -124,7 +124,7 @@ export const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 max-h-64 min-w-[8rem] overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-md",
+        "relative z-dropdown max-h-64 min-w-[8rem] overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-md",
         position === "popper" && "translate-y-1",
         className
       )}

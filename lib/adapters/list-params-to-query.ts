@@ -1,4 +1,5 @@
 import type { ListParams } from "@/lib/querykit/schemas";
+import { serializeQueryValue } from "@/lib/querykit/serialize";
 
 export interface ListQueryMapOptions {
   searchKey?: string;
@@ -7,6 +8,11 @@ export interface ListQueryMapOptions {
   sortParam?: string;
   sortMap?: Record<string, string | { asc?: string; desc?: string }>;
   allowOffsetParam?: boolean;
+  includeTab?: boolean;
+  enableSearch?: boolean;
+  filterAllowList?: string[];
+  filterDenyList?: string[];
+  dropUnknownFilters?: boolean;
 }
 
 export function listParamsToQuery<TFilters>(
@@ -15,7 +21,8 @@ export function listParamsToQuery<TFilters>(
 ): URLSearchParams {
   const searchParams = new URLSearchParams();
   const searchKey = options.searchKey ?? "search";
-  if (params.search) searchParams.set(searchKey, params.search);
+  const enableSearch = options.enableSearch ?? true;
+  if (enableSearch && params.search) searchParams.set(searchKey, params.search);
 
   if (params.sort?.key) {
     const sortParam = options.sortParam ?? "sort";
@@ -47,22 +54,21 @@ export function listParamsToQuery<TFilters>(
         searchParams.set("offset", String(value));
         return;
       }
-      const mappedKey = options.filterKeyMap?.[key] ?? key;
-      if (Array.isArray(value)) {
-        searchParams.set(mappedKey, value.join(","));
-        return;
+      const hasMappedKey = options.filterKeyMap ? key in options.filterKeyMap : false;
+      if (options.filterKeyMap && !hasMappedKey && (options.dropUnknownFilters ?? true)) return;
+      const mappedKey = (options.filterKeyMap && hasMappedKey ? options.filterKeyMap[key] : key) ?? key;
+      if (options.filterAllowList && !options.filterAllowList.includes(mappedKey)) return;
+      if (options.filterDenyList && options.filterDenyList.includes(mappedKey)) return;
+      const serialized = serializeQueryValue(value);
+      if (serialized !== undefined) {
+        searchParams.set(mappedKey, serialized);
       }
-      if (value instanceof Date) {
-        searchParams.set(mappedKey, value.toISOString());
-        return;
-      }
-      searchParams.set(mappedKey, String(value));
     });
   }
 
-  // if (params.tab) {
-  //   searchParams.set("tab", params.tab);
-  // }
+  if (options.includeTab && params.tab) {
+    searchParams.set("tab", params.tab);
+  }
 
   return searchParams;
 }

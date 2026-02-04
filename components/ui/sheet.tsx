@@ -5,22 +5,26 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-const sheetVariants = cva(
-  "fixed z-50 flex flex-col bg-card shadow-2xl transition",
-  {
-    variants: {
-      side: {
-        right: "inset-y-0 right-0 h-full w-80 border-l",
-        left: "inset-y-0 left-0 h-full w-80 border-r",
-        top: "inset-x-0 top-0 h-1/2 border-b",
-        bottom: "inset-x-0 bottom-0 h-1/2 border-t",
-      },
+const sheetVariants = cva("fixed z-sheet flex h-full flex-col bg-card shadow-2xl transition", {
+  variants: {
+    side: {
+      right: "inset-y-0 right-0 border-l",
+      left: "inset-y-0 left-0 border-r",
+      top: "inset-x-0 top-0 h-1/2 border-b",
+      bottom: "inset-x-0 bottom-0 h-1/2 border-t",
     },
-    defaultVariants: {
-      side: "right",
-    },
-  }
-);
+  },
+  defaultVariants: {
+    side: "right",
+  },
+});
+
+const sheetSizeClasses = {
+  sm: "w-80",
+  md: "w-[420px]",
+  lg: "w-[640px]",
+  xl: "w-[820px]",
+};
 
 interface SheetContextValue {
   stickyHeader?: boolean;
@@ -60,7 +64,7 @@ export const SheetOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-50 bg-black/40 backdrop-blur-sm", className)}
+    className={cn("fixed inset-0 z-sheet bg-black/40 backdrop-blur-sm", className)}
     {...props}
   />
 ));
@@ -69,19 +73,22 @@ SheetOverlay.displayName = DialogPrimitive.Overlay.displayName;
 export interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>,
     VariantProps<typeof sheetVariants> {
+  size?: keyof typeof sheetSizeClasses;
   stickyHeader?: boolean;
   stickyFooter?: boolean;
 }
 
-export const SheetContent = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Content>,
-  SheetContentProps
->(({ side = "right", className, children, stickyHeader, stickyFooter, ...props }, ref) => (
+export const SheetContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Content>, SheetContentProps>(
+  ({ side = "right", size = "md", className, children, stickyHeader, stickyFooter, ...props }, ref) => (
   <DialogPrimitive.Portal>
     <SheetOverlay />
     <DialogPrimitive.Content
       ref={ref}
-      className={cn(sheetVariants({ side }), className)}
+      className={cn(
+        sheetVariants({ side }),
+        (side === "left" || side === "right") && sheetSizeClasses[size],
+        className
+      )}
       {...props}
     >
       <SheetContext.Provider value={{ stickyHeader, stickyFooter }}>
