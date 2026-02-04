@@ -30,6 +30,7 @@ interface DataTableProps<TData> {
   onSearchChange?: (search: string) => void;
   getRowId?: (row: TData, index: number) => string;
   showPagination?: boolean;
+  density?: "comfortable" | "compact";
   emptyState?: {
     title?: string;
     description?: string;
@@ -55,6 +56,7 @@ export function DataTable<TData>({
   onSearchChange,
   getRowId,
   showPagination = true,
+  density = "comfortable",
   emptyState,
 }: DataTableProps<TData>) {
   void onSortChange;
@@ -69,6 +71,8 @@ export function DataTable<TData>({
   });
 
   const colSpan = table.getVisibleLeafColumns().length;
+  const cellPadding = density === "compact" ? "py-2 px-3 text-xs" : "p-4";
+  const headerPadding = density === "compact" ? "py-2 px-3 text-xs" : "p-4";
 
   return (
     <div className="space-y-3">
@@ -80,7 +84,12 @@ export function DataTable<TData>({
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    className={(header.column.columnDef.meta as { headerClassName?: string } | undefined)?.headerClassName}
+                    className={[
+                      headerPadding,
+                      (header.column.columnDef.meta as { headerClassName?: string } | undefined)?.headerClassName,
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
                   >
                     {header.isPlaceholder
                       ? null
@@ -120,7 +129,10 @@ export function DataTable<TData>({
                   {row.getVisibleCells().map((cell) => {
                     const meta = cell.column.columnDef.meta as { cellClassName?: string } | undefined;
                     return (
-                      <TableCell key={cell.id} className={meta?.cellClassName}>
+                      <TableCell
+                        key={cell.id}
+                        className={[cellPadding, meta?.cellClassName].filter(Boolean).join(" ")}
+                      >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     );

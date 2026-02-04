@@ -20,6 +20,9 @@ import { FilterBar } from "./filter-bar";
 import { Pagination } from "./pagination";
 import { QuickTabs, type QuickTab } from "./quick-tabs";
 import { SortSelect } from "./sort-select";
+import { AdvancedFilterBar } from "./advanced-filter-bar";
+import { DensityToggle } from "./density-toggle";
+import { SavedViews } from "./saved-views";
 import { useTableStatePersistence } from "./use-table-state-persistence";
 
 export interface ServerTableViewTab<TFilters> extends QuickTab {
@@ -66,6 +69,10 @@ export interface ServerTableViewProps<TItem, TFilters> {
   getRowId?: (row: TItem) => string;
   emptyState?: { title: string; description?: string; actionLabel?: string; onAction?: () => void };
   refetchIntervalMs?: number;
+  enableDensityToggle?: boolean;
+  enableAdvancedFilters?: boolean;
+  enableAppliedFiltersBar?: boolean;
+  enableSavedViews?: boolean;
 }
 
 function getColumnKey<T>(column: ColumnDef<T>, index: number) {
@@ -109,12 +116,18 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
   getRowId,
   emptyState,
   refetchIntervalMs,
+  enableDensityToggle = false,
+  enableAdvancedFilters = false,
+  enableAppliedFiltersBar = true,
+  enableSavedViews = false,
 }: ServerTableViewProps<TItem, TFilters>) {
-  const { state: persistedState, setColumnVisibility, setPageSize } = useTableStatePersistence(storageKey);
+  const { state: persistedState, setColumnVisibility, setPageSize, setDensity, setSavedViewId } =
+    useTableStatePersistence(storageKey);
   const { params, setParams } = useListQueryState<TFilters>({ defaultParams });
   const [columnVisibility, setColumnVisibilityState] = useState<Record<string, boolean>>(
     persistedState.columnVisibility ?? {}
   );
+  const [density, setDensityState] = useState<"comfortable" | "compact">(persistedState.density ?? "comfortable");
 
   useEffect(() => {
     if (persistedState.columnVisibility) {
@@ -127,6 +140,12 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
       setParams({ limit: persistedState.pageSize, page: 1 });
     }
   }, [persistedState.pageSize, params.limit, setParams]);
+
+  useEffect(() => {
+    if (persistedState.density) {
+      setDensityState(persistedState.density);
+    }
+  }, [persistedState.density]);
 
   const cleanedParams = useMemo(
     () => cleanDefaults(withDefaults(params, defaultParams), defaultParams),
@@ -243,89 +262,208 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
         ) : null}
       </CardHeader>
       <CardContent className="space-y-4">
-        <FilterBar
-          search={params.search}
-          onSearchChange={(value) => setParams({ search: value || undefined, page: 1 })}
-          onReset={handleReset}
-          disabled={query.isLoading}
-        >
-          {filtersConfig?.map((filter) => {
-            if (filter.type === "status") {
-              const current = (params.filters as Record<string, unknown> | undefined)?.[filter.key] as
-                | string
-                | undefined;
-              return (
-                <Select
-                  key={filter.key}
-                  value={current}
-                  onValueChange={(value) =>
-                    setParams({
-                      filters: normalizeFilters<TFilters>({
-                        ...(params.filters as Record<string, unknown>),
-                        [filter.key]: value,
-                      }),
-                      page: 1,
-                    })
-                  }
-                  disabled={query.isLoading}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder={filter.label} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filter.options.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              );
-            }
-            return (
-              <Button key={filter.key} variant="outline" size="sm" disabled>
-                {filter.label} (به‌زودی)
-              </Button>
-            );
-          })}
-          {sortOptionsNormalized.length ? (
-            <SortSelect
-              value={currentSortValue}
-              options={sortOptionsNormalized}
-              onChange={(value) => setParams({ sort: parseSortValue(value), page: 1 })}
-              disabled={query.isLoading}
-            />
-          ) : null}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" disabled={query.isLoading}>
-                ستون‌ها
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {columnsWithActions.map((column, index) => {
-                const key = getColumnKey(column, index);
-                const label =
-                  typeof column.header === "string" ? column.header : column.id ?? column.accessorKey ?? key;
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={key}
-                    checked={columnVisibility[key] !== false}
-                    onCheckedChange={(checked) => {
-                      const next = { ...columnVisibility, [key]: Boolean(checked) };
-                      setColumnVisibilityState(next);
-                      setColumnVisibility(next);
-                    }}
-                  >
-                    {String(label)}
-                  </DropdownMenuCheckboxItem>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </FilterBar>
+        {enableSavedViews ? (
+          <SavedViews
+            storageKey={`${storageKey}-views`}
+            enabled={enableSavedViews}
+            value={persistedState.savedViewId}
+            onSelect={(view) => {
+              setSavedViewId(view.id);
+              setParams(view.params as Partial<ListParams<TFilters>>);
+            }}
+            onSave={() => params}
+          />
+        ) : null}
 
-        {filterEntries.length ? (
+        {enableAdvancedFilters ? (
+          <AdvancedFilterBar
+            primaryFilters={(
+              <FilterBar
+                search={params.search}
+                onSearchChange={(value) => setParams({ search: value || undefined, page: 1 })}
+                onReset={handleReset}
+                disabled={query.isLoading}
+              >
+                {filtersConfig?.map((filter) => {
+                  if (filter.type === "status") {
+                    const current = (params.filters as Record<string, unknown> | undefined)?.[filter.key] as
+                      | string
+                      | undefined;
+                    return (
+                      <Select
+                        key={filter.key}
+                        value={current}
+                        onValueChange={(value) =>
+                          setParams({
+                            filters: normalizeFilters<TFilters>({
+                              ...(params.filters as Record<string, unknown>),
+                              [filter.key]: value,
+                            }),
+                            page: 1,
+                          })
+                        }
+                        disabled={query.isLoading}
+                      >
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder={filter.label} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filter.options.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    );
+                  }
+                  return (
+                    <Button key={filter.key} variant="outline" size="sm" disabled>
+                      {filter.label} (به‌زودی)
+                    </Button>
+                  );
+                })}
+                {sortOptionsNormalized.length ? (
+                  <SortSelect
+                    value={currentSortValue}
+                    options={sortOptionsNormalized}
+                    onChange={(value) => setParams({ sort: parseSortValue(value), page: 1 })}
+                    disabled={query.isLoading}
+                  />
+                ) : null}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" disabled={query.isLoading}>
+                      ستون‌ها
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {columnsWithActions.map((column, index) => {
+                      const key = getColumnKey(column, index);
+                      const label =
+                        typeof column.header === "string" ? column.header : column.id ?? column.accessorKey ?? key;
+                      return (
+                        <DropdownMenuCheckboxItem
+                          key={key}
+                          checked={columnVisibility[key] !== false}
+                          onCheckedChange={(checked) => {
+                            const next = { ...columnVisibility, [key]: Boolean(checked) };
+                            setColumnVisibilityState(next);
+                            setColumnVisibility(next);
+                          }}
+                        >
+                          {String(label)}
+                        </DropdownMenuCheckboxItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                {enableDensityToggle ? (
+                  <DensityToggle
+                    value={density}
+                    onChange={(value) => {
+                      setDensityState(value);
+                      setDensity(value);
+                    }}
+                  />
+                ) : null}
+              </FilterBar>
+            )}
+          />
+        ) : (
+          <FilterBar
+            search={params.search}
+            onSearchChange={(value) => setParams({ search: value || undefined, page: 1 })}
+            onReset={handleReset}
+            disabled={query.isLoading}
+          >
+            {filtersConfig?.map((filter) => {
+              if (filter.type === "status") {
+                const current = (params.filters as Record<string, unknown> | undefined)?.[filter.key] as
+                  | string
+                  | undefined;
+                return (
+                  <Select
+                    key={filter.key}
+                    value={current}
+                    onValueChange={(value) =>
+                      setParams({
+                        filters: normalizeFilters<TFilters>({
+                          ...(params.filters as Record<string, unknown>),
+                          [filter.key]: value,
+                        }),
+                        page: 1,
+                      })
+                    }
+                    disabled={query.isLoading}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder={filter.label} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filter.options.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                );
+              }
+              return (
+                <Button key={filter.key} variant="outline" size="sm" disabled>
+                  {filter.label} (به‌زودی)
+                </Button>
+              );
+            })}
+            {sortOptionsNormalized.length ? (
+              <SortSelect
+                value={currentSortValue}
+                options={sortOptionsNormalized}
+                onChange={(value) => setParams({ sort: parseSortValue(value), page: 1 })}
+                disabled={query.isLoading}
+              />
+            ) : null}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={query.isLoading}>
+                  ستون‌ها
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {columnsWithActions.map((column, index) => {
+                  const key = getColumnKey(column, index);
+                  const label =
+                    typeof column.header === "string" ? column.header : column.id ?? column.accessorKey ?? key;
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={key}
+                      checked={columnVisibility[key] !== false}
+                      onCheckedChange={(checked) => {
+                        const next = { ...columnVisibility, [key]: Boolean(checked) };
+                        setColumnVisibilityState(next);
+                        setColumnVisibility(next);
+                      }}
+                    >
+                      {String(label)}
+                    </DropdownMenuCheckboxItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {enableDensityToggle ? (
+              <DensityToggle
+                value={density}
+                onChange={(value) => {
+                  setDensityState(value);
+                  setDensity(value);
+                }}
+              />
+            ) : null}
+          </FilterBar>
+        )}
+
+        {enableAppliedFiltersBar && filterEntries.length ? (
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span>فیلترهای اعمال‌شده:</span>
             {filterEntries.map(([key, value]) => (
@@ -381,6 +519,7 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
             getRowId={getRowId ? (row) => getRowId(row) : undefined}
             showPagination={false}
             emptyState={emptyState}
+            density={density}
           />
         </div>
 

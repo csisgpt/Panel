@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Sun, Moon, Menu, LogOut } from "lucide-react";
+import { Search, Sun, Moon, Menu, LogOut, User } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -10,6 +10,13 @@ import { Badge } from "../ui/badge";
 import { Avatar } from "../ui/avatar";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 
 interface TopbarProps {
   onMenuClick?: () => void;
@@ -39,7 +46,7 @@ export function Topbar({
     <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
       <div className="flex w-full flex-col gap-3 px-3 py-3 sm:px-4 lg:px-8">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-1 items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
@@ -51,7 +58,7 @@ export function Topbar({
             </Button>
             <div
               className={cn(
-                "flex w-full items-center gap-2 rounded-2xl border bg-card px-3 py-0 shadow-sm",
+                "flex w-full items-center gap-2 rounded-2xl border bg-card/80 px-3 py-0 shadow-sm",
                 "lg:max-w-xl"
               )}
             >
@@ -63,7 +70,7 @@ export function Topbar({
             </div>
             <Badge
               variant="secondary"
-              className="hidden sm:inline-flex min-w-fit py-3"
+              className="hidden sm:inline-flex min-w-fit py-2"
             >
               <span className="text-[11px]">وضعیت : پایدار</span>
             </Badge>
@@ -82,25 +89,32 @@ export function Topbar({
                 <Moon className="h-4 w-4" />
               )}
             </Button>
-            <div className="hidden items-center gap-3 rounded-full border pl-3 pr-1 py-1 sm:flex">
-              <Avatar name={userName ?? "کاربر"} />
-
-              <div className="text-right">
-                {/* <p className="text-xs text-muted-foreground">
-                  {userRole ?? "کاربر سیستم"}
-                </p> */}
-                <p className="text-sm font-semibold">{userName ?? "کاربر"}</p>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLogout}
-                className="text-xs"
-              >
-                <LogOut className="ml-1 h-4 w-4" />
-                خروج
-              </Button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="hidden items-center gap-2 rounded-full border px-2 py-1 sm:flex">
+                  <Avatar name={userName ?? "کاربر"} className="h-8 w-8" />
+                  <span className="text-sm font-semibold">{userName ?? "کاربر"}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <div className="px-3 py-2 text-right">
+                  <p className="text-xs text-muted-foreground">{userRole ?? "کاربر سیستم"}</p>
+                  <p className="text-sm font-semibold text-foreground">{userName ?? "کاربر"}</p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={(event) => event.preventDefault()}>
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  پروفایل
+                </DropdownMenuItem>
+                <DropdownMenuItem destructive onSelect={(event) => {
+                  event.preventDefault();
+                  handleLogout();
+                }}>
+                  <LogOut className="h-4 w-4" />
+                  خروج
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:hidden">

@@ -1,90 +1,77 @@
 "use client";
 
 import * as React from "react";
-import { createPortal } from "react-dom";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-interface DialogProps {
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  children: React.ReactNode;
-}
-
-interface DialogContextValue {
-  open: boolean;
-  setOpen: (open: boolean) => void;
-}
-
-const DialogContext = React.createContext<DialogContextValue | null>(null);
-
-export function Dialog({ open, onOpenChange, children }: DialogProps) {
-  const [mounted, setMounted] = React.useState(false);
-  const [internalOpen, setInternalOpen] = React.useState(false);
-  const isControlled = typeof open === "boolean";
-  const currentOpen = isControlled ? open : internalOpen;
-  const setOpen = isControlled ? onOpenChange ?? (() => undefined) : setInternalOpen;
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  React.useEffect(() => {
-    const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [setOpen]);
-
-  if (!currentOpen || !mounted) return null;
-
-  return createPortal(
-    <DialogContext.Provider value={{ open: currentOpen, setOpen }}>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-        <button className="absolute inset-0 h-full w-full" aria-label="Close dialog" onClick={() => setOpen(false)} />
-        <div className="relative z-10 w-full max-w-lg scale-100 overflow-hidden rounded-2xl border bg-card shadow-2xl">
-          {children}
-        </div>
-      </div>
-    </DialogContext.Provider>,
-    document.body
-  );
-}
-
-export function DialogTrigger({ asChild, children }: { asChild?: boolean; children: React.ReactElement }) {
-  const context = React.useContext(DialogContext);
-  if (!context) return children;
-  const triggerProps = {
-    onClick: () => context.setOpen(true),
-  };
-  if (asChild) {
-    return React.cloneElement(children, { ...triggerProps, ...children.props });
+const dialogContentVariants = cva(
+  "fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border bg-card shadow-2xl outline-none",
+  {
+    variants: {
+      size: {
+        sm: "max-w-sm",
+        md: "max-w-lg",
+        lg: "max-w-2xl",
+        xl: "max-w-4xl",
+      },
+    },
+    defaultVariants: {
+      size: "md",
+    },
   }
-  return (
-    <button type="button" {...triggerProps}>
+);
+
+export const Dialog = DialogPrimitive.Root;
+export const DialogTrigger = DialogPrimitive.Trigger;
+export const DialogClose = DialogPrimitive.Close;
+
+export const DialogPortal = DialogPrimitive.Portal;
+
+export const DialogOverlay = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Overlay>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Overlay
+    ref={ref}
+    className={cn("fixed inset-0 z-50 bg-black/40 backdrop-blur-sm", className)}
+    {...props}
+  />
+));
+DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
+
+export interface DialogContentProps
+  extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>,
+    VariantProps<typeof dialogContentVariants> {}
+
+export const DialogContent = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  DialogContentProps
+>(({ className, children, size, ...props }, ref) => (
+  <DialogPortal>
+    <DialogOverlay />
+    <DialogPrimitive.Content ref={ref} className={cn(dialogContentVariants({ size }), className)} {...props}>
       {children}
-    </button>
-  );
-}
+      <DialogPrimitive.Close className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-sm text-muted-foreground transition hover:bg-muted">
+        ×
+      </DialogPrimitive.Close>
+    </DialogPrimitive.Content>
+  </DialogPortal>
+));
+DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 export function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("border-b px-4 py-3", className)} {...props} />;
+  return <div className={cn("border-b px-5 py-4", className)} {...props} />;
 }
 
 export function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn("text-lg font-semibold", className)} {...props} />;
+  return <DialogPrimitive.Title className={cn("text-lg font-semibold", className)} {...props} />;
 }
 
 export function DialogDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("text-sm text-muted-foreground", className)} {...props} />;
-}
-
-export function DialogContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("space-y-4 px-4 py-5", className)} {...props} />;
+  return <DialogPrimitive.Description className={cn("text-sm text-muted-foreground", className)} {...props} />;
 }
 
 export function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("flex flex-col-reverse gap-2 px-4 pb-4 pt-2 sm:flex-row sm:justify-end", className)} {...props} />;
+  return <div className={cn("flex flex-col-reverse gap-2 px-5 pb-5 pt-2 sm:flex-row sm:justify-end", className)} {...props} />;
 }
