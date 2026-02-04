@@ -12,6 +12,8 @@ import { listAdminP2PAllocations } from "@/lib/api/p2p";
 import type { P2PAllocation } from "@/lib/contracts/p2p";
 import type { ServerTableViewProps } from "@/components/kit/table/server-table-view";
 
+const supportsBooleanQuery = process.env.NEXT_PUBLIC_API_SUPPORTS_BOOLEAN_QUERY === "true";
+
 function ProofAttachmentsCell({ allocation }: { allocation: P2PAllocation }) {
   const [open, setOpen] = useState(false);
   const files = useMemo(() => {
@@ -135,42 +137,46 @@ export function createAdminP2PAllocationsListConfig(): ServerTableViewProps<P2PA
           { label: "نامشخص", value: "UNKNOWN" },
         ],
       },
-      {
-        type: "status",
-        key: "hasProof",
-        label: "دارای رسید",
-        options: [
-          { label: "بله", value: "true" },
-          { label: "خیر", value: "false" },
-        ],
-      },
-      {
-        type: "status",
-        key: "receiverConfirmed",
-        label: "تایید گیرنده",
-        options: [
-          { label: "بله", value: "true" },
-          { label: "خیر", value: "false" },
-        ],
-      },
-      {
-        type: "status",
-        key: "adminVerified",
-        label: "تایید ادمین",
-        options: [
-          { label: "بله", value: "true" },
-          { label: "خیر", value: "false" },
-        ],
-      },
-      {
-        type: "status",
-        key: "expired",
-        label: "منقضی",
-        options: [
-          { label: "بله", value: "true" },
-          { label: "خیر", value: "false" },
-        ],
-      },
+      ...(supportsBooleanQuery
+        ? [
+            {
+              type: "status" as const,
+              key: "hasProof",
+              label: "دارای رسید",
+              options: [
+                { label: "بله", value: "true" },
+                { label: "خیر", value: "false" },
+              ],
+            },
+            {
+              type: "status" as const,
+              key: "receiverConfirmed",
+              label: "تایید گیرنده",
+              options: [
+                { label: "بله", value: "true" },
+                { label: "خیر", value: "false" },
+              ],
+            },
+            {
+              type: "status" as const,
+              key: "adminVerified",
+              label: "تایید ادمین",
+              options: [
+                { label: "بله", value: "true" },
+                { label: "خیر", value: "false" },
+              ],
+            },
+            {
+              type: "status" as const,
+              key: "expired",
+              label: "منقضی",
+              options: [
+                { label: "بله", value: "true" },
+                { label: "خیر", value: "false" },
+              ],
+            },
+          ]
+        : []),
       {
         type: "status",
         key: "expiresSoonMinutes",
@@ -180,8 +186,7 @@ export function createAdminP2PAllocationsListConfig(): ServerTableViewProps<P2PA
           { label: "۶۰ دقیقه", value: "60" },
         ],
       },
-      { type: "amountRange", key: "amountMin", label: "حداقل مبلغ" },
-      { type: "amountRange", key: "amountMax", label: "حداکثر مبلغ" },
+      // TODO: backend DTO needs amountMin/amountMax support before enabling amount range filters.
       { type: "dateRange", key: "createdFrom", label: "از تاریخ ایجاد" },
       { type: "dateRange", key: "createdTo", label: "تا تاریخ ایجاد" },
       { type: "dateRange", key: "paidFrom", label: "از تاریخ پرداخت" },

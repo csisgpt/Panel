@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useQuery } from "@tanstack/react-query";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AppliedFiltersBar, type AppliedFilter } from "@/components/kit/table/applied-filters-bar";
 import { EmptyState } from "@/components/kit/common/EmptyState";
 import { ErrorState } from "@/components/kit/common/ErrorState";
 import { LoadingState } from "@/components/kit/common/LoadingState";
@@ -16,13 +16,14 @@ import type { ListMeta } from "@/lib/contracts/list";
 import { cleanDefaults, type ListParams, type SortDir, withDefaults } from "@/lib/querykit/schemas";
 import { useListQueryState } from "@/lib/querykit/use-list-query-state";
 import { DataTable } from "./data-table";
-import { FilterBar } from "./filter-bar";
 import { Pagination } from "./pagination";
 import { QuickTabs, type QuickTab } from "./quick-tabs";
 import { SortSelect } from "./sort-select";
 import { AdvancedFilterBar } from "./advanced-filter-bar";
 import { DensityToggle } from "./density-toggle";
 import { SavedViews } from "./saved-views";
+import { TableShell } from "./table-shell";
+import { TableToolbar } from "./table-toolbar";
 import { useTableStatePersistence } from "./use-table-state-persistence";
 
 export interface ServerTableViewTab<TFilters> extends QuickTab {
@@ -97,6 +98,13 @@ function normalizeFilters<TFilters>(filters: Record<string, unknown>) {
   ) as TFilters;
 }
 
+function serializeFilterValue(value: unknown) {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  if (typeof value === "boolean") return value ? "بله" : "خیر";
+  return value ? String(value) : "-";
+}
+
 /**
  * Unified list view wrapper combining QueryKit + React Query + TableKit.
  */
@@ -128,6 +136,8 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
     persistedState.columnVisibility ?? {}
   );
   const [density, setDensityState] = useState<"comfortable" | "compact">(persistedState.density ?? "comfortable");
+  const [localSearch, setLocalSearch] = useState(params.search ?? "");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   useEffect(() => {
     if (persistedState.columnVisibility) {
@@ -147,6 +157,18 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
     }
   }, [persistedState.density]);
 
+  useEffect(() => {
+    setLocalSearch(params.search ?? "");
+  }, [params.search]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearch === (params.search ?? "")) return;
+      setParams({ search: localSearch || undefined, page: 1 });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [localSearch, params.search, setParams]);
+
   const cleanedParams = useMemo(
     () => cleanDefaults(withDefaults(params, defaultParams), defaultParams),
     [params, defaultParams]
@@ -156,8 +178,9 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
 
   const query = useQuery<{ items: TItem[]; meta: ListMeta }, ApiError>({
     queryKey,
-    queryFn: () => queryFn(params),
+    queryFn: () => queryFn(cleanedParams as ListParams<TFilters>),
     refetchInterval: refetchIntervalMs,
+    placeholderData: (previous) => previous,
   });
 
   const data: TItem[] = query.data?.items ?? [];
@@ -247,283 +270,215 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
     return map;
   }, [filtersConfig]);
 
+  const appliedFilters = useMemo<AppliedFilter[]>(() => {
+    const filters = filterEntries.map(([key, value]) => {
+      const meta = filterLabels.get(key);
+      const label = meta?.label ?? key;
+      const valueLabel = meta?.values?.[String(value)] ?? serializeFilterValue(value);
+      return { key, label, value: valueLabel };
+    });
+    if (params.search) {
+      filters.unshift({ key: "__search", label: "جستجو", value: params.search });
+    }
+    return filters;
+  }, [filterEntries, filterLabels, params.search]);
+
+  const primaryFiltersConfig = useMemo(() => (filtersConfig ?? []).slice(0, 3), [filtersConfig]);
+  const secondaryFiltersConfig = useMemo(() => (filtersConfig ?? []).slice(3), [filtersConfig]);
+  const showFilters = (filtersConfig?.length ?? 0) > 0 || sortOptionsNormalized.length > 0;
+
+  const renderFilterControl = useCallback(
+    (filter: ServerTableFilterConfig<TFilters>) => {
+      const current = (params.filters as Record<string, unknown> | undefined)?.[filter.key];
+      const handleChange = (value: string) => {
+        setParams({
+          filters: normalizeFilters<TFilters>({
+            ...(params.filters as Record<string, unknown>),
+            [filter.key]: value || undefined,
+          }),
+          page: 1,
+        });
+      };
+
+      if (filter.type === "status") {
+        return (
+          <Select key={filter.key} value={current as string | undefined} onValueChange={handleChange} disabled={query.isLoading}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder={filter.label} />
+            </SelectTrigger>
+            <SelectContent>
+              {filter.options.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+      }
+
+      if (filter.type === "dateRange") {
+        return (
+          <Input
+            key={filter.key}
+            type="date"
+            value={(current as string | undefined) ?? ""}
+            onChange={(event) => handleChange(event.target.value)}
+            placeholder={filter.label}
+            className="w-[180px]"
+            disabled={query.isLoading}
+          />
+        );
+      }
+
+      return (
+        <Input
+          key={filter.key}
+          type="number"
+          value={(current as string | undefined) ?? ""}
+          onChange={(event) => handleChange(event.target.value)}
+          placeholder={filter.label}
+          className="w-[180px]"
+          disabled={query.isLoading}
+        />
+      );
+    },
+    [params.filters, query.isLoading, setParams]
+  );
+
   return (
-    <Card>
-      <CardHeader className="space-y-2">
-        {title ? <CardTitle>{title}</CardTitle> : null}
-        {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
-        {tabs?.length ? (
-          <QuickTabs
-            tabs={tabs}
-            currentTabId={params.tab ?? defaultTabId}
-            onTabChange={handleTabChange}
-            disabled={query.isLoading}
-          />
-        ) : null}
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {enableSavedViews ? (
-          <SavedViews
-            storageKey={`${storageKey}-views`}
-            enabled={enableSavedViews}
-            value={persistedState.savedViewId}
-            onSelect={(view) => {
-              setSavedViewId(view.id);
-              setParams(view.params as Partial<ListParams<TFilters>>);
-            }}
-            onSave={() => params}
-          />
-        ) : null}
-
-        {enableAdvancedFilters ? (
-          <AdvancedFilterBar
-            primaryFilters={(
-              <FilterBar
-                search={params.search}
-                onSearchChange={(value) => setParams({ search: value || undefined, page: 1 })}
-                onReset={handleReset}
+    <TableShell
+      title={title}
+      description={description}
+      toolbar={
+        <div className="space-y-3">
+          <TableToolbar
+            searchSlot={
+              <Input
+                placeholder="جستجو"
+                value={localSearch}
+                onChange={(event) => setLocalSearch(event.target.value)}
                 disabled={query.isLoading}
-              >
-                {filtersConfig?.map((filter) => {
-                  if (filter.type === "status") {
-                    const current = (params.filters as Record<string, unknown> | undefined)?.[filter.key] as
-                      | string
-                      | undefined;
+                className="w-full sm:w-64"
+              />
+            }
+            columnsSlot={
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" disabled={query.isLoading}>
+                    ستون‌ها
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {columnsWithActions.map((column, index) => {
+                    const key = getColumnKey(column, index);
+                    const label =
+                      typeof column.header === "string" ? column.header : column.id ?? column.accessorKey ?? key;
                     return (
-                      <Select
-                        key={filter.key}
-                        value={current}
-                        onValueChange={(value) =>
-                          setParams({
-                            filters: normalizeFilters<TFilters>({
-                              ...(params.filters as Record<string, unknown>),
-                              [filter.key]: value,
-                            }),
-                            page: 1,
-                          })
-                        }
-                        disabled={query.isLoading}
+                      <DropdownMenuCheckboxItem
+                        key={key}
+                        checked={columnVisibility[key] !== false}
+                        onCheckedChange={(checked) => {
+                          const next = { ...columnVisibility, [key]: Boolean(checked) };
+                          setColumnVisibilityState(next);
+                          setColumnVisibility(next);
+                        }}
                       >
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder={filter.label} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {filter.options.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        {String(label)}
+                      </DropdownMenuCheckboxItem>
                     );
-                  }
-                  return (
-                    <Button key={filter.key} variant="outline" size="sm" disabled>
-                      {filter.label} (به‌زودی)
-                    </Button>
-                  );
-                })}
-                {sortOptionsNormalized.length ? (
-                  <SortSelect
-                    value={currentSortValue}
-                    options={sortOptionsNormalized}
-                    onChange={(value) => setParams({ sort: parseSortValue(value), page: 1 })}
-                    disabled={query.isLoading}
-                  />
-                ) : null}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" disabled={query.isLoading}>
-                      ستون‌ها
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {columnsWithActions.map((column, index) => {
-                      const key = getColumnKey(column, index);
-                      const label =
-                        typeof column.header === "string" ? column.header : column.id ?? column.accessorKey ?? key;
-                      return (
-                        <DropdownMenuCheckboxItem
-                          key={key}
-                          checked={columnVisibility[key] !== false}
-                          onCheckedChange={(checked) => {
-                            const next = { ...columnVisibility, [key]: Boolean(checked) };
-                            setColumnVisibilityState(next);
-                            setColumnVisibility(next);
-                          }}
-                        >
-                          {String(label)}
-                        </DropdownMenuCheckboxItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                {enableDensityToggle ? (
-                  <DensityToggle
-                    value={density}
-                    onChange={(value) => {
-                      setDensityState(value);
-                      setDensity(value);
-                    }}
-                  />
-                ) : null}
-              </FilterBar>
-            )}
-          />
-        ) : (
-          <FilterBar
-            search={params.search}
-            onSearchChange={(value) => setParams({ search: value || undefined, page: 1 })}
-            onReset={handleReset}
-            disabled={query.isLoading}
-          >
-            {filtersConfig?.map((filter) => {
-              if (filter.type === "status") {
-                const current = (params.filters as Record<string, unknown> | undefined)?.[filter.key] as
-                  | string
-                  | undefined;
-                return (
-                  <Select
-                    key={filter.key}
-                    value={current}
-                    onValueChange={(value) =>
-                      setParams({
-                        filters: normalizeFilters<TFilters>({
-                          ...(params.filters as Record<string, unknown>),
-                          [filter.key]: value,
-                        }),
-                        page: 1,
-                      })
-                    }
-                    disabled={query.isLoading}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder={filter.label} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filter.options.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                );
-              }
-              return (
-                <Button key={filter.key} variant="outline" size="sm" disabled>
-                  {filter.label} (به‌زودی)
-                </Button>
-              );
-            })}
-            {sortOptionsNormalized.length ? (
-              <SortSelect
-                value={currentSortValue}
-                options={sortOptionsNormalized}
-                onChange={(value) => setParams({ sort: parseSortValue(value), page: 1 })}
-                disabled={query.isLoading}
-              />
-            ) : null}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" disabled={query.isLoading}>
-                  ستون‌ها
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {columnsWithActions.map((column, index) => {
-                  const key = getColumnKey(column, index);
-                  const label =
-                    typeof column.header === "string" ? column.header : column.id ?? column.accessorKey ?? key;
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={key}
-                      checked={columnVisibility[key] !== false}
-                      onCheckedChange={(checked) => {
-                        const next = { ...columnVisibility, [key]: Boolean(checked) };
-                        setColumnVisibilityState(next);
-                        setColumnVisibility(next);
-                      }}
-                    >
-                      {String(label)}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            {enableDensityToggle ? (
-              <DensityToggle
-                value={density}
-                onChange={(value) => {
-                  setDensityState(value);
-                  setDensity(value);
-                }}
-              />
-            ) : null}
-          </FilterBar>
-        )}
-
-        {enableAppliedFiltersBar && filterEntries.length ? (
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span>فیلترهای اعمال‌شده:</span>
-            {filterEntries.map(([key, value]) => (
-              <Badge key={key} variant="secondary" className="gap-2">
-                <span>
-                  {(filterLabels.get(key)?.label ?? key) + ": "}{String(filterLabels.get(key)?.values?.[String(value)] ?? value)}
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-5 px-1 text-xs"
-                  onClick={() => {
-                    const next = { ...(params.filters as Record<string, unknown>), [key]: undefined };
-                    const cleaned = normalizeFilters<TFilters>(next);
-                    setParams({ filters: Object.keys(cleaned as Record<string, unknown>).length ? cleaned : undefined, page: 1 });
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            }
+            densitySlot={
+              enableDensityToggle ? (
+                <DensityToggle
+                  value={density}
+                  onChange={(value) => {
+                    setDensityState(value);
+                    setDensity(value);
                   }}
-                >
-                  حذف
-                </Button>
-              </Badge>
-            ))}
-          </div>
-        ) : null}
-
-        {renderCard ? (
-          <div className="space-y-3 md:hidden">
-            {query.isLoading ? (
-              <LoadingState />
-            ) : error ? (
-              <ErrorState error={error} onAction={() => query.refetch()} />
-            ) : data.length === 0 ? (
-              <EmptyState title={emptyState?.title} description={emptyState?.description} actionLabel={emptyState?.actionLabel} onAction={emptyState?.onAction} />
-            ) : (
-              data.map((row, index) => <div key={getRowId ? getRowId(row) : index}>{renderCard(row)}</div>)
-            )}
-          </div>
-        ) : null}
-
-        <div className={renderCard ? "hidden md:block" : ""}>
-          <DataTable
-            data={data}
-            columns={visibleColumns}
-            meta={meta}
-            loading={query.isLoading}
-            error={error}
-            onRetry={() => query.refetch()}
-            onPageChange={(page) => setParams({ page })}
-            onLimitChange={(limit) => {
-              setParams({ limit, page: 1 });
-              setPageSize(limit);
-            }}
-            getRowId={getRowId ? (row) => getRowId(row) : undefined}
-            showPagination={false}
-            emptyState={emptyState}
-            density={density}
+                />
+              ) : null
+            }
+            rightSlot={
+              <Button type="button" variant="outline" size="sm" disabled>
+                خروجی (به‌زودی)
+              </Button>
+            }
           />
+          {tabs?.length ? (
+            <QuickTabs
+              tabs={tabs}
+              currentTabId={params.tab ?? defaultTabId}
+              onTabChange={handleTabChange}
+              disabled={query.isLoading}
+            />
+          ) : null}
+          {enableSavedViews ? (
+            <SavedViews
+              storageKey={`${storageKey}-views`}
+              enabled={enableSavedViews}
+              value={persistedState.savedViewId}
+              onSelect={(view) => {
+                setSavedViewId(view.id);
+                setParams(view.params as Partial<ListParams<TFilters>>);
+              }}
+              onSave={() => params}
+            />
+          ) : null}
+          {showFilters ? (
+            <AdvancedFilterBar
+              primaryFilters={
+                <>
+                  {primaryFiltersConfig.map(renderFilterControl)}
+                  {sortOptionsNormalized.length ? (
+                    <SortSelect
+                      value={currentSortValue}
+                      options={sortOptionsNormalized}
+                      onChange={(value) => setParams({ sort: parseSortValue(value), page: 1 })}
+                      disabled={query.isLoading}
+                    />
+                  ) : null}
+                </>
+              }
+              secondaryFilters={
+                enableAdvancedFilters && secondaryFiltersConfig.length
+                  ? secondaryFiltersConfig.map(renderFilterControl)
+                  : null
+              }
+              secondaryCount={enableAdvancedFilters ? secondaryFiltersConfig.length : 0}
+              collapsed={!advancedOpen}
+              onToggleSecondary={enableAdvancedFilters ? () => setAdvancedOpen((prev) => !prev) : undefined}
+              onReset={handleReset}
+            />
+          ) : null}
+          {enableAppliedFiltersBar ? (
+            <AppliedFiltersBar
+              filters={appliedFilters}
+              onRemove={(key) => {
+                if (key === "__search") {
+                  setLocalSearch("");
+                  setParams({ search: undefined, page: 1 });
+                  return;
+                }
+                const nextFilters = normalizeFilters<TFilters>({
+                  ...(params.filters as Record<string, unknown>),
+                  [key]: undefined,
+                });
+                setParams({ filters: nextFilters, page: 1 });
+              }}
+              onClear={() => {
+                setLocalSearch("");
+                setParams({ filters: undefined, search: undefined, page: 1 });
+              }}
+            />
+          ) : null}
         </div>
-
-        {meta ? (
+      }
+      footer={
+        meta ? (
           <Pagination
             meta={meta}
             onPageChange={(page) => setParams({ page })}
@@ -533,8 +488,47 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
             }}
             disabled={query.isLoading}
           />
-        ) : null}
-      </CardContent>
-    </Card>
+        ) : null
+      }
+    >
+      {renderCard ? (
+        <div className="space-y-3 md:hidden">
+          {query.isLoading ? (
+            <LoadingState />
+          ) : error ? (
+            <ErrorState error={error} onAction={() => query.refetch()} />
+          ) : data.length === 0 ? (
+            <EmptyState
+              title={emptyState?.title}
+              description={emptyState?.description}
+              actionLabel={emptyState?.actionLabel}
+              onAction={emptyState?.onAction}
+            />
+          ) : (
+            data.map((row, index) => <div key={getRowId ? getRowId(row) : index}>{renderCard(row)}</div>)
+          )}
+        </div>
+      ) : null}
+
+      <div className={renderCard ? "hidden md:block" : ""}>
+        <DataTable
+          data={data}
+          columns={visibleColumns}
+          meta={meta}
+          loading={query.isLoading}
+          error={error}
+          onRetry={() => query.refetch()}
+          onPageChange={(page) => setParams({ page })}
+          onLimitChange={(limit) => {
+            setParams({ limit, page: 1 });
+            setPageSize(limit);
+          }}
+          getRowId={getRowId ? (row) => getRowId(row) : undefined}
+          showPagination={false}
+          emptyState={emptyState}
+          density={density}
+        />
+      </div>
+    </TableShell>
   );
 }

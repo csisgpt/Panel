@@ -1,6 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import type { Swiper as SwiperClass } from "swiper";
+import { Thumbs } from "swiper/modules";
+import { FileText, ImageIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { FileLink, FileMeta } from "@/lib/types/backend";
 import { useFileLinks } from "./data/use-file-links";
@@ -9,6 +13,8 @@ import { PdfViewer } from "./viewers/pdf-viewer";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/kit/common/ErrorState";
 import { EmptyState } from "@/components/kit/common/EmptyState";
+import "swiper/css";
+import "swiper/css/thumbs";
 
 /**
  * Attachment gallery with navigation, keyboard controls, and retry handling.
@@ -32,7 +38,9 @@ export function AttachmentGalleryModal({
   const [zoom, setZoom] = useState(1);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [retryCounts, setRetryCounts] = useState<Record<string, number>>({});
+  const [thumbsSwiper, setThumbsSwiper] = useState<SwiperClass | null>(null);
   const touchStartX = useRef<number | null>(null);
+  const mainSwiperRef = useRef<SwiperClass | null>(null);
 
   const shouldFetch = !links;
   const { data = [], isLoading, refetch, isFetching } = useFileLinks({ fileIds: shouldFetch ? fileIds : [], mode });
@@ -47,14 +55,20 @@ export function AttachmentGalleryModal({
   const hasPrev = activeIndex > 0;
   const hasNext = activeIndex < files.length - 1;
 
-  const goPrev = useCallback(
-    () => setActiveIndex((prev) => (prev > 0 ? prev - 1 : prev)),
-    []
-  );
-  const goNext = useCallback(
-    () => setActiveIndex((prev) => (prev < files.length - 1 ? prev + 1 : prev)),
-    [files.length]
-  );
+  const goPrev = useCallback(() => {
+    if (mainSwiperRef.current) {
+      mainSwiperRef.current.slidePrev();
+      return;
+    }
+    setActiveIndex((prev) => (prev > 0 ? prev - 1 : prev));
+  }, []);
+  const goNext = useCallback(() => {
+    if (mainSwiperRef.current) {
+      mainSwiperRef.current.slideNext();
+      return;
+    }
+    setActiveIndex((prev) => (prev < files.length - 1 ? prev + 1 : prev));
+  }, [files.length]);
 
   useEffect(() => {
     setLoadError(null);
@@ -122,7 +136,7 @@ export function AttachmentGalleryModal({
               ) : null}
             </div>
             <div className="flex items-center gap-2">
-              {activeFile?.mimeType.startsWith("image/") ? (
+              {activeFile?.mimeType?.startsWith("image/") ? (
                 <>
                   <Button variant="outline" size="sm" onClick={() => setZoom(1)} disabled={zoom === 1}>
                     ۱۰۰٪
@@ -147,47 +161,90 @@ export function AttachmentGalleryModal({
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {files.map((file, index) => (
-              <Button
-                key={file.id}
-                variant={index === activeIndex ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveIndex(index)}
-              >
-                {file.fileName}
-              </Button>
-            ))}
-          </div>
-
           {isLoading && !links ? <p className="text-sm text-muted-foreground">در حال دریافت لینک‌ها...</p> : null}
           {isFetching && !isLoading ? (
             <p className="text-xs text-muted-foreground">در حال تازه‌سازی لینک‌ها...</p>
           ) : null}
 
-          {loadError ? (
+          {files.length === 0 ? (
+            <EmptyState description="فایلی برای نمایش وجود ندارد." />
+          ) : loadError ? (
             <ErrorState description={loadError} onAction={() => refetch()} />
-          ) : activeLink?.previewUrl ? (
-            <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} className="rounded-md">
-              {activeFile?.mimeType.startsWith("image/") ? (
-                <ImageViewer
-                  src={activeLink.previewUrl}
-                  alt={activeFile.fileName}
-                  fit={fit}
-                  zoom={zoom}
-                  onError={handlePreviewError}
-                  onLoad={handlePreviewLoad}
-                />
-              ) : activeFile?.mimeType === "application/pdf" ? (
-                <PdfViewer src={activeLink.previewUrl} fit={fit} onError={handlePreviewError} onLoad={handlePreviewLoad} />
-              ) : (
-                <a className="text-sm text-primary underline" href={activeLink.previewUrl}>
-                  مشاهده فایل
-                </a>
-              )}
-            </div>
           ) : (
-            <EmptyState description="لینکی برای نمایش موجود نیست." />
+            <div className="space-y-3">
+              <Swiper
+                modules={[Thumbs]}
+                thumbs={{ swiper: thumbsSwiper && !thumbsSwiper.destroyed ? thumbsSwiper : null }}
+                onSwiper={(swiper) => {
+                  mainSwiperRef.current = swiper;
+                }}
+                onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                className="rounded-md"
+              >
+                {files.map((file) => {
+                  const link = resolvedLinks.find((item: FileLink) => item.id === file.id);
+                  const isImage = file.mimeType?.startsWith("image/");
+                  const isPdf = file.mimeType === "application/pdf";
+                  return (
+                    <SwiperSlide key={file.id} className="rounded-md">
+                      {link?.previewUrl ? (
+                        isImage ? (
+                          <ImageViewer
+                            src={link.previewUrl}
+                            alt={file.fileName}
+                            fit={fit}
+                            zoom={zoom}
+                            onError={handlePreviewError}
+                            onLoad={handlePreviewLoad}
+                          />
+                        ) : isPdf ? (
+                          <PdfViewer src={link.previewUrl} fit={fit} onError={handlePreviewError} onLoad={handlePreviewLoad} />
+                        ) : (
+                          <a className="text-sm text-primary underline" href={link.previewUrl}>
+                            مشاهده فایل
+                          </a>
+                        )
+                      ) : (
+                        <EmptyState description="لینکی برای نمایش موجود نیست." />
+                      )}
+                    </SwiperSlide>
+                  );
+                })}
+              </Swiper>
+
+              <Swiper
+                slidesPerView="auto"
+                spaceBetween={8}
+                watchSlidesProgress
+                onSwiper={setThumbsSwiper}
+              >
+                {files.map((file, index) => {
+                  const isImage = file.mimeType?.startsWith("image/");
+                  const isActive = index === activeIndex;
+                  return (
+                    <SwiperSlide key={file.id} className="!w-20">
+                      <button
+                        type="button"
+                        onClick={() => mainSwiperRef.current?.slideTo(index)}
+                        className={[
+                          "flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border bg-muted/60 text-[10px]",
+                          isActive ? "border-primary" : "border-border",
+                        ].join(" ")}
+                      >
+                        {isImage ? (
+                          <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                        ) : (
+                          <FileText className="h-5 w-5 text-muted-foreground" />
+                        )}
+                        <span className="mt-1 line-clamp-2 text-center">{file.fileName}</span>
+                      </button>
+                    </SwiperSlide>
+                  );
+                })}
+              </Swiper>
+            </div>
           )}
         </div>
       </DialogContent>
