@@ -14,8 +14,6 @@ export function PageHeader({ title, subtitle, breadcrumbs, actions, meta, classN
     <div className={cn("flex flex-col gap-4 md:flex-row md:items-start md:justify-between", className)} {...props}>
       <div className="space-y-2">
         {breadcrumbs ? <div className="text-xs text-muted-foreground">{breadcrumbs}</div> : null}
-        {title ? <h1 className="text-lg font-semibold text-foreground sm:text-xl">{title}</h1> : null}
-        {subtitle ? <p className="text-xs text-muted-foreground sm:text-sm">{subtitle}</p> : null}
         {meta ? <div className="text-xs text-muted-foreground">{meta}</div> : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}

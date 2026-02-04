@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageShell } from "@/components/layout/page-shell";
-import { TabsContent, TabsList, TabsRoot, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent, TabsList, Tabs, TabsTrigger } from "@/components/ui/tabs";
 import { DetailsDrawer } from "@/components/kit/table/details-drawer";
 import { RowActionsMenu } from "@/components/kit/table/row-actions-menu";
 import { ServerTableView } from "@/components/kit/table/server-table-view";
@@ -116,7 +116,7 @@ export default function TraderHistoryPage() {
         title="تاریخچه درخواست‌ها"
         subtitle="مرور برداشت‌ها، واریزها و تخصیص‌های اخیر"
       />
-      <TabsRoot value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="withdrawals">برداشت‌ها</TabsTrigger>
           <TabsTrigger value="deposits">واریزها</TabsTrigger>
@@ -282,7 +282,7 @@ export default function TraderHistoryPage() {
             emptyState={{ title: "تخصیصی ثبت نشده است" }}
           />
         </TabsContent>
-      </TabsRoot>
+      </Tabs>
       <DetailsDrawer
         open={detailsOpen}
         onOpenChange={(next) => {
@@ -355,7 +355,7 @@ export default function TraderHistoryPage() {
                 </div>
               ) : null}
             </div>
-            <TabsRoot defaultValue="overview">
+            <Tabs defaultValue="overview">
               <TabsList>
                 <TabsTrigger value="overview">نمای کلی</TabsTrigger>
                 <TabsTrigger value="attachments">پیوست‌ها</TabsTrigger>
@@ -370,7 +370,7 @@ export default function TraderHistoryPage() {
               <TabsContent value="logs" className="text-sm text-muted-foreground">
                 لاگ‌های تغییرات در این بخش نمایش داده می‌شود.
               </TabsContent>
-            </TabsRoot>
+            </Tabs>
           </div>
         ) : null}
       </DetailsDrawer>

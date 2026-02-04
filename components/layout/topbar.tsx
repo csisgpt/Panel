@@ -121,7 +121,7 @@ export function Topbar({
             </DropdownMenu>
           </div>
         </div>
-        {pageTitle || breadcrumbs || actions ? (
+        {/* {pageTitle || breadcrumbs || actions ? (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1">
               {breadcrumbs ? <div className="text-xs text-muted-foreground">{breadcrumbs}</div> : null}
@@ -129,7 +129,7 @@ export function Topbar({
             </div>
             {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
           </div>
-        ) : null}
+        ) : null} */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:hidden">
           <div className="flex items-center justify-between gap-3 sm:justify-end">
             <div className="flex items-center gap-2 rounded-full border px-3 py-1 sm:hidden">

@@ -66,9 +66,9 @@ export function listParamsToQuery<TFilters>(
     });
   }
 
-  if (options.includeTab && params.tab) {
-    searchParams.set("tab", params.tab);
-  }
+  // if (options.includeTab && params.tab) {
+  //   searchParams.set("tab", params.tab);
+  // }
 
   return searchParams;
 }

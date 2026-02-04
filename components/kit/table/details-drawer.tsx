@@ -15,7 +15,7 @@ export interface DetailsDrawerProps {
 export function DetailsDrawer({ open, onOpenChange, title, children, actions }: DetailsDrawerProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" size="lg" className="flex w-full flex-col" stickyHeader stickyFooter>
+      <SheetContent side="right" size="lg" className="flex w-full flex-col max-w-[40%]" stickyHeader stickyFooter>
         <SheetHeader className="space-y-2">
           {title ? <SheetTitle>{title}</SheetTitle> : null}
         </SheetHeader>

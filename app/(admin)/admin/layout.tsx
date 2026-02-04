@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter, usePathname } from "next/navigation";
 import { adminNavItems, getVisibleNav } from "@/lib/navigation/registry";
 import { isAdmin } from "@/lib/auth/roles";
+import { PageShell } from "@/components/layout/page-shell";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user, hydrated } = useAuth();
@@ -110,7 +111,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
         topbar={<Topbar onMenuClick={() => setOpen(true)} userName={user?.fullName} pageTitle="ادمین" />}
       >
-        <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</div>
+        <PageShell >
+          {children}
+        </PageShell>
       </AppShell>
 
       <Sheet open={open} onOpenChange={setOpen}>

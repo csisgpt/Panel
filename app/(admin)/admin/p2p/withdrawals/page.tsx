@@ -19,7 +19,7 @@ import type { P2PWithdrawal } from "@/lib/contracts/p2p";
 import type { CandidateRow } from "@/lib/adapters/p2p-vm-mappers";
 import { formatMoney } from "@/lib/format/money";
 import { useToast } from "@/hooks/use-toast";
-import { TabsContent, TabsList, TabsRoot, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent, TabsList, Tabs, TabsTrigger } from "@/components/ui/tabs";
 
 export default function AdminP2PWithdrawalsPage() {
   const config = useMemo(() => createAdminP2PWithdrawalsListConfig(), []);
@@ -71,7 +71,7 @@ export default function AdminP2PWithdrawalsPage() {
   };
 
   return (
-    <PageShell>
+    <>
       <PageHeader
         title="برداشت‌های P2P"
         subtitle="مدیریت صف برداشت‌ها، بررسی وضعیت و تخصیص دستی"
@@ -161,7 +161,7 @@ export default function AdminP2PWithdrawalsPage() {
                 </div>
               </div>
             </div>
-            <TabsRoot defaultValue="overview">
+            <Tabs defaultValue="overview">
               <TabsList>
                 <TabsTrigger value="overview">نمای کلی</TabsTrigger>
                 <TabsTrigger value="attachments">پیوست‌ها</TabsTrigger>
@@ -176,7 +176,7 @@ export default function AdminP2PWithdrawalsPage() {
               <TabsContent value="logs" className="text-sm text-muted-foreground">
                 لاگ‌های عملیات در این بخش نمایش داده خواهد شد.
               </TabsContent>
-            </TabsRoot>
+            </Tabs>
           </div>
         ) : null}
       </DetailsDrawer>
@@ -262,6 +262,6 @@ export default function AdminP2PWithdrawalsPage() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
-    </PageShell>
+    </>
   );
 }
