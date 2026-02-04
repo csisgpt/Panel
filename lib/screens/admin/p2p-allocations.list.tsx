@@ -180,8 +180,7 @@ export function createAdminP2PAllocationsListConfig(): ServerTableViewProps<P2PA
           { label: "۶۰ دقیقه", value: "60" },
         ],
       },
-      { type: "amountRange", key: "amountMin", label: "حداقل مبلغ" },
-      { type: "amountRange", key: "amountMax", label: "حداکثر مبلغ" },
+      // TODO: backend DTO needs amountMin/amountMax support before enabling amount range filters.
       { type: "dateRange", key: "createdFrom", label: "از تاریخ ایجاد" },
       { type: "dateRange", key: "createdTo", label: "تا تاریخ ایجاد" },
       { type: "dateRange", key: "paidFrom", label: "از تاریخ پرداخت" },

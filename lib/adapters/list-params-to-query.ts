@@ -8,6 +8,11 @@ export interface ListQueryMapOptions {
   sortParam?: string;
   sortMap?: Record<string, string | { asc?: string; desc?: string }>;
   allowOffsetParam?: boolean;
+  includeTab?: boolean;
+  enableSearch?: boolean;
+  filterAllowList?: string[];
+  filterDenyList?: string[];
+  dropUnknownFilters?: boolean;
 }
 
 export function listParamsToQuery<TFilters>(
@@ -16,7 +21,8 @@ export function listParamsToQuery<TFilters>(
 ): URLSearchParams {
   const searchParams = new URLSearchParams();
   const searchKey = options.searchKey ?? "search";
-  if (params.search) searchParams.set(searchKey, params.search);
+  const enableSearch = options.enableSearch ?? true;
+  if (enableSearch && params.search) searchParams.set(searchKey, params.search);
 
   if (params.sort?.key) {
     const sortParam = options.sortParam ?? "sort";
@@ -41,15 +47,18 @@ export function listParamsToQuery<TFilters>(
   }
 
   const filters = params.filters as Record<string, unknown> | undefined;
-  if (filters && options.filterKeyMap) {
+  if (filters) {
     Object.entries(filters).forEach(([key, value]) => {
       if (value === undefined || value === null || value === "") return;
       if (key === "offset" && options.allowOffsetParam) {
         searchParams.set("offset", String(value));
         return;
       }
-      const mappedKey = options.filterKeyMap[key];
-      if (!mappedKey) return;
+      const hasMappedKey = options.filterKeyMap ? key in options.filterKeyMap : false;
+      if (options.filterKeyMap && !hasMappedKey && (options.dropUnknownFilters ?? true)) return;
+      const mappedKey = (options.filterKeyMap && hasMappedKey ? options.filterKeyMap[key] : key) ?? key;
+      if (options.filterAllowList && !options.filterAllowList.includes(mappedKey)) return;
+      if (options.filterDenyList && options.filterDenyList.includes(mappedKey)) return;
       const serialized = serializeQueryValue(value);
       if (serialized !== undefined) {
         searchParams.set(mappedKey, serialized);
@@ -57,7 +66,7 @@ export function listParamsToQuery<TFilters>(
     });
   }
 
-  if (params.tab) {
+  if (options.includeTab && params.tab) {
     searchParams.set("tab", params.tab);
   }
 
