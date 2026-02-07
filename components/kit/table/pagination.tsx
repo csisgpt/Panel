@@ -21,8 +21,8 @@ export function Pagination({
   disabled?: boolean;
 }) {
   const totalPages = meta.totalPages ?? Math.ceil(meta.total / meta.limit);
-  const hasPrev = meta.page > 1;
-  const hasNext = meta.page < totalPages;
+  const hasPrev = meta.hasPrevPage ?? meta.page > 1;
+  const hasNext = meta.hasNextPage ?? meta.page < totalPages;
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 text-sm">

@@ -21,7 +21,7 @@ const candidateSortMap: Record<string, string | { asc?: string; desc?: string }>
   createdAt: { asc: "createdAt_asc", desc: "createdAt_desc" },
 };
 
-const supportsBooleanQuery = process.env.NEXT_PUBLIC_API_SUPPORTS_BOOLEAN_QUERY === "true";
+const supportsBooleanQuery = process.env.NEXT_PUBLIC_API_SUPPORTS_BOOLEAN_QUERY !== "false";
 // TODO(backend): add DTO transforms for boolean query params (e.g. "true"/"false") to enable boolean filters safely.
 const booleanFilters = ["hasDispute", "hasProof", "receiverConfirmed", "adminVerified", "expired", "expiresSoon"];
 const booleanDenyList = supportsBooleanQuery ? [] : booleanFilters;
