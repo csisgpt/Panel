@@ -1,17 +1,6 @@
 import { API_BASE_URL } from "./config";
 import { normalizeApiError } from "./error-normalizer";
-import { fetchWithRetry, getAuthToken, parseResponse } from "./http";
-
-export class ApiError extends Error {
-  status: number;
-  body: string;
-
-  constructor(status: number, body: string) {
-    super(body || `API error ${status}`);
-    this.status = status;
-    this.body = body;
-  }
-}
+import { fetchWithRetry, getAuthToken, parseResponse, unwrapApiResult } from "./http";
 
 function getAuthHeader() {
   if (typeof window === "undefined") return undefined;
@@ -41,7 +30,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw await normalizeApiError(res);
   }
 
-  return await parseResponse<T>(res);
+  if (res.status === 204) {
+    return undefined as T;
+  }
+  const parsed = await parseResponse<unknown>(res);
+  return unwrapApiResult(parsed) as T;
 }
 
 async function requestForm<T>(path: string, formData: FormData, options: RequestInit = {}): Promise<T> {
@@ -66,7 +59,11 @@ async function requestForm<T>(path: string, formData: FormData, options: Request
     throw await normalizeApiError(res);
   }
 
-  return await parseResponse<T>(res);
+  if (res.status === 204) {
+    return undefined as T;
+  }
+  const parsed = await parseResponse<unknown>(res);
+  return unwrapApiResult(parsed) as T;
 }
 
 export function apiGet<T>(path: string): Promise<T> {

@@ -9,6 +9,7 @@ import {
 } from "@/lib/adapters/list-query-builders";
 import { adaptListResponse } from "@/lib/adapters/list-response-adapter";
 import { adaptP2PMeta } from "@/lib/adapters/p2p-meta-adapter";
+import { normalizeListResponse } from "@/lib/contracts/list";
 import type {
   AllocationProofDto,
   AllocationReceiverConfirmDto,
@@ -174,8 +175,9 @@ export async function listAdminP2PWithdrawals(params: ListParams) {
     return { items, meta: adaptP2PMeta(envelope.meta) };
   }
   const query = buildAdminP2PWithdrawalsQuery(params);
-  const response = await apiGet<{ data: WithdrawalVmDto[]; meta: any }>(`/admin/p2p/withdrawals?${query}`);
-  return { items: (response.data ?? []).map(mapP2PWithdrawalVm), meta: adaptP2PMeta(response.meta) };
+  const response = await apiGet<any>(`/admin/p2p/withdrawals?${query}`);
+  const { items, meta } = normalizeListResponse<WithdrawalVmDto>(response as any);
+  return { items: items.map(mapP2PWithdrawalVm), meta: adaptP2PMeta(meta as any) };
 }
 
 export async function listAdminP2PAllocations(params: ListParams) {
@@ -190,8 +192,9 @@ export async function listAdminP2PAllocations(params: ListParams) {
     return { items, meta: adaptP2PMeta(envelope.meta) };
   }
   const query = buildAdminP2PAllocationsQuery(params);
-  const response = await apiGet<{ data: AllocationVmDto[]; meta: any }>(`/admin/p2p/allocations?${query}`);
-  return { items: (response.data ?? []).map(mapP2PAllocationVm), meta: adaptP2PMeta(response.meta) };
+  const response = await apiGet<any>(`/admin/p2p/allocations?${query}`);
+  const { items, meta } = normalizeListResponse<AllocationVmDto>(response as any);
+  return { items: items.map(mapP2PAllocationVm), meta: adaptP2PMeta(meta as any) };
 }
 
 export async function listWithdrawalCandidates(withdrawalId: string, params: ListParams) {
@@ -204,10 +207,9 @@ export async function listWithdrawalCandidates(withdrawalId: string, params: Lis
     return { items: data, meta };
   }
   const query = buildWithdrawalCandidatesQuery(params);
-  const response = await apiGet<{ data: DepositVmDto[]; meta: any }>(
-    `/admin/p2p/withdrawals/${withdrawalId}/candidates?${query}`
-  );
-  return { items: (response.data ?? []).map(mapP2PCandidateDepositVm), meta: adaptP2PMeta(response.meta) };
+  const response = await apiGet<any>(`/admin/p2p/withdrawals/${withdrawalId}/candidates?${query}`);
+  const { items, meta } = normalizeListResponse<DepositVmDto>(response as any);
+  return { items: items.map(mapP2PCandidateDepositVm), meta: adaptP2PMeta(meta as any) };
 }
 
 function normalizeAssignPayload(payload: AssignToWithdrawalDto | { candidateId: string }): AssignToWithdrawalDto {
@@ -301,10 +303,9 @@ export async function listMyAllocationsAsPayer(params: ListParams) {
     return { items, meta: adaptP2PMeta(envelope.meta) };
   }
   const query = buildTraderHistoryQuery(params);
-  const response = await apiGet<{ data: AllocationVmDto[]; meta: any }>(
-    `/p2p/allocations/my-as-payer?${query}`
-  );
-  return { items: (response.data ?? []).map(mapP2PAllocationVm), meta: adaptP2PMeta(response.meta) };
+  const response = await apiGet<any>(`/p2p/allocations/my-as-payer?${query}`);
+  const { items, meta } = normalizeListResponse<AllocationVmDto>(response as any);
+  return { items: items.map(mapP2PAllocationVm), meta: adaptP2PMeta(meta as any) };
 }
 
 export async function listMyAllocationsAsReceiver(params: ListParams) {
@@ -319,10 +320,9 @@ export async function listMyAllocationsAsReceiver(params: ListParams) {
     return { items, meta: adaptP2PMeta(envelope.meta) };
   }
   const query = buildTraderHistoryQuery(params);
-  const response = await apiGet<{ data: AllocationVmDto[]; meta: any }>(
-    `/p2p/allocations/my-as-receiver?${query}`
-  );
-  return { items: (response.data ?? []).map(mapP2PAllocationVm), meta: adaptP2PMeta(response.meta) };
+  const response = await apiGet<any>(`/p2p/allocations/my-as-receiver?${query}`);
+  const { items, meta } = normalizeListResponse<AllocationVmDto>(response as any);
+  return { items: items.map(mapP2PAllocationVm), meta: adaptP2PMeta(meta as any) };
 }
 
 export async function submitAllocationProof(allocationId: string, payload: AllocationProofDto) {
