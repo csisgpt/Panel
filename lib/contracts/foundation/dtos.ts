@@ -14,6 +14,17 @@ export interface ListResult<T> {
   meta: PaginationMeta;
 }
 
+export interface UserSettingsDto {
+  showBalances?: boolean;
+  showGold?: boolean;
+  showCoins?: boolean;
+  showCash?: boolean;
+  tradeEnabled?: boolean;
+  withdrawEnabled?: boolean;
+  maxOpenTrades?: number | null;
+  metaJson?: Record<string, unknown> | null;
+}
+
 export interface UserSafeDto {
   id: string;
   fullName: string;
@@ -42,16 +53,17 @@ export interface UserKyc {
 export interface WalletAccountDto {
   id: string;
   userId: string;
-  instrumentCode: string;
-  instrumentName?: string;
-  balance: string;
-  blockedBalance?: string;
-  availableBalance?: string;
+  instrument: { id: string; code: string; name: string; type: string };
+  balance: string | null;
+  blockedBalance: string | null;
+  minBalance: string | null;
+  availableBalance: string | null;
+  balancesHidden: boolean;
 }
 
 export interface WalletSummary {
-  balancesHiddenByUserSetting?: boolean;
-  balancesForAdmin?: Array<{ instrumentCode: string; amount: string }>;
+  balancesHiddenByUserSetting: boolean;
+  irrAvailable: string | null;
 }
 
 export interface EffectiveSettings {
@@ -61,25 +73,38 @@ export interface EffectiveSettings {
   showCash: boolean;
   tradeEnabled: boolean;
   withdrawEnabled: boolean;
-  maxOpenTrades: number;
-  metaJson?: unknown;
+  maxOpenTrades: number | null;
+  metaJson: Record<string, unknown> | null;
 }
 
 export interface EffectiveSettingsWithSources {
   effective: EffectiveSettings;
-  sources: Record<string, "USER" | "GROUP" | "DEFAULT">;
+  sources: {
+    showBalances: "USER" | "GROUP" | "DEFAULT";
+    showGold: "USER" | "GROUP" | "DEFAULT";
+    showCoins: "USER" | "GROUP" | "DEFAULT";
+    showCash: "USER" | "GROUP" | "DEFAULT";
+    tradeEnabled: "USER" | "GROUP" | "DEFAULT";
+    withdrawEnabled: "USER" | "GROUP" | "DEFAULT";
+    maxOpenTrades: "USER" | "GROUP" | "DEFAULT";
+    metaJson: "GROUP" | "DEFAULT";
+  };
 }
 
 export interface PolicySummaryItem {
-  effectiveValue: string | null;
-  source: string;
-  selectedRuleId?: string | null;
-  selectorUsed?: string | null;
-  kycRequiredLevel?: KycLevel | null;
+  limit: string | null;
+  kycRequiredLevel: KycLevel | null;
+  ruleId: string | null;
+  source: PolicyScopeType | "NONE";
 }
 
 export interface PolicySummary {
-  [key: string]: PolicySummaryItem | undefined;
+  withdrawIrr: { daily: PolicySummaryItem; monthly: PolicySummaryItem };
+  tradeBuyNotionalIrr: { daily: PolicySummaryItem; monthly: PolicySummaryItem };
+  tradeSellNotionalIrr: { daily: PolicySummaryItem; monthly: PolicySummaryItem };
+  withdraw: { daily: PolicySummaryItem; monthly: PolicySummaryItem };
+  tradeBuy: { daily: PolicySummaryItem; monthly: PolicySummaryItem };
+  tradeSell: { daily: PolicySummaryItem; monthly: PolicySummaryItem };
 }
 
 export interface CustomerGroup {
@@ -92,12 +117,16 @@ export interface CustomerGroup {
   updatedAt?: string;
 }
 
+export interface GroupUserRowDto extends UserSafeDto {
+  customerGroup: { id: string; code: string; name: string; tahesabGroupName: string | null } | null;
+  kyc: { status: KycStatus; level: KycLevel } | null;
+}
+
 export interface PolicyRuleDto {
   id: string;
   scopeType: PolicyScopeType;
   scopeUserId: string | null;
   scopeGroupId: string | null;
-  selectorType: "ALL" | "PRODUCT" | "INSTRUMENT" | "TYPE";
   productId: string | null;
   instrumentId: string | null;
   instrumentType: string | null;

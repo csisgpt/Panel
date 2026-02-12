@@ -6,73 +6,230 @@ import { ServerTableView } from "@/components/kit/table/server-table-view";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { adminBulkUpsertPolicyRules, adminCreatePolicyRule, adminDeletePolicyRule, adminListCustomerGroups, adminListPolicyRules, adminPatchPolicyRule } from "@/lib/api/foundation";
+import { adminBulkUpsertPolicyRules, adminCreatePolicyRule, adminDeletePolicyRule, adminListPolicyRules, adminPatchPolicyRule } from "@/lib/api/foundation";
+import type { PolicyRuleDto } from "@/lib/contracts/foundation/dtos";
 import { formatApiErrorFa } from "@/lib/contracts/errors";
 import { useToast } from "@/hooks/use-toast";
+
+interface PolicyRuleForm {
+  scopeType: "GLOBAL" | "GROUP" | "USER";
+  scopeUserId: string;
+  scopeGroupId: string;
+  selectorKind: "ALL" | "PRODUCT" | "INSTRUMENT" | "TYPE";
+  selectorValue: string;
+  action: PolicyRuleDto["action"];
+  metric: PolicyRuleDto["metric"];
+  period: PolicyRuleDto["period"];
+  limit: string;
+  minKycLevel: "NONE" | "BASIC" | "FULL" | "";
+  enabled: boolean;
+  priority: number;
+  note: string;
+}
+
+const defaultForm: PolicyRuleForm = {
+  scopeType: "GLOBAL",
+  scopeUserId: "",
+  scopeGroupId: "",
+  selectorKind: "ALL",
+  selectorValue: "",
+  action: "WITHDRAW_IRR",
+  metric: "NOTIONAL_IRR",
+  period: "DAILY",
+  limit: "1",
+  minKycLevel: "",
+  enabled: true,
+  priority: 100,
+  note: "",
+};
+
+function selectorLabel(rule: PolicyRuleDto) {
+  if (rule.productId) return "محصول";
+  if (rule.instrumentId) return "دارایی";
+  if (rule.instrumentType) return "نوع دارایی";
+  return "همه";
+}
+
+function toPayload(form: PolicyRuleForm) {
+  return {
+    scopeType: form.scopeType,
+    scopeUserId: form.scopeType === "USER" ? form.scopeUserId || null : null,
+    scopeGroupId: form.scopeType === "GROUP" ? form.scopeGroupId || null : null,
+    productId: form.selectorKind === "PRODUCT" ? form.selectorValue || null : null,
+    instrumentId: form.selectorKind === "INSTRUMENT" ? form.selectorValue || null : null,
+    instrumentType: form.selectorKind === "TYPE" ? form.selectorValue || null : null,
+    action: form.action,
+    metric: form.metric,
+    period: form.period,
+    limit: form.limit,
+    minKycLevel: form.minKycLevel || null,
+    enabled: form.enabled,
+    priority: form.priority,
+    note: form.note || null,
+  };
+}
+
+function toForm(rule: PolicyRuleDto): PolicyRuleForm {
+  const selectorKind = rule.productId ? "PRODUCT" : rule.instrumentId ? "INSTRUMENT" : rule.instrumentType ? "TYPE" : "ALL";
+  const selectorValue = rule.productId ?? rule.instrumentId ?? rule.instrumentType ?? "";
+  return {
+    scopeType: rule.scopeType,
+    scopeUserId: rule.scopeUserId ?? "",
+    scopeGroupId: rule.scopeGroupId ?? "",
+    selectorKind,
+    selectorValue,
+    action: rule.action,
+    metric: rule.metric,
+    period: rule.period,
+    limit: rule.limit,
+    minKycLevel: (rule.minKycLevel ?? "") as PolicyRuleForm["minKycLevel"],
+    enabled: rule.enabled,
+    priority: rule.priority,
+    note: rule.note ?? "",
+  };
+}
 
 export default function PolicyRulesPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
-  const [editRow, setEditRow] = useState<any | null>(null);
+  const [editingRule, setEditingRule] = useState<PolicyRuleDto | null>(null);
+  const [form, setForm] = useState<PolicyRuleForm>(defaultForm);
   const [rawJson, setRawJson] = useState('{"items":[]}');
-  const [form, setForm] = useState<any>({
-    scopeType: "GLOBAL",
-    selectorType: "ALL",
-    action: "WITHDRAW_IRR",
-    metric: "NOTIONAL_IRR",
-    period: "DAILY",
-    limit: "1",
-    enabled: true,
-    priority: 100,
-  });
 
   const saveMutation = useMutation({
-    mutationFn: () => editRow ? adminPatchPolicyRule(editRow.id, form) : adminCreatePolicyRule(form),
-    onSuccess: () => { setOpen(false); qc.invalidateQueries({ queryKey: ["foundation-policy-rules"] }); toast({ title: "عملیات موفق بود" }); },
-    onError: (e) => toast({ title: formatApiErrorFa(e), variant: "destructive" }),
+    mutationFn: () => (editingRule ? adminPatchPolicyRule(editingRule.id, toPayload(form)) : adminCreatePolicyRule(toPayload(form))),
+    onSuccess: () => {
+      setOpen(false);
+      setEditingRule(null);
+      setForm(defaultForm);
+      qc.invalidateQueries({ queryKey: ["foundation-policy-rules"] });
+      toast({ title: "عملیات موفق بود" });
+    },
+    onError: (error) => toast({ title: formatApiErrorFa(error), variant: "destructive" }),
   });
-  const deleteMutation = useMutation({ mutationFn: (id: string) => adminDeletePolicyRule(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["foundation-policy-rules"] }) });
-  const bulkMutation = useMutation({ mutationFn: () => adminBulkUpsertPolicyRules(JSON.parse(rawJson)), onSuccess: () => { setBulkOpen(false); qc.invalidateQueries({ queryKey: ["foundation-policy-rules"] }); } });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminDeletePolicyRule(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["foundation-policy-rules"] }),
+  });
+
+  const bulkMutation = useMutation({
+    mutationFn: () => adminBulkUpsertPolicyRules(JSON.parse(rawJson) as { items: Array<Omit<PolicyRuleDto, "id" | "updatedAt">> }),
+    onSuccess: () => {
+      setBulkOpen(false);
+      qc.invalidateQueries({ queryKey: ["foundation-policy-rules"] });
+      toast({ title: "عملیات موفق بود" });
+    },
+    onError: (error) => toast({ title: formatApiErrorFa(error), variant: "destructive" }),
+  });
 
   return (
     <div className="space-y-3">
       <div className="flex gap-2">
-        <Button onClick={() => { setEditRow(null); setOpen(true); }}>ثبت</Button>
+        <Button onClick={() => { setEditingRule(null); setForm(defaultForm); setOpen(true); }}>ثبت قانون</Button>
         <Button variant="outline" onClick={() => setBulkOpen(true)}>اعمال گروهی</Button>
       </div>
 
-      <ServerTableView<any>
+      <ServerTableView<PolicyRuleDto>
         storageKey="foundation-policy-rules"
         title="قوانین پالیسی"
         columns={[
           { accessorKey: "scopeType", header: "دامنه" },
-          { accessorKey: "selectorType", header: "نوع انتخابگر" },
+          { id: "selector", header: "انتخابگر", cell: ({ row }) => selectorLabel(row.original) },
           { accessorKey: "action", header: "عملیات" },
           { accessorKey: "metric", header: "معیار" },
           { accessorKey: "period", header: "بازه" },
           { accessorKey: "limit", header: "حد" },
-          { accessorKey: "enabled", header: "فعال" },
-        ] as any}
+          { id: "enabled", header: "فعال", cell: ({ row }) => (row.original.enabled ? "بله" : "خیر") },
+        ]}
         queryKeyFactory={(params) => ["foundation-policy-rules", params]}
         queryFn={async (params) => {
-          const data = await adminListPolicyRules({ page: params.page, limit: params.limit, ...(params.filters as any) });
-          return { items: data.items, meta: { ...data.meta, total: data.meta.totalItems } as any };
+          const data = await adminListPolicyRules({ page: params.page, limit: params.limit, ...(params.filters as Record<string, unknown>) });
+          return {
+            items: data.items,
+            meta: {
+              page: data.meta.page,
+              limit: data.meta.limit,
+              total: data.meta.totalItems,
+              totalPages: data.meta.totalPages,
+              hasNextPage: data.meta.hasNextPage,
+              hasPrevPage: data.meta.hasPrevPage,
+            },
+          };
         }}
-        filtersConfig={[
-          { type: "status", key: "scopeType", label: "دامنه", options: [{ label: "سراسری", value: "GLOBAL" }, { label: "گروه", value: "GROUP" }, { label: "کاربر", value: "USER" }] },
-          { type: "status", key: "action", label: "عملیات", options: ["WITHDRAW_IRR", "DEPOSIT_IRR", "TRADE_BUY", "TRADE_SELL", "REMITTANCE_SEND", "CUSTODY_IN", "CUSTODY_OUT"].map((v) => ({ value: v, label: v })) },
-          { type: "status", key: "metric", label: "معیار", options: ["NOTIONAL_IRR", "WEIGHT_750_G", "COUNT"].map((v) => ({ value: v, label: v })) },
-          { type: "status", key: "period", label: "بازه", options: ["DAILY", "MONTHLY"].map((v) => ({ value: v, label: v })) },
-        ] as any}
-        rowActions={(row) => <div className="flex gap-2"><Button size="sm" onClick={() => { setEditRow(row); setForm(row); setOpen(true); }}>ویرایش</Button><Button size="sm" variant="destructive" onClick={() => deleteMutation.mutate(row.id)}>حذف</Button></div>}
+        rowActions={(row) => (
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => { setEditingRule(row); setForm(toForm(row)); setOpen(true); }}>ویرایش</Button>
+            <Button size="sm" variant="destructive" onClick={() => deleteMutation.mutate(row.id)}>حذف</Button>
+          </div>
+        )}
       />
 
-      <Dialog open={open} onOpenChange={setOpen}><DialogContent><DialogHeader><DialogTitle>فرم قانون پالیسی</DialogTitle></DialogHeader><div className="grid gap-2"><Input placeholder="scopeType" value={form.scopeType} onChange={(e) => setForm((p: any) => ({ ...p, scopeType: e.target.value }))} /><Input placeholder="scopeUserId" value={form.scopeUserId ?? ""} onChange={(e) => setForm((p: any) => ({ ...p, scopeUserId: e.target.value }))} /><Input placeholder="scopeGroupId" value={form.scopeGroupId ?? ""} onChange={(e) => setForm((p: any) => ({ ...p, scopeGroupId: e.target.value }))} /><Input placeholder="selectorType" value={form.selectorType} onChange={(e) => setForm((p: any) => ({ ...p, selectorType: e.target.value }))} /><Input placeholder="productId" value={form.productId ?? ""} onChange={(e) => setForm((p: any) => ({ ...p, productId: e.target.value }))} /><Input placeholder="instrumentId" value={form.instrumentId ?? ""} onChange={(e) => setForm((p: any) => ({ ...p, instrumentId: e.target.value }))} /><Input placeholder="instrumentType" value={form.instrumentType ?? ""} onChange={(e) => setForm((p: any) => ({ ...p, instrumentType: e.target.value }))} /><Input placeholder="action" value={form.action} onChange={(e) => setForm((p: any) => ({ ...p, action: e.target.value }))} /><Input placeholder="metric" value={form.metric} onChange={(e) => setForm((p: any) => ({ ...p, metric: e.target.value }))} /><Input placeholder="period" value={form.period} onChange={(e) => setForm((p: any) => ({ ...p, period: e.target.value }))} /><Input placeholder="limit" value={form.limit} onChange={(e) => setForm((p: any) => ({ ...p, limit: e.target.value }))} /><Input placeholder="minKycLevel" value={form.minKycLevel ?? ""} onChange={(e) => setForm((p: any) => ({ ...p, minKycLevel: e.target.value }))} /><Button onClick={() => saveMutation.mutate()}>ذخیره</Button></div></DialogContent></Dialog>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>فرم قانون پالیسی</DialogTitle></DialogHeader>
+          <div className="grid gap-2">
+            <Label>دامنه</Label>
+            <Select value={form.scopeType} onValueChange={(value: PolicyRuleForm["scopeType"]) => setForm((prev) => ({ ...prev, scopeType: value }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="GLOBAL">سراسری</SelectItem>
+                <SelectItem value="GROUP">گروه</SelectItem>
+                <SelectItem value="USER">کاربر</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input placeholder="شناسه کاربر (اختیاری)" value={form.scopeUserId} onChange={(e) => setForm((prev) => ({ ...prev, scopeUserId: e.target.value }))} />
+            <Input placeholder="شناسه گروه (اختیاری)" value={form.scopeGroupId} onChange={(e) => setForm((prev) => ({ ...prev, scopeGroupId: e.target.value }))} />
 
-      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}><DialogContent><DialogHeader><DialogTitle>اعمال گروهی قوانین</DialogTitle></DialogHeader><Textarea rows={12} value={rawJson} onChange={(e) => setRawJson(e.target.value)} /><Button onClick={() => bulkMutation.mutate()}>اعمال</Button></DialogContent></Dialog>
+            <Label>نوع انتخابگر</Label>
+            <Select value={form.selectorKind} onValueChange={(value: PolicyRuleForm["selectorKind"]) => setForm((prev) => ({ ...prev, selectorKind: value }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">همه</SelectItem>
+                <SelectItem value="PRODUCT">محصول</SelectItem>
+                <SelectItem value="INSTRUMENT">دارایی</SelectItem>
+                <SelectItem value="TYPE">نوع دارایی</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input placeholder="مقدار انتخابگر (شناسه محصول/دارایی/نوع)" value={form.selectorValue} onChange={(e) => setForm((prev) => ({ ...prev, selectorValue: e.target.value }))} />
+
+            <Input placeholder="عملیات (مثال: WITHDRAW_IRR)" value={form.action} onChange={(e) => setForm((prev) => ({ ...prev, action: e.target.value as PolicyRuleDto["action"] }))} />
+            <Input placeholder="معیار (مثال: NOTIONAL_IRR)" value={form.metric} onChange={(e) => setForm((prev) => ({ ...prev, metric: e.target.value as PolicyRuleDto["metric"] }))} />
+            <Select value={form.period} onValueChange={(value: PolicyRuleForm["period"]) => setForm((prev) => ({ ...prev, period: value }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="DAILY">روزانه</SelectItem><SelectItem value="MONTHLY">ماهانه</SelectItem></SelectContent>
+            </Select>
+            <Input placeholder="حد به صورت رشته عددی" value={form.limit} onChange={(e) => setForm((prev) => ({ ...prev, limit: e.target.value }))} />
+            <Select value={form.minKycLevel || ""} onValueChange={(value: PolicyRuleForm["minKycLevel"]) => setForm((prev) => ({ ...prev, minKycLevel: value }))}>
+              <SelectTrigger><SelectValue placeholder="حداقل سطح KYC" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">بدون سطح</SelectItem>
+                <SelectItem value="NONE">بدون سطح</SelectItem>
+                <SelectItem value="BASIC">پایه</SelectItem>
+                <SelectItem value="FULL">کامل</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input type="number" placeholder="اولویت" value={String(form.priority)} onChange={(e) => setForm((prev) => ({ ...prev, priority: Number(e.target.value || 0) }))} />
+            <Input placeholder="یادداشت" value={form.note} onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))} />
+            <div className="flex items-center justify-between"><Label>فعال</Label><Switch checked={form.enabled} onCheckedChange={(checked) => setForm((prev) => ({ ...prev, enabled: checked }))} /></div>
+            <Button onClick={() => saveMutation.mutate()}>ذخیره</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>اعمال گروهی قوانین</DialogTitle></DialogHeader>
+          <Textarea rows={12} value={rawJson} onChange={(e) => setRawJson(e.target.value)} />
+          <Button onClick={() => bulkMutation.mutate()}>اعمال</Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

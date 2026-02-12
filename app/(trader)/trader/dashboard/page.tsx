@@ -15,10 +15,22 @@ export default function TraderDashboardPage() {
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <Card><CardHeader><CardTitle>کیف پول</CardTitle></CardHeader><CardContent>{overview.data.wallet.summary.balancesHiddenByUserSetting ? "***" : JSON.stringify(overview.data.wallet.summary.balancesForAdmin ?? [])}</CardContent></Card>
-      <Card><CardHeader><CardTitle>وضعیت KYC</CardTitle></CardHeader><CardContent className="space-y-2"><p>{overview.data.kyc ? faLabels.kycStatus[overview.data.kyc.status as keyof typeof faLabels.kycStatus] : faLabels.kycStatus.NONE}</p><Button asChild size="sm"><Link href="/trader/profile">رفتن به پروفایل</Link></Button></CardContent></Card>
-      <Card><CardHeader><CardTitle>قابلیت‌ها</CardTitle></CardHeader><CardContent><p>امکان معامله: {String(overview.data.capabilities?.canTrade)}</p><p>امکان برداشت: {String(overview.data.capabilities?.canWithdraw)}</p>{(overview.data.capabilities?.reasons ?? []).map((r, i) => <div key={`${r.code}-${i}`}><Badge variant="outline">{r.code}</Badge> <span className="text-xs">{r.message}</span></div>)}</CardContent></Card>
-      <Card><CardHeader><CardTitle>خلاصه پالیسی</CardTitle></CardHeader><CardContent><pre className="text-xs">{JSON.stringify(overview.data.policy.summary, null, 2)}</pre></CardContent></Card>
+      <Card>
+        <CardHeader><CardTitle>کیف پول</CardTitle></CardHeader>
+        <CardContent>{overview.data.wallet.summary.balancesHiddenByUserSetting ? "***" : (overview.data.wallet.summary.irrAvailable ?? "—")}</CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle>وضعیت احراز هویت</CardTitle></CardHeader>
+        <CardContent className="space-y-2"><p>{overview.data.kyc ? faLabels.kycStatus[overview.data.kyc.status] : faLabels.kycStatus.NONE}</p><Button asChild size="sm"><Link href="/trader/profile">رفتن به پروفایل</Link></Button></CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle>قابلیت‌ها</CardTitle></CardHeader>
+        <CardContent><p>امکان معامله: {String(overview.data.capabilities?.canTrade)}</p><p>امکان برداشت: {String(overview.data.capabilities?.canWithdraw)}</p>{(overview.data.capabilities?.reasons ?? []).map((reason, index) => <div key={`${reason.code}-${index}`}><Badge variant="outline">{reason.code}</Badge> <span className="text-xs">{reason.message}</span></div>)}</CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle>خلاصه پالیسی</CardTitle></CardHeader>
+        <CardContent><pre className="text-xs">{JSON.stringify(overview.data.policy.summary, null, 2)}</pre></CardContent>
+      </Card>
     </div>
   );
 }

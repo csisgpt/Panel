@@ -1,4 +1,4 @@
-import type { CustomerGroup, EffectiveSettingsWithSources, PolicySummary, TahesabOutbox, UserKyc, UserSafeDto, WalletAccountDto, WalletSummary } from "./dtos";
+import type { EffectiveSettingsWithSources, PolicySummary, TahesabOutbox, UserKyc, UserSafeDto, WalletAccountDto, WalletSummary } from "./dtos";
 import type { KycLevel } from "./enums";
 
 export interface MeOverviewResponse {
@@ -7,7 +7,11 @@ export interface MeOverviewResponse {
   settings: EffectiveSettingsWithSources;
   wallet: { accounts: WalletAccountDto[]; summary: WalletSummary };
   policy: { summary: PolicySummary };
-  capabilities: { canTrade?: boolean; canWithdraw?: boolean; reasons?: Array<{ code: string; message: string; meta?: Record<string, unknown> }> };
+  capabilities: {
+    canTrade?: boolean;
+    canWithdraw?: boolean;
+    reasons?: Array<{ code: string; message: string; meta?: Record<string, unknown> }>;
+  };
 }
 
 export interface AdminUserOverviewResponse {
@@ -27,6 +31,20 @@ export interface AdminUserOverviewResponse {
 }
 
 export interface EffectivePolicyTraceResponse {
-  context: { userId: string; customerGroupId: string | null; kycLevel: KycLevel | null };
-  ruleGroups: Array<{ action: string; metric: string; period: string; selected: unknown; candidates: unknown[]; kycRequiredLevel: KycLevel | null }>;
+  context: {
+    userId: string;
+    customerGroupId: string | null;
+    kycLevel: KycLevel | null;
+    productId?: string | null;
+    instrumentId?: string | null;
+    instrumentType?: string | null;
+  };
+  ruleGroups: Array<{
+    action: string;
+    metric: string;
+    period: string;
+    selected: unknown;
+    candidates: unknown[];
+    kycRequiredLevel: KycLevel | null;
+  }>;
 }

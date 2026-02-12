@@ -4,6 +4,8 @@ export const faLabels = {
   kycStatus: { NONE: "بدون احراز هویت", PENDING: "در انتظار بررسی", VERIFIED: "تایید شده", REJECTED: "رد شده" },
   kycLevel: { NONE: "بدون سطح", BASIC: "پایه", FULL: "کامل" },
   policyScopeType: { GLOBAL: "سراسری", GROUP: "گروه", USER: "کاربر" },
+  policyPeriod: { DAILY: "روزانه", MONTHLY: "ماهانه" },
+  policyMetric: { NOTIONAL_IRR: "ارزش ریالی", WEIGHT_750_G: "وزن ۷۵۰", COUNT: "تعداد" },
   policyAction: {
     WITHDRAW_IRR: "برداشت ریالی",
     DEPOSIT_IRR: "واریز ریالی",
@@ -13,6 +15,17 @@ export const faLabels = {
     CUSTODY_IN: "ورود امانت",
     CUSTODY_OUT: "خروج امانت",
   },
+  settingsKeys: {
+    showBalances: "نمایش موجودی",
+    showGold: "نمایش طلا",
+    showCoins: "نمایش سکه",
+    showCash: "نمایش وجه نقد",
+    tradeEnabled: "فعال بودن معامله",
+    withdrawEnabled: "فعال بودن برداشت",
+    maxOpenTrades: "حداکثر معاملات باز",
+    metaJson: "فراداده",
+  },
+  policySource: { USER: "کاربر", GROUP: "گروه", GLOBAL: "سراسری", NONE: "بدون قانون" },
   common: {
     save: "ذخیره",
     submit: "ثبت",
