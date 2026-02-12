@@ -12,7 +12,7 @@
 - `/trader/profile` پروفایل/تنظیمات/ارسال KYC
 
 ## Endpointهای استفاده‌شده
-- کاربران/من: `/me/overview`, `/me/kyc`, `/me/kyc/submit`, `/me/policy/summary`, `/me/settings`
+- کاربران/من: `/me/overview`, `/me/kyc`, `/me/kyc/submit`, `/me/policy/summary`, `/users/me/settings`
 - ادمین کاربران: `/admin/meta/users`, `/admin/users`, `/admin/users/:id/overview`, `/admin/users/:id/wallet/accounts`, `/admin/users/:id`, `/admin/users/:id/kyc`, `/admin/users/:id/policy/summary`, `/admin/users/:id/effective-policy`, `/admin/users/:id/wallet/adjust`
 - گروه‌ها: `/admin/customer-groups`, `/admin/customer-groups/paged`, `/admin/customer-groups/:id/settings`, `/admin/customer-groups/:id/users`, `/admin/customer-groups/:id/users:move`
 - پالیسی: `/admin/policy-rules`, `/admin/policy-rules/bulk-upsert`, `/admin/users/:id/product-limits`, `/admin/users/:id/product-limits:apply`, `/admin/users/:id/limits/usage`, `/admin/users/:id/limits/reservations`, `/admin/audit/policy`

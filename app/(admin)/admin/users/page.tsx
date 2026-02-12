@@ -90,8 +90,8 @@ export default function AdminUsersPage() {
         filtersConfig={[
           { type: "status", key: "role", label: "نقش", options: (meta.data?.roles ?? []).map((item) => ({ label: faLabels.userRole[item as UserSafeDto["role"]] ?? item, value: item })) },
           { type: "status", key: "status", label: "وضعیت", options: (meta.data?.statuses ?? []).map((item) => ({ label: faLabels.userStatus[item as UserSafeDto["status"]] ?? item, value: item })) },
-          { type: "status", key: "kycStatus", label: "وضعیت KYC", options: (meta.data?.kycStatuses ?? []).map((item) => ({ label: faLabels.kycStatus[item as keyof typeof faLabels.kycStatus] ?? item, value: item })) },
-          { type: "status", key: "kycLevel", label: "سطح KYC", options: (meta.data?.kycLevels ?? []).map((item) => ({ label: faLabels.kycLevel[item as keyof typeof faLabels.kycLevel] ?? item, value: item })) },
+          { type: "status", key: "kycStatus", label: "وضعیت احراز هویت", options: (meta.data?.kycStatuses ?? []).map((item) => ({ label: faLabels.kycStatus[item as keyof typeof faLabels.kycStatus] ?? item, value: item })) },
+          { type: "status", key: "kycLevel", label: "سطح احراز هویت", options: (meta.data?.kycLevels ?? []).map((item) => ({ label: faLabels.kycLevel[item as keyof typeof faLabels.kycLevel] ?? item, value: item })) },
           { type: "status", key: "tahesabLinked", label: "ته‌حساب", options: [{ label: "متصل", value: "true" }, { label: "نامتصل", value: "false" }] },
           { type: "status", key: "customerGroupId", label: "گروه", options: (groups.data ?? []).map((group) => ({ label: group.name, value: group.id })) },
         ]}

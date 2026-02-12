@@ -120,7 +120,14 @@ export default function PolicyRulesPage() {
   });
 
   const bulkMutation = useMutation({
-    mutationFn: () => adminBulkUpsertPolicyRules(JSON.parse(rawJson) as { items: Array<Omit<PolicyRuleDto, "id" | "updatedAt">> }),
+    mutationFn: () => {
+      try {
+        return adminBulkUpsertPolicyRules(JSON.parse(rawJson) as { items: Array<Omit<PolicyRuleDto, "id" | "updatedAt">> });
+      } catch {
+        toast({ title: "JSON ورودی معتبر نیست", variant: "destructive" });
+        throw new Error("INVALID_BULK_JSON");
+      }
+    },
     onSuccess: () => {
       setBulkOpen(false);
       qc.invalidateQueries({ queryKey: ["foundation-policy-rules"] });
@@ -207,7 +214,7 @@ export default function PolicyRulesPage() {
             </Select>
             <Input placeholder="حد به صورت رشته عددی" value={form.limit} onChange={(e) => setForm((prev) => ({ ...prev, limit: e.target.value }))} />
             <Select value={form.minKycLevel || ""} onValueChange={(value: PolicyRuleForm["minKycLevel"]) => setForm((prev) => ({ ...prev, minKycLevel: value }))}>
-              <SelectTrigger><SelectValue placeholder="حداقل سطح KYC" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="حداقل سطح احراز هویت" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="">بدون سطح</SelectItem>
                 <SelectItem value="NONE">بدون سطح</SelectItem>

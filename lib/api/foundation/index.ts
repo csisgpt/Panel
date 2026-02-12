@@ -1,7 +1,7 @@
 import { apiDelete, apiGet, apiPatch, apiPost, apiPostForm, apiPut } from "@/lib/api/client";
 import type {
   CustomerGroup,
-  EffectiveSettings,
+  CustomerGroupSettingsDto,
   ListResult,
   GroupUserRowDto,
   PolicyRuleDto,
@@ -62,7 +62,7 @@ export const adminCreateCustomerGroup = (body: { code: string; name: string; tah
 export const adminPutCustomerGroup = (id: string, body: { name: string; tahesabGroupName?: string | null; isDefault?: boolean }) =>
   apiPut<CustomerGroup, typeof body>(`/admin/customer-groups/${id}`, body);
 export const adminDeleteCustomerGroup = (id: string) => apiDelete<{ deleted: true }>(`/admin/customer-groups/${id}`);
-export const adminGetGroupSettings = (id: string) => apiGet<EffectiveSettings | null>(`/admin/customer-groups/${id}/settings`);
+export const adminGetGroupSettings = (id: string) => apiGet<CustomerGroupSettingsDto | null>(`/admin/customer-groups/${id}/settings`);
 export const adminUpsertGroupSettings = (id: string, body: {
   showBalances?: boolean | null;
   showGold?: boolean | null;

@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { adminGetGroupSettings, adminListCustomerGroups, adminListGroupUsers, adminMoveGroupUsers, adminUpsertGroupSettings, resyncGroupUsers } from "@/lib/api/foundation";
-import type { EffectiveSettings, GroupUserRowDto } from "@/lib/contracts/foundation/dtos";
+import type { CustomerGroupSettingsDto, GroupUserRowDto } from "@/lib/contracts/foundation/dtos";
 import { formatApiErrorFa } from "@/lib/contracts/errors";
 import { useToast } from "@/hooks/use-toast";
 
@@ -57,7 +57,7 @@ export default function CustomerGroupDetailsPage() {
   const [toGroupId, setToGroupId] = useState<string>("");
 
   useEffect(() => {
-    const data = settingsQuery.data;
+    const data: CustomerGroupSettingsDto | null | undefined = settingsQuery.data;
     if (!data) return;
     setForm({
       showBalances: data.showBalances ?? null,
@@ -75,7 +75,12 @@ export default function CustomerGroupDetailsPage() {
     mutationFn: async () => {
       let parsedMetaJson: Record<string, unknown> | null = null;
       if (form.metaJson.trim()) {
-        parsedMetaJson = JSON.parse(form.metaJson) as Record<string, unknown>;
+        try {
+          parsedMetaJson = JSON.parse(form.metaJson) as Record<string, unknown>;
+        } catch {
+          toast({ title: "فراداده JSON معتبر نیست", variant: "destructive" });
+          throw new Error("INVALID_META_JSON");
+        }
       }
       return adminUpsertGroupSettings(id, {
         showBalances: form.showBalances,

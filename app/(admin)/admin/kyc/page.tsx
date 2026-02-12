@@ -25,7 +25,7 @@ export default function AdminKycPage() {
   return (
     <ServerTableView<KycQueueRow>
       storageKey="foundation-kyc-queue"
-      title="صف KYC"
+      title="صف احراز هویت"
       columns={columns}
       queryKeyFactory={(params) => ["foundation-kyc", params]}
       queryFn={async (params) => {

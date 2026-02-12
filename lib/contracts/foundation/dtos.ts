@@ -25,6 +25,18 @@ export interface UserSettingsDto {
   metaJson?: Record<string, unknown> | null;
 }
 
+
+export interface CustomerGroupSettingsDto {
+  showBalances?: boolean | null;
+  showGold?: boolean | null;
+  showCoins?: boolean | null;
+  showCash?: boolean | null;
+  tradeEnabled?: boolean | null;
+  withdrawEnabled?: boolean | null;
+  maxOpenTrades?: number | null;
+  metaJson?: Record<string, unknown> | null;
+}
+
 export interface UserSafeDto {
   id: string;
   fullName: string;
