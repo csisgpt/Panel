@@ -2,32 +2,77 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { bulkUpsertPolicyRules, createPolicyRule, deletePolicyRule, listPolicyRules, updatePolicyRule } from "@/lib/api/admin-policy";
 import { ServerTableView } from "@/components/kit/table/server-table-view";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { adminBulkUpsertPolicyRules, adminCreatePolicyRule, adminDeletePolicyRule, adminListCustomerGroups, adminListPolicyRules, adminPatchPolicyRule } from "@/lib/api/foundation";
+import { formatApiErrorFa } from "@/lib/contracts/errors";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PolicyRulesPage() {
-  const [open, setOpen] = useState(false); const [bulkOpen, setBulkOpen] = useState(false); const [edit, setEdit] = useState<any>(null); const [json, setJson] = useState("[]");
-  const [form, setForm] = useState<any>({ scopeType: "GLOBAL", action: "WITHDRAW", metric: "AMOUNT", period: "DAILY", limit: "0", enabled: true });
+  const { toast } = useToast();
   const qc = useQueryClient();
-  const save = useMutation({ mutationFn: (body: any) => edit ? updatePolicyRule(edit.id, body) : createPolicyRule(body), onSuccess: () => { setOpen(false); qc.invalidateQueries({ queryKey: ["policy-rules"] }); } });
-  const del = useMutation({ mutationFn: (id: string) => deletePolicyRule(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["policy-rules"] }) });
-  const bulk = useMutation({ mutationFn: () => bulkUpsertPolicyRules(JSON.parse(json)), onSuccess: () => { setBulkOpen(false); qc.invalidateQueries({ queryKey: ["policy-rules"] }); } });
+  const [open, setOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [editRow, setEditRow] = useState<any | null>(null);
+  const [rawJson, setRawJson] = useState('{"items":[]}');
+  const [form, setForm] = useState<any>({
+    scopeType: "GLOBAL",
+    selectorType: "ALL",
+    action: "WITHDRAW_IRR",
+    metric: "NOTIONAL_IRR",
+    period: "DAILY",
+    limit: "1",
+    enabled: true,
+    priority: 100,
+  });
 
-  return <>
-    <div className="flex gap-2"><Button onClick={() => { setEdit(null); setOpen(true); }}>Rule جدید</Button><Button variant="outline" onClick={() => setBulkOpen(true)}>Bulk Upsert</Button></div>
-    <ServerTableView<any>
-      storageKey="policy-rules"
-      title="Policy Rules"
-      columns={[{ accessorKey: "scopeType", header: "Scope" }, { id: "rule", header: "Rule", cell: ({ row }: any) => `${row.original.action}/${row.original.metric}/${row.original.period}` }, { accessorKey: "limit", header: "Limit" }, { accessorKey: "enabled", header: "Enabled" }, { accessorKey: "priority", header: "Priority" }] as any}
-      queryKeyFactory={(params) => ["policy-rules", params]}
-      queryFn={(params) => listPolicyRules({ page: params.page, limit: params.limit, ...(params.filters as any) }).then((r) => ({ items: r.items ?? [], meta: (r.meta as any) ?? { page: 1, limit: 20, totalItems: r.items?.length || 0, totalPages: 1 } }))}
-      rowActions={(row) => <div className="flex gap-2"><Button size="sm" onClick={() => { setEdit(row); setForm(row); setOpen(true); }}>Edit</Button><Button size="sm" variant="destructive" onClick={() => del.mutate(row.id)}>Delete</Button></div>}
-    />
-    <Dialog open={open} onOpenChange={setOpen}><DialogContent><div className="grid gap-2"><Input placeholder="scopeType" value={form.scopeType} onChange={(e) => setForm({ ...form, scopeType: e.target.value })} /><Input placeholder="action" value={form.action} onChange={(e) => setForm({ ...form, action: e.target.value })} /><Input placeholder="metric" value={form.metric} onChange={(e) => setForm({ ...form, metric: e.target.value })} /><Input placeholder="period" value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value })} /><Input placeholder="limit" value={form.limit} onChange={(e) => setForm({ ...form, limit: e.target.value })} /><Button onClick={() => save.mutate(form)}>Save</Button></div></DialogContent></Dialog>
-    <Dialog open={bulkOpen} onOpenChange={setBulkOpen}><DialogContent><Textarea rows={12} value={json} onChange={(e) => setJson(e.target.value)} /><Button onClick={() => bulk.mutate()}>Submit</Button></DialogContent></Dialog>
-  </>;
+  const saveMutation = useMutation({
+    mutationFn: () => editRow ? adminPatchPolicyRule(editRow.id, form) : adminCreatePolicyRule(form),
+    onSuccess: () => { setOpen(false); qc.invalidateQueries({ queryKey: ["foundation-policy-rules"] }); toast({ title: "عملیات موفق بود" }); },
+    onError: (e) => toast({ title: formatApiErrorFa(e), variant: "destructive" }),
+  });
+  const deleteMutation = useMutation({ mutationFn: (id: string) => adminDeletePolicyRule(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["foundation-policy-rules"] }) });
+  const bulkMutation = useMutation({ mutationFn: () => adminBulkUpsertPolicyRules(JSON.parse(rawJson)), onSuccess: () => { setBulkOpen(false); qc.invalidateQueries({ queryKey: ["foundation-policy-rules"] }); } });
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <Button onClick={() => { setEditRow(null); setOpen(true); }}>ثبت</Button>
+        <Button variant="outline" onClick={() => setBulkOpen(true)}>اعمال گروهی</Button>
+      </div>
+
+      <ServerTableView<any>
+        storageKey="foundation-policy-rules"
+        title="قوانین پالیسی"
+        columns={[
+          { accessorKey: "scopeType", header: "دامنه" },
+          { accessorKey: "selectorType", header: "نوع انتخابگر" },
+          { accessorKey: "action", header: "عملیات" },
+          { accessorKey: "metric", header: "معیار" },
+          { accessorKey: "period", header: "بازه" },
+          { accessorKey: "limit", header: "حد" },
+          { accessorKey: "enabled", header: "فعال" },
+        ] as any}
+        queryKeyFactory={(params) => ["foundation-policy-rules", params]}
+        queryFn={async (params) => {
+          const data = await adminListPolicyRules({ page: params.page, limit: params.limit, ...(params.filters as any) });
+          return { items: data.items, meta: { ...data.meta, total: data.meta.totalItems } as any };
+        }}
+        filtersConfig={[
+          { type: "status", key: "scopeType", label: "دامنه", options: [{ label: "سراسری", value: "GLOBAL" }, { label: "گروه", value: "GROUP" }, { label: "کاربر", value: "USER" }] },
+          { type: "status", key: "action", label: "عملیات", options: ["WITHDRAW_IRR", "DEPOSIT_IRR", "TRADE_BUY", "TRADE_SELL", "REMITTANCE_SEND", "CUSTODY_IN", "CUSTODY_OUT"].map((v) => ({ value: v, label: v })) },
+          { type: "status", key: "metric", label: "معیار", options: ["NOTIONAL_IRR", "WEIGHT_750_G", "COUNT"].map((v) => ({ value: v, label: v })) },
+          { type: "status", key: "period", label: "بازه", options: ["DAILY", "MONTHLY"].map((v) => ({ value: v, label: v })) },
+        ] as any}
+        rowActions={(row) => <div className="flex gap-2"><Button size="sm" onClick={() => { setEditRow(row); setForm(row); setOpen(true); }}>ویرایش</Button><Button size="sm" variant="destructive" onClick={() => deleteMutation.mutate(row.id)}>حذف</Button></div>}
+      />
+
+      <Dialog open={open} onOpenChange={setOpen}><DialogContent><DialogHeader><DialogTitle>فرم قانون پالیسی</DialogTitle></DialogHeader><div className="grid gap-2"><Input placeholder="scopeType" value={form.scopeType} onChange={(e) => setForm((p: any) => ({ ...p, scopeType: e.target.value }))} /><Input placeholder="scopeUserId" value={form.scopeUserId ?? ""} onChange={(e) => setForm((p: any) => ({ ...p, scopeUserId: e.target.value }))} /><Input placeholder="scopeGroupId" value={form.scopeGroupId ?? ""} onChange={(e) => setForm((p: any) => ({ ...p, scopeGroupId: e.target.value }))} /><Input placeholder="selectorType" value={form.selectorType} onChange={(e) => setForm((p: any) => ({ ...p, selectorType: e.target.value }))} /><Input placeholder="productId" value={form.productId ?? ""} onChange={(e) => setForm((p: any) => ({ ...p, productId: e.target.value }))} /><Input placeholder="instrumentId" value={form.instrumentId ?? ""} onChange={(e) => setForm((p: any) => ({ ...p, instrumentId: e.target.value }))} /><Input placeholder="instrumentType" value={form.instrumentType ?? ""} onChange={(e) => setForm((p: any) => ({ ...p, instrumentType: e.target.value }))} /><Input placeholder="action" value={form.action} onChange={(e) => setForm((p: any) => ({ ...p, action: e.target.value }))} /><Input placeholder="metric" value={form.metric} onChange={(e) => setForm((p: any) => ({ ...p, metric: e.target.value }))} /><Input placeholder="period" value={form.period} onChange={(e) => setForm((p: any) => ({ ...p, period: e.target.value }))} /><Input placeholder="limit" value={form.limit} onChange={(e) => setForm((p: any) => ({ ...p, limit: e.target.value }))} /><Input placeholder="minKycLevel" value={form.minKycLevel ?? ""} onChange={(e) => setForm((p: any) => ({ ...p, minKycLevel: e.target.value }))} /><Button onClick={() => saveMutation.mutate()}>ذخیره</Button></div></DialogContent></Dialog>
+
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}><DialogContent><DialogHeader><DialogTitle>اعمال گروهی قوانین</DialogTitle></DialogHeader><Textarea rows={12} value={rawJson} onChange={(e) => setRawJson(e.target.value)} /><Button onClick={() => bulkMutation.mutate()}>اعمال</Button></DialogContent></Dialog>
+    </div>
+  );
 }

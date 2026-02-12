@@ -131,7 +131,7 @@ export const adminNavItems: NavigationItem[] = [
   { key: "customer-groups", labelFa: "گروه‌های مشتری", href: "/admin/customer-groups", icon: UsersRound, roles: [UserRole.ADMIN], featureFlag: true },
   { key: "kyc", labelFa: "صف KYC", href: "/admin/kyc", icon: FileText, roles: [UserRole.ADMIN], featureFlag: true },
   { key: "policy-rules", labelFa: "قوانین سیاست", href: "/admin/policy-rules", icon: Scale, roles: [UserRole.ADMIN], featureFlag: true },
-  { key: "tahesab-outbox", labelFa: "Tahesab Outbox", href: "/admin/tahesab/outbox", icon: FileStack, roles: [UserRole.ADMIN], featureFlag: features.admin.tahesab },
+  { key: "tahesab-outbox", labelFa: "خروجی ته‌حساب", href: "/admin/tahesab/outbox", icon: FileStack, roles: [UserRole.ADMIN], featureFlag: features.admin.tahesab },
   { key: "instruments", labelFa: "ابزارها", href: "/admin/instruments", icon: Tags, roles: [UserRole.ADMIN], featureFlag: true },
   { key: "pricing", labelFa: "قیمت‌گذاری", href: "/admin/pricing", icon: NotepadText, roles: [UserRole.ADMIN], featureFlag: true },
   { key: "pricing-logs", labelFa: "گزارش قیمت", href: "/admin/pricing/logs", icon: Activity, roles: [UserRole.ADMIN], featureFlag: true },

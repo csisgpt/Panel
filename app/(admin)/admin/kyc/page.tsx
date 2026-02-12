@@ -1,19 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { useMutation } from "@tanstack/react-query";
-import { listAdminKycQueue, putAdminUserKyc } from "@/lib/api/admin-kyc";
 import { ServerTableView } from "@/components/kit/table/server-table-view";
 import { Button } from "@/components/ui/button";
+import { adminKycQueue } from "@/lib/api/foundation";
+import { faLabels } from "@/lib/i18n/fa";
 
 export default function AdminKycPage() {
-  const quick = useMutation({ mutationFn: ({ userId, status }: any) => putAdminUserKyc(userId, { status }) });
-  return <ServerTableView<any>
-    storageKey="admin-kyc-queue"
-    title="صف KYC"
-    columns={[{ id: "user", header: "کاربر", cell: ({ row }: any) => <div>{row.original.fullName}<div className="text-xs">{row.original.mobile}</div></div> }, { accessorKey: "status", header: "وضعیت" }, { accessorKey: "level", header: "سطح" }, { accessorKey: "submittedAt", header: "زمان" }] as any}
-    queryKeyFactory={(params) => ["kyc-queue", params]}
-    queryFn={(params) => listAdminKycQueue({ page: params.page, limit: params.limit, q: params.search, ...(params.filters as any) }).then((r) => ({ items: r.items ?? [], meta: (r.meta as any) ?? { page: 1, limit: 20, totalItems: r.items?.length || 0, totalPages: 1 } }))}
-    rowActions={(row) => <div className="flex gap-2"><Button asChild size="sm" variant="outline"><Link href={`/admin/users/${row.userId || row.id}`}>جزئیات</Link></Button><Button size="sm" onClick={() => quick.mutate({ userId: row.userId || row.id, status: "VERIFIED" })}>تایید</Button></div>}
-  />;
+  return (
+    <ServerTableView<any>
+      storageKey="foundation-kyc-queue"
+      title="صف KYC"
+      columns={[
+        { id: "user", header: "کاربر", cell: ({ row }: any) => <div><div>{row.original.user.fullName}</div><div className="text-xs">{row.original.user.mobile}</div></div> },
+        { id: "status", header: "وضعیت", cell: ({ row }: any) => faLabels.kycStatus[row.original.kyc.status as keyof typeof faLabels.kycStatus] },
+        { id: "level", header: "سطح", cell: ({ row }: any) => faLabels.kycLevel[row.original.kyc.level as keyof typeof faLabels.kycLevel] },
+        { accessorKey: "submittedAt", header: "زمان ارسال" },
+      ] as any}
+      queryKeyFactory={(params) => ["foundation-kyc", params]}
+      queryFn={async (params) => {
+        const data = await adminKycQueue({ page: params.page, limit: params.limit, ...(params.filters as any) });
+        return { items: data.items, meta: { ...data.meta, total: data.meta.totalItems } as any };
+      }}
+      filtersConfig={[
+        { type: "status", key: "status", label: "وضعیت", options: Object.entries(faLabels.kycStatus).map(([value, label]) => ({ value, label })) },
+        { type: "status", key: "level", label: "سطح", options: Object.entries(faLabels.kycLevel).map(([value, label]) => ({ value, label })) },
+      ] as any}
+      rowActions={(row) => <Button asChild size="sm"><Link href={`/admin/users/${row.user.id}`}>جزئیات کاربر</Link></Button>}
+    />
+  );
 }
