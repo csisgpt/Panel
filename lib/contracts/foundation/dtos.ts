@@ -25,6 +25,16 @@ export interface UserSettingsDto {
   metaJson?: Record<string, unknown> | null;
 }
 
+export type UpdateUserSettingsDto = {
+  showBalances?: boolean;
+  showGold?: boolean;
+  showCoins?: boolean;
+  showCash?: boolean;
+  tradeEnabled?: boolean;
+  withdrawEnabled?: boolean;
+  maxOpenTrades?: number;
+};
+
 
 export interface CustomerGroupSettingsDto {
   showBalances?: boolean | null;

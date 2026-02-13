@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { getMeKyc, getMeOverview, getMeSettings, putMeSettings, submitMeKyc } from "@/lib/api/foundation";
-import type { UserSettingsDto } from "@/lib/contracts/foundation/dtos";
+import type { UpdateUserSettingsDto, UserSettingsDto } from "@/lib/contracts/foundation/dtos";
 import { useToast } from "@/hooks/use-toast";
 import { applyApiValidationErrorsToRHF } from "@/lib/forms/apply-api-errors";
 import { formatApiErrorFa } from "@/lib/contracts/errors";
@@ -41,7 +41,7 @@ export default function TraderProfilePage() {
   const form = useForm<UserSettingsDto>({ values: settings.data ?? defaultSettings });
 
   const settingsMutation = useMutation({
-    mutationFn: (values: UserSettingsDto) => putMeSettings(values),
+    mutationFn: (values: UpdateUserSettingsDto) => putMeSettings(values),
     onSuccess: () => {
       toast({ title: faLabels.common.success });
       qc.invalidateQueries({ queryKey: ["foundation-me-settings"] });
@@ -134,8 +134,10 @@ export default function TraderProfilePage() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>کیف پول و پالیسی</CardTitle></CardHeader>
-        <CardContent><pre className="text-xs overflow-auto">{JSON.stringify({ wallet: overview.data?.wallet, policy: overview.data?.policy }, null, 2)}</pre></CardContent>
+        <CardHeader><CardTitle>اطلاعات تکمیلی</CardTitle></CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">برای نمایش جزئیات بیشتر، از بخش‌های مربوطه استفاده کنید.</p>
+        </CardContent>
       </Card>
     </div>
   );

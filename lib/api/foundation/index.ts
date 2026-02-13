@@ -9,10 +9,25 @@ import type {
   TahesabOutbox,
   UserKyc,
   UserSafeDto,
+  UpdateUserSettingsDto,
   UserSettingsDto,
   WalletAccountDto,
 } from "@/lib/contracts/foundation/dtos";
 import type { AdminUserOverviewResponse, EffectivePolicyTraceResponse, MeOverviewResponse } from "@/lib/contracts/foundation/responses";
+
+
+function sanitizeUpdateUserSettings(input: unknown): UpdateUserSettingsDto {
+  const source = (input && typeof input === "object" ? input : {}) as Record<string, unknown>;
+  const out: UpdateUserSettingsDto = {};
+  if (typeof source.showBalances === "boolean") out.showBalances = source.showBalances;
+  if (typeof source.showGold === "boolean") out.showGold = source.showGold;
+  if (typeof source.showCoins === "boolean") out.showCoins = source.showCoins;
+  if (typeof source.showCash === "boolean") out.showCash = source.showCash;
+  if (typeof source.tradeEnabled === "boolean") out.tradeEnabled = source.tradeEnabled;
+  if (typeof source.withdrawEnabled === "boolean") out.withdrawEnabled = source.withdrawEnabled;
+  if (typeof source.maxOpenTrades === "number" && Number.isFinite(source.maxOpenTrades)) out.maxOpenTrades = source.maxOpenTrades;
+  return out;
+}
 
 const q = (params?: Record<string, unknown>) => {
   const sp = new URLSearchParams();
@@ -30,10 +45,12 @@ export const submitMeKyc = (body: { levelRequested?: string; note?: string; file
   apiPost<UserKyc, typeof body>(`/me/kyc/submit`, body);
 export const getMePolicySummary = () => apiGet<PolicySummary>(`/me/policy/summary`);
 export const getMeSettings = () => apiGet<UserSettingsDto>(`/users/me/settings`);
-export const putMeSettings = (body: UserSettingsDto) => apiPut<UserSettingsDto, UserSettingsDto>(`/users/me/settings`, body);
+export const putMeSettings = (body: UpdateUserSettingsDto | UserSettingsDto) =>
+  apiPut<UserSettingsDto, UpdateUserSettingsDto>(`/users/me/settings`, sanitizeUpdateUserSettings(body));
 
 export const adminGetUserSettings = (userId: string) => apiGet<UserSettingsDto>(`/admin/users/${userId}/settings`);
-export const adminPutUserSettings = (userId: string, body: UserSettingsDto) => apiPut<UserSettingsDto, UserSettingsDto>(`/admin/users/${userId}/settings`, body);
+export const adminPutUserSettings = (userId: string, body: UpdateUserSettingsDto | UserSettingsDto) =>
+  apiPut<UserSettingsDto, UpdateUserSettingsDto>(`/admin/users/${userId}/settings`, sanitizeUpdateUserSettings(body));
 export const adminGetUserEffectiveSettings = (userId: string) => apiGet<unknown>(`/admin/users/${userId}/effective-settings`);
 
 export const adminGetUsersMeta = () =>
