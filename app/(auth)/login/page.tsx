@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
-import { ApiError } from "@/lib/api/client";
+import { isApiError } from "@/lib/contracts/errors";
 import { resolvePostLoginRedirect } from "@/lib/auth/redirects";
 
 const mobileRegex = /^09\d{9}$/;
@@ -161,7 +161,7 @@ function LoginPageContent() {
 }
 
 function getErrorStatus(error: unknown) {
-  if (error instanceof ApiError) return error.status;
+  if (isApiError(error)) return error.status;
   if (typeof error === "object" && error && "status" in error) {
     const value = (error as { status?: number }).status;
     if (typeof value === "number") return value;

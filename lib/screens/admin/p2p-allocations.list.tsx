@@ -12,7 +12,7 @@ import { listAdminP2PAllocations } from "@/lib/api/p2p";
 import type { P2PAllocation } from "@/lib/contracts/p2p";
 import type { ServerTableViewProps } from "@/components/kit/table/server-table-view";
 
-const supportsBooleanQuery = process.env.NEXT_PUBLIC_API_SUPPORTS_BOOLEAN_QUERY === "true";
+const supportsBooleanQuery = process.env.NEXT_PUBLIC_API_SUPPORTS_BOOLEAN_QUERY !== "false";
 
 function ProofAttachmentsCell({ allocation }: { allocation: P2PAllocation }) {
   const [open, setOpen] = useState(false);

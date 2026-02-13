@@ -17,13 +17,19 @@ export async function normalizeApiError(
       }
     }
 
+    const headerTraceId =
+      response.headers.get("x-trace-id") ||
+      response.headers.get("trace-id") ||
+      response.headers.get("traceid") ||
+      undefined;
+
     if (body && typeof body === "object") {
       if (body.ok === false) {
         return buildApiError({
           status: response.status,
           code: body.error?.code ?? "unknown_error",
           message: body.error?.message ?? "Request failed",
-          traceId: body.traceId ?? body.trace_id ?? null,
+          traceId: body.traceId ?? body.trace_id ?? headerTraceId ?? undefined,
           details: body.error?.details ?? body.details ?? null,
         });
       }
@@ -32,7 +38,7 @@ export async function normalizeApiError(
           status: response.status,
           code: body.error?.code ?? "unknown_error",
           message: body.error?.message ?? "Request failed",
-          traceId: body.traceId ?? body.trace_id ?? null,
+          traceId: body.traceId ?? body.trace_id ?? headerTraceId ?? undefined,
           details: body.error?.details ?? body.details ?? null,
         });
       }
@@ -40,7 +46,7 @@ export async function normalizeApiError(
         status: response.status,
         code: body.code ?? body.errorCode,
         message: body.message ?? body.error ?? response.statusText,
-        traceId: body.traceId ?? body.trace_id,
+        traceId: body.traceId ?? body.trace_id ?? headerTraceId ?? undefined,
         details: body.details ?? body.meta,
       });
     }
@@ -48,6 +54,7 @@ export async function normalizeApiError(
     return buildApiError({
       status: response.status,
       message: typeof body === "string" && body.length > 0 ? body : response.statusText,
+      traceId: headerTraceId ?? undefined,
     });
   }
 

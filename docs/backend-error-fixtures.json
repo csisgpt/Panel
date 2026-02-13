@@ -8,6 +8,18 @@
     },
     "traceId": "TRACE-VALIDATION-01"
   },
+  "validationWithFields": {
+    "ok": false,
+    "error": {
+      "code": "validation_failed",
+      "message": "Invalid payload",
+      "details": [
+        { "path": "amount", "message": "Amount is required" },
+        { "path": "accounts[0].accountNumber", "message": "Invalid account number" }
+      ]
+    },
+    "traceId": "TRACE-VALIDATION-02"
+  },
   "forbidden": {
     "ok": false,
     "error": {

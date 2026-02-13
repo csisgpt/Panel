@@ -13,13 +13,15 @@ export interface ListMetaExtended extends ListMeta {
 export function adaptListResponse<T>(raw: unknown): { items: T[]; meta: ListMetaExtended } {
   const { items, meta } = normalizeListResponse<T>(raw as any);
   const totalPages = meta.totalPages ?? Math.max(1, Math.ceil(meta.total / meta.limit));
+  const hasPrev = meta.hasPrevPage ?? meta.page > 1;
+  const hasNext = meta.hasNextPage ?? meta.page < totalPages;
   return {
     items,
     meta: {
       ...meta,
       totalPages,
-      hasNext: meta.page < totalPages,
-      hasPrev: meta.page > 1,
+      hasNext,
+      hasPrev,
     },
   };
 }
