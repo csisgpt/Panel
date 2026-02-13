@@ -129,7 +129,7 @@ export const adminNavItems: NavigationItem[] = [
   { key: "p2p-allocations", labelFa: "تخصیص‌های P2P", href: "/admin/p2p/allocations", icon: ScrollText, roles: [UserRole.ADMIN], featureFlag: features.admin.p2p },
   { key: "users", labelFa: "کاربران", href: "/admin/users", icon: Users, roles: [UserRole.ADMIN], featureFlag: true },
   { key: "customer-groups", labelFa: "گروه‌های مشتری", href: "/admin/customer-groups", icon: UsersRound, roles: [UserRole.ADMIN], featureFlag: true },
-  { key: "kyc", labelFa: "صف KYC", href: "/admin/kyc", icon: FileText, roles: [UserRole.ADMIN], featureFlag: true },
+  { key: "kyc", labelFa: "صف احراز هویت", href: "/admin/kyc", icon: FileText, roles: [UserRole.ADMIN], featureFlag: true },
   { key: "policy-rules", labelFa: "قوانین سیاست", href: "/admin/policy-rules", icon: Scale, roles: [UserRole.ADMIN], featureFlag: true },
   { key: "tahesab-outbox", labelFa: "خروجی ته‌حساب", href: "/admin/tahesab/outbox", icon: FileStack, roles: [UserRole.ADMIN], featureFlag: features.admin.tahesab },
   { key: "instruments", labelFa: "ابزارها", href: "/admin/instruments", icon: Tags, roles: [UserRole.ADMIN], featureFlag: true },

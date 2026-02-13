@@ -291,9 +291,76 @@ export default function AdminUserDetailsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="usage"><Card><CardHeader><CardTitle>مصرف محدودیت‌ها</CardTitle></CardHeader><CardContent><pre className="text-xs overflow-auto">{JSON.stringify(usage.data, null, 2)}</pre></CardContent></Card></TabsContent>
-        <TabsContent value="reservations"><Card><CardHeader><CardTitle>رزروهای محدودیت</CardTitle></CardHeader><CardContent><pre className="text-xs overflow-auto">{JSON.stringify(reservations.data, null, 2)}</pre></CardContent></Card></TabsContent>
-        <TabsContent value="audit"><Card><CardHeader><CardTitle>لاگ تغییرات پالیسی</CardTitle></CardHeader><CardContent><pre className="text-xs overflow-auto">{JSON.stringify(audits.data, null, 2)}</pre></CardContent></Card></TabsContent>
+        <TabsContent value="usage">
+          <Card>
+            <CardHeader><CardTitle>مصرف محدودیت‌ها</CardTitle></CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>دوره</TableHead><TableHead>اکشن</TableHead><TableHead>متریک</TableHead><TableHead>مصرف شده</TableHead><TableHead>رزرو شده</TableHead><TableHead>کلید دارایی</TableHead><TableHead>تاریخ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {((usage.data?.items as Array<Record<string, unknown>> | undefined) ?? []).map((row, index) => (
+                    <TableRow key={`usage-${index}`}>
+                      <TableCell>{String(row.periodKey ?? row.period ?? "—")}</TableCell>
+                      <TableCell>{String(row.action ?? "—")}</TableCell>
+                      <TableCell>{String(row.metric ?? "—")}</TableCell>
+                      <TableCell>{String(row.usedAmount ?? "—")}</TableCell>
+                      <TableCell>{String(row.reservedAmount ?? "—")}</TableCell>
+                      <TableCell>{String(row.instrumentKey ?? "—")}</TableCell>
+                      <TableCell>{String(row.createdAt ?? row.updatedAt ?? "—")}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="reservations">
+          <Card>
+            <CardHeader><CardTitle>رزروهای محدودیت</CardTitle></CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader><TableRow><TableHead>وضعیت</TableHead><TableHead>مبلغ</TableHead><TableHead>اکشن</TableHead><TableHead>متریک</TableHead><TableHead>کلید دارایی</TableHead><TableHead>تاریخ</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {((reservations.data?.items as Array<Record<string, unknown>> | undefined) ?? []).map((row, index) => (
+                    <TableRow key={`reservation-${index}`}>
+                      <TableCell>{String(row.status ?? "—")}</TableCell>
+                      <TableCell>{String(row.amount ?? "—")}</TableCell>
+                      <TableCell>{String(row.action ?? "—")}</TableCell>
+                      <TableCell>{String(row.metric ?? "—")}</TableCell>
+                      <TableCell>{String(row.instrumentKey ?? "—")}</TableCell>
+                      <TableCell>{String(row.createdAt ?? row.updatedAt ?? "—")}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="audit">
+          <Card>
+            <CardHeader><CardTitle>لاگ تغییرات پالیسی</CardTitle></CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader><TableRow><TableHead>نوع موجودیت</TableHead><TableHead>شناسه موجودیت</TableHead><TableHead>اکشن</TableHead><TableHead>کاربر انجام‌دهنده</TableHead><TableHead>زمان</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {((audits.data?.items as Array<Record<string, unknown>> | undefined) ?? []).map((row, index) => (
+                    <TableRow key={`audit-${index}`}>
+                      <TableCell>{String(row.entityType ?? "—")}</TableCell>
+                      <TableCell>{String(row.entityId ?? "—")}</TableCell>
+                      <TableCell>{String(row.action ?? row.event ?? "—")}</TableCell>
+                      <TableCell>{String(row.actorId ?? "—")}</TableCell>
+                      <TableCell>{String(row.createdAt ?? "—")}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="tahesab"><Card><CardHeader><CardTitle>ته‌حساب</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><p>فعال: {overview.data.tahesab.enabled ? "بله" : "خیر"}</p><p>کد مشتری: {overview.data.tahesab.customerCode ?? "—"}</p><p>گروه: {overview.data.tahesab.groupName ?? "—"}</p><pre className="text-xs overflow-auto">{JSON.stringify(overview.data.tahesab.lastOutbox, null, 2)}</pre></CardContent></Card></TabsContent>
       </Tabs>

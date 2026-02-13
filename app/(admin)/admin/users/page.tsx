@@ -109,8 +109,28 @@ export default function AdminUsersPage() {
           <div className="grid gap-3">
             <div><Label>نام کامل</Label><Input {...form.register("fullName")} /></div>
             <div><Label>ایمیل</Label><Input {...form.register("email")} /></div>
-            <div><Label>نقش</Label><Input {...form.register("role")} /></div>
-            <div><Label>وضعیت</Label><Input {...form.register("status")} /></div>
+            <div>
+              <Label>نقش</Label>
+              <Select value={form.watch("role") ?? ""} onValueChange={(value: UserSafeDto["role"]) => form.setValue("role", value)}>
+                <SelectTrigger><SelectValue placeholder="انتخاب نقش" /></SelectTrigger>
+                <SelectContent>
+                  {(meta.data?.roles ?? []).map((role) => (
+                    <SelectItem key={role} value={role}>{faLabels.userRole[role as UserSafeDto["role"]] ?? role}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>وضعیت</Label>
+              <Select value={form.watch("status") ?? ""} onValueChange={(value: UserSafeDto["status"]) => form.setValue("status", value)}>
+                <SelectTrigger><SelectValue placeholder="انتخاب وضعیت" /></SelectTrigger>
+                <SelectContent>
+                  {(meta.data?.statuses ?? []).map((status) => (
+                    <SelectItem key={status} value={status}>{faLabels.userStatus[status as UserSafeDto["status"]] ?? status}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label>گروه مشتری</Label>
               <Select value={form.watch("customerGroupId") ?? "none"} onValueChange={(value) => form.setValue("customerGroupId", value === "none" ? null : value)}>

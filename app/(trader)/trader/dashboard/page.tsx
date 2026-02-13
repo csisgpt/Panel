@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { getMeOverview } from "@/lib/api/foundation";
 import { faLabels } from "@/lib/i18n/fa";
 
@@ -12,6 +13,21 @@ export default function TraderDashboardPage() {
   const overview = useQuery({ queryKey: ["foundation-me-overview-dashboard"], queryFn: getMeOverview });
   if (overview.isLoading) return <div>{faLabels.common.loading}</div>;
   if (!overview.data) return <div>{faLabels.common.fetchError}</div>;
+
+  const policy = overview.data.policy.summary;
+
+  const renderPolicySection = (
+    title: string,
+    item: { daily: { limit: string | null; kycRequiredLevel: string | null; source: string }; monthly: { limit: string | null; kycRequiredLevel: string | null; source: string } }
+  ) => (
+    <div className="space-y-2 rounded border p-3">
+      <p className="font-medium">{title}</p>
+      <div className="text-sm">
+        <p>روزانه — سقف: {item.daily.limit ?? "—"} | حداقل سطح احراز هویت: {item.daily.kycRequiredLevel ?? "—"} | منبع: {faLabels.policySource[item.daily.source as keyof typeof faLabels.policySource] ?? item.daily.source}</p>
+        <p>ماهانه — سقف: {item.monthly.limit ?? "—"} | حداقل سطح احراز هویت: {item.monthly.kycRequiredLevel ?? "—"} | منبع: {faLabels.policySource[item.monthly.source as keyof typeof faLabels.policySource] ?? item.monthly.source}</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -29,7 +45,13 @@ export default function TraderDashboardPage() {
       </Card>
       <Card>
         <CardHeader><CardTitle>خلاصه پالیسی</CardTitle></CardHeader>
-        <CardContent><pre className="text-xs">{JSON.stringify(overview.data.policy.summary, null, 2)}</pre></CardContent>
+        <CardContent className="space-y-3">
+          {renderPolicySection("برداشت ریالی", policy.withdrawIrr)}
+          <Separator />
+          {renderPolicySection("خرید", policy.tradeBuyNotionalIrr)}
+          <Separator />
+          {renderPolicySection("فروش", policy.tradeSellNotionalIrr)}
+        </CardContent>
       </Card>
     </div>
   );

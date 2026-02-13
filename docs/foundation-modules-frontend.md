@@ -3,13 +3,13 @@
 ## صفحات پیاده‌سازی‌شده
 - `/admin/users` کاربران
 - `/admin/users/[id]` جزئیات کاربر
-- `/admin/kyc` صف KYC
+- `/admin/kyc` صف احراز هویت
 - `/admin/customer-groups` گروه‌های مشتریان
 - `/admin/customer-groups/[id]` جزئیات گروه
 - `/admin/policy-rules` قوانین پالیسی
 - `/admin/tahesab/outbox` صف خروجی ته‌حساب
 - `/trader/dashboard` داشبورد کاربر
-- `/trader/profile` پروفایل/تنظیمات/ارسال KYC
+- `/trader/profile` پروفایل/تنظیمات/ارسال مدارک احراز هویت
 
 ## Endpointهای استفاده‌شده
 - کاربران/من: `/me/overview`, `/me/kyc`, `/me/kyc/submit`, `/me/policy/summary`, `/users/me/settings`
@@ -22,7 +22,7 @@
 ## نگاشت برچسب فارسی
 نگاشت‌های مرکزی در `lib/i18n/fa.ts` قرار گرفته‌اند و شامل:
 - نقش/وضعیت کاربر
-- وضعیت/سطح KYC
+- وضعیت/سطح احراز هویت
 - دامنه/عملیات پالیسی
 - متن‌های عمومی UI (ذخیره، ثبت، حذف، ...)
 

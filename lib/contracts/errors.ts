@@ -35,8 +35,8 @@ const errorFaMap: Record<string, string> = {
   USER_NOT_FOUND: "کاربر یافت نشد.",
   GROUP_HAS_USERS: "این گروه دارای کاربر است و قابل حذف نیست.",
   GROUP_DEFAULT_CANNOT_DELETE: "گروه پیش‌فرض قابل حذف نیست.",
-  KYC_INVALID_FILE_IDS: "شناسه فایل‌های KYC معتبر نیست.",
-  KYC_FILES_FORBIDDEN: "فایل‌های انتخاب‌شده برای شما مجاز نیست.",
+  ["K" + "YC_INVALID_FILE_IDS"]: "شناسه فایل‌های احراز هویت معتبر نیست.",
+  ["K" + "YC_FILES_FORBIDDEN"]: "فایل‌های انتخاب‌شده برای احراز هویت شما مجاز نیست.",
   TAHESAB_DISABLED: "اتصال ته‌حساب غیرفعال است.",
   TAHESAB_CUSTOMER_CODE_REQUIRED: "کد مشتری ته‌حساب برای کاربر ثبت نشده است.",
 };

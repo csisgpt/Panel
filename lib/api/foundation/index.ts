@@ -91,7 +91,7 @@ export const adminGetUserLimitReservations = (id: string, params?: Record<string
 export const adminListPolicyAudit = (params?: Record<string, unknown>) => apiGet<ListResult<unknown>>(`/admin/audit/policy${q(params)}`);
 
 export const listFiles = (params?: Record<string, unknown>) => apiGet<ListResult<unknown>>(`/files${q(params)}`);
-export const uploadFile = (file: File, label = "مدارک KYC") => {
+export const uploadFile = (file: File, label = "مدارک احراز هویت") => {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("label", label);
