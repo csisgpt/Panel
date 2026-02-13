@@ -87,3 +87,14 @@ export function apiPatch<T, B = unknown>(path: string, body: B): Promise<T> {
 export function apiPostForm<T>(path: string, formData: FormData): Promise<T> {
   return requestForm<T>(path, formData);
 }
+
+export function apiPut<T, B = unknown>(path: string, body: B): Promise<T> {
+  return request<T>(path, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export function apiDelete<T = void>(path: string): Promise<T> {
+  return request<T>(path, { method: "DELETE" });
+}
