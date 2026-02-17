@@ -25,6 +25,7 @@ import { SavedViews } from "./saved-views";
 import { TableShell } from "./table-shell";
 import { TableToolbar } from "./table-toolbar";
 import { useTableStatePersistence } from "./use-table-state-persistence";
+import { cn } from "@/lib/utils";
 
 export interface ServerTableViewTab<TFilters> extends QuickTab {
   paramsPatch: Partial<ListParams<TFilters>>;
@@ -224,7 +225,7 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
       ...columns,
       {
         id: "actions",
-        header: "",
+        header: "عملیات",
         cell: ({ row }: { row: { original: TItem } }) => rowActions(row.original),
       } as ColumnDef<TItem>,
     ];
@@ -352,7 +353,7 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
       description={description}
       toolbar={
         <div className="space-y-3">
-          <TableToolbar
+          {/* <TableToolbar
             searchSlot={
               <Input
                 placeholder="جستجو"
@@ -407,7 +408,7 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
                 خروجی (به‌زودی)
               </Button>
             }
-          />
+          /> */}
           {tabs?.length ? (
             <QuickTabs
               tabs={tabs}
@@ -510,7 +511,7 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
         </div>
       ) : null}
 
-      <div className={renderCard ? "hidden md:block" : ""}>
+      <div className={cn("h-full",renderCard ? "hidden md:block" : "")}>
         <DataTable
           data={data}
           columns={visibleColumns}

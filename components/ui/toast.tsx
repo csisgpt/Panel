@@ -6,12 +6,12 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const toastVariants = cva(
-  "group pointer-events-auto relative flex w-full min-w-[280px] max-w-sm items-center gap-3 rounded-2xl border bg-card p-4 text-foreground shadow-lg",
+  "group pointer-events-auto relative flex w-full min-w-[280px] max-w-sm items-center bg-card gap-3 rounded-2xl border  p-4 text-foreground shadow-lg",
   {
     variants: {
       variant: {
         default: "border-border/80",
-        destructive: "border-destructive/50 bg-destructive/10 text-destructive-foreground",
+        destructive: "border-destructive/50 bg-destructive/70 text-destructive-foreground",
         success: "border-emerald-200 bg-emerald-50 text-emerald-700",
         error: "border-rose-200 bg-rose-50 text-rose-700",
         warn: "border-amber-200 bg-amber-50 text-amber-700",
@@ -65,7 +65,7 @@ const ToastClose = React.forwardRef<
   <ToastPrimitive.Close
     ref={ref}
     className={cn(
-      "ml-auto inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-xs font-medium opacity-70 transition hover:opacity-100",
+      "mr-auto inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-xs font-medium opacity-70 transition hover:opacity-100",
       className
     )}
     {...props}

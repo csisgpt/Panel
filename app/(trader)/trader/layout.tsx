@@ -29,7 +29,7 @@ export default function TraderLayout({ children }: { children: React.ReactNode }
     const sections: NavSection[] = [
       { id: "main", label: "اصلی", items: byKey(["dashboard", "requests", "history"]) },
       { id: "p2p", label: "عملیات P2P", items: byKey(["payer", "receiver"]) },
-      { id: "settings", label: "سایر", items: byKey(["destinations"]) },
+      { id: "settings", label: "سایر", items: byKey(["destinations", "profile"]) },
     ];
     return sections.filter((section) => section.items.length > 0);
   }, []);

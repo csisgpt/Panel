@@ -13,6 +13,6 @@ const sizeMap: Record<NonNullable<PageShellProps["size"]>, string> = {
 
 export function PageShell({ className, size = "default", ...props }: PageShellProps) {
   return (
-    <div className={cn("mx-auto w-full space-y-6 p-4 sm:px-6 lg:px-8", sizeMap[size], className)} {...props} />
+    <div className={cn("mx-auto w-full space-y-6 p-4 sm:px-6 lg:px-8 max-h-[calc(100vh-66px)] overflow-hidden flex flex-col h-full", className)} {...props} />
   );
 }

@@ -86,6 +86,15 @@ export const traderNavItems: NavigationItem[] = [
     roles: userPanelRoles,
     featureFlag: true,
   },
+  {
+    key: "profile",
+    labelFa: "پروفایل",
+    href: "/trader/profile",
+    icon: UserCircle, // اگر آیکن دیگری دارید همان را بگذارید
+    roles: userPanelRoles,
+    featureFlag: true,
+  },
+
 ];
 
 export const traderBottomNav = {

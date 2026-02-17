@@ -67,8 +67,8 @@ export default function CustomerGroupsPage() {
   });
 
   return (
-    <div className="space-y-3">
-      <Button onClick={() => { setEditing(null); setOpen(true); }}>ثبت گروه جدید</Button>
+    <div className="space-y-3 grow! flex flex-col">
+      {/* <Button onClick={() => { setEditing(null); setOpen(true); }}>ثبت گروه جدید</Button> */}
       <ServerTableView<CustomerGroup>
         storageKey="foundation-customer-groups"
         title="گروه‌های مشتریان"
@@ -95,7 +95,7 @@ export default function CustomerGroupsPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? "ویرایش گروه" : "ثبت گروه"}</DialogTitle></DialogHeader>
-          <div className="grid gap-2">
+          <div className="grid gap-2 p-4">
             {!editing ? (
               <>
                 <Label>کد گروه</Label>
