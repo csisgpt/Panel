@@ -70,8 +70,9 @@ export function apiGet<T>(path: string): Promise<T> {
   return request<T>(path, { method: "GET" });
 }
 
-export function apiPost<T, B = unknown>(path: string, body: B): Promise<T> {
+export function apiPost<T, B = unknown>(path: string, body: B, options?: RequestInit): Promise<T> {
   return request<T>(path, {
+    ...options,
     method: "POST",
     body: JSON.stringify(body),
   });

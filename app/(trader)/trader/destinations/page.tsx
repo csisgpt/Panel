@@ -9,7 +9,8 @@ import { createUserDestinationsListConfig } from "@/lib/screens/user/destination
 import { ServerTableView } from "@/components/kit/table/server-table-view";
 import { WizardSheet } from "@/components/kit/flow/wizard-sheet";
 import { createUserDestination, makeUserDestinationDefault, updateUserDestination } from "@/lib/api/payment-destinations";
-import type { DestinationForm, PaymentDestination } from "@/lib/contracts/p2p";
+import type { DestinationForm } from "@/lib/contracts/p2p";
+import type { PaymentDestinationView } from "@/lib/types/backend";
 import { useToast } from "@/hooks/use-toast";
 
 const steps = [
@@ -25,7 +26,7 @@ export default function TraderDestinationsPage() {
 
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [editing, setEditing] = useState<PaymentDestination | null>(null);
+  const [editing, setEditing] = useState<PaymentDestinationView | null>(null);
   const [form, setForm] = useState<DestinationForm>({ type: "IBAN", title: "", value: "", bankName: "" });
   const [setDefault, setSetDefault] = useState(false);
 
@@ -48,12 +49,12 @@ export default function TraderDestinationsPage() {
     setOpen(true);
   };
 
-  const handleEdit = (item: PaymentDestination) => {
+  const handleEdit = (item: PaymentDestinationView) => {
     setEditing(item);
     setForm({
       type: item.type ?? "IBAN",
       title: item.title ?? "",
-      value: item.iban ?? item.cardNumber ?? item.maskedValue ?? "",
+      value: item.maskedValue ?? "",
       bankName: item.bankName ?? "",
     });
     setSetDefault(Boolean(item.isDefault));
@@ -79,7 +80,7 @@ export default function TraderDestinationsPage() {
       setOpen(false);
       resetForm();
     } catch (error) {
-      toast({ title: "خطا", description: "ثبت مقصد ناموفق بود", variant: "destructive" });
+      toast({ title: "ثبت مقصد ناموفق بود", variant: "destructive" });
     }
   };
 
@@ -90,14 +91,14 @@ export default function TraderDestinationsPage() {
         <Button onClick={handleOpen}>افزودن مقصد</Button>
       </div>
 
-      <ServerTableView<PaymentDestination>
+      <ServerTableView<PaymentDestinationView>
         {...config}
         renderCard={(row) => (
           <div className="rounded-lg border p-4 text-sm">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">{row.title ?? "بدون عنوان"}</p>
-                <p className="text-xs text-muted-foreground">{row.maskedValue ?? row.iban ?? row.cardNumber}</p>
+                <p className="text-xs text-muted-foreground">{row.maskedValue}</p>
                 <p className="text-xs text-muted-foreground">{row.bankName ?? "-"}</p>
               </div>
               {row.isDefault ? <span className="text-xs text-muted-foreground">پیش‌فرض</span> : null}

@@ -56,7 +56,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {
         id: "ops",
         label: "عملیات",
-        items: byKey(["dashboard", "p2p-ops", "p2p-withdrawals", "p2p-allocations"]),
+        items: byKey(["dashboard", "deposits", "withdrawals", "p2p-ops", "p2p-withdrawals", "p2p-allocations"]),
       },
       {
         id: "management",

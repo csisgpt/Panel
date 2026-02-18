@@ -3,10 +3,10 @@ import { isMockMode } from "./config";
 import type { ListParams } from "@/lib/querykit/schemas";
 import {
   buildAdminAllocationsQuery as buildAdminAllocationsQueryInternal,
-  buildAdminWithdrawalsQuery as buildAdminWithdrawalsQueryInternal,
   buildTraderHistoryQuery,
   buildWithdrawalCandidatesQuery as buildWithdrawalCandidatesQueryInternal,
 } from "@/lib/adapters/list-query-builders";
+import { buildAdminP2PWithdrawalsQuery as buildAdminP2PWithdrawalsQueryInternal } from "@/lib/contract-mappers/p2p-withdrawals.mapper";
 import { adaptListResponse } from "@/lib/adapters/list-response-adapter";
 import { adaptP2PMeta } from "@/lib/adapters/p2p-meta-adapter";
 import { normalizeListResponse } from "@/lib/contracts/list";
@@ -152,7 +152,7 @@ function buildMockDepositVm(candidate: { id: string; name: string; mobile: strin
 }
 
 export function buildAdminP2PWithdrawalsQuery(params: ListParams) {
-  return buildAdminWithdrawalsQueryInternal(params);
+  return buildAdminP2PWithdrawalsQueryInternal(params);
 }
 
 export function buildAdminP2PAllocationsQuery(params: ListParams) {

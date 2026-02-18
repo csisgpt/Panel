@@ -14,7 +14,8 @@ import { LoadingState } from "@/components/kit/common/LoadingState";
 import { ErrorState } from "@/components/kit/common/ErrorState";
 import { createWithdrawal } from "@/lib/api/withdrawals";
 import { createUserDestination, listUserDestinations, makeUserDestinationDefault } from "@/lib/api/payment-destinations";
-import type { DestinationForm, PaymentDestination } from "@/lib/contracts/p2p";
+import type { DestinationForm } from "@/lib/contracts/p2p";
+import type { PaymentDestinationView } from "@/lib/types/backend";
 import { useToast } from "@/hooks/use-toast";
 
 const steps = [
@@ -35,10 +36,10 @@ export default function CreateWithdrawalPage() {
   const { toast } = useToast();
   const [activeIndex, setActiveIndex] = useState(0);
   const [amount, setAmount] = useState("");
-  const [purpose] = useState<"P2P" | "DIRECT">("P2P");
+  const [purpose, setPurpose] = useState<"P2P" | "DIRECT">("P2P");
   const [channel, setChannel] = useState<"USER_TO_USER" | "USER_TO_ORG">("USER_TO_USER");
   const [note, setNote] = useState("");
-  const [destinations, setDestinations] = useState<PaymentDestination[]>([]);
+  const [destinations, setDestinations] = useState<PaymentDestinationView[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -72,17 +73,18 @@ export default function CreateWithdrawalPage() {
   const handleSubmit = async () => {
     if (!user || !selectedDestination) return;
     try {
+      const idempotencyKey = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : undefined;
       await createWithdrawal({
         amount,
         purpose,
-        channel,
+        channel: purpose === "P2P" ? channel : undefined,
         payoutDestinationId: selectedDestination.id,
         note: note || undefined,
-      });
+      }, { idempotencyKey });
       toast({ title: "برداشت ثبت شد" });
       router.push("/trader/history?tab=withdrawals");
     } catch (error) {
-      toast({ title: "خطا", description: "ثبت برداشت ناموفق بود", variant: "destructive" });
+      toast({ title: "ثبت برداشت ناموفق بود", variant: "destructive" });
     }
   };
 
@@ -99,7 +101,7 @@ export default function CreateWithdrawalPage() {
       setDestinationForm({ type: "IBAN", title: "", value: "", bankName: "" });
       toast({ title: "مقصد ثبت شد" });
     } catch (error) {
-      toast({ title: "خطا", description: "ثبت مقصد ناموفق بود", variant: "destructive" });
+      toast({ title: "ثبت مقصد ناموفق بود", variant: "destructive" });
     }
   };
 
@@ -115,6 +117,18 @@ export default function CreateWithdrawalPage() {
           <div className="space-y-2">
             <label className="text-sm">مبلغ برداشت</label>
             <Input value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="مثلا ۵۰۰۰۰۰۰۰" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm">هدف</label>
+            <Select value={purpose} onValueChange={(value) => setPurpose(value as "P2P" | "DIRECT")}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="P2P">P2P</SelectItem>
+                <SelectItem value="DIRECT">مستقیم</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <label className="text-sm">کانال</label>
@@ -153,7 +167,7 @@ export default function CreateWithdrawalPage() {
                 >
                   <div className="space-y-1 text-sm">
                     <p className="font-medium">{item.title ?? "بدون عنوان"}</p>
-                    <p className="text-muted-foreground">{item.maskedValue ?? item.iban ?? item.cardNumber}</p>
+                    <p className="text-muted-foreground">{item.maskedValue}</p>
                     <p className="text-muted-foreground">{item.bankName ?? "-"}</p>
                   </div>
                 </Card>
@@ -173,7 +187,7 @@ export default function CreateWithdrawalPage() {
           <p>هدف: {purpose === "P2P" ? "P2P" : "مستقیم"}</p>
           <p>کانال: {channel === "USER_TO_USER" ? "کاربر به کاربر" : "کاربر به سازمان"}</p>
           <p>مقصد: {selectedDestination?.title ?? "-"}</p>
-          <p>شماره: {selectedDestination?.maskedValue ?? selectedDestination?.iban ?? selectedDestination?.cardNumber}</p>
+          <p>شماره: {selectedDestination?.maskedValue}</p>
           <p>توضیحات: {note || "-"}</p>
         </div>
       ) : null}

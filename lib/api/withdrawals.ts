@@ -31,9 +31,7 @@ export async function listWithdrawals(
 }
 
 export async function getWithdrawals(): Promise<WithdrawRequest[]> {
-  if (isMockMode()) return getMockWithdrawals();
-  const { items } = await listWithdrawals();
-  return items;
+  return getMyWithdrawals();
 }
 
 export async function getMyWithdrawals(): Promise<WithdrawRequest[]> {
@@ -42,7 +40,14 @@ export async function getMyWithdrawals(): Promise<WithdrawRequest[]> {
   return response;
 }
 
-export async function createWithdrawal(dto: CreateWithdrawalDto): Promise<WithdrawRequest> {
+export async function createWithdrawal(
+  dto: CreateWithdrawalDto,
+  options?: { idempotencyKey?: string }
+): Promise<WithdrawRequest> {
   if (isMockMode()) return createMockWithdrawal(dto);
-  return apiPost<WithdrawRequest, CreateWithdrawalDto>("/withdrawals", dto);
+  const headers = new Headers();
+  if (options?.idempotencyKey) {
+    headers.set("Idempotency-Key", options.idempotencyKey);
+  }
+  return apiPost<WithdrawRequest, CreateWithdrawalDto>("/withdrawals", dto, { headers });
 }

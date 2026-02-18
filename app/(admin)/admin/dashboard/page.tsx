@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getUsers } from "@/lib/api/users";
-import { getDeposits } from "@/lib/api/deposits";
-import { getWithdrawals } from "@/lib/api/withdrawals";
+import { listAdminDeposits } from "@/lib/api/admin-deposits";
+import { listAdminWithdrawals } from "@/lib/api/admin-withdrawals";
 import { getTrades } from "@/lib/api/trades";
 import { getSystemStatus } from "@/lib/api/system";
 import {
@@ -36,14 +36,14 @@ export default function AdminDashboardPage() {
         const [u, t, d, w, status] = await Promise.all([
           getUsers(),
           getTrades(),
-          getDeposits(),
-          getWithdrawals(),
+listAdminDeposits({ page: 1, limit: 5, sort: "-createdAt" }),
+          listAdminWithdrawals({ page: 1, limit: 5, sort: "-createdAt" }),
           getSystemStatus(),
         ]);
         setUsers(u);
         setTrades(t);
-        setDeposits(d);
-        setWithdrawals(w);
+        setDeposits(d.items);
+        setWithdrawals(w.items);
         setSystemStatus(status);
         setError(null);
       } catch (err) {

@@ -33,7 +33,8 @@ export default function CreateDepositPage() {
   const { toast } = useToast();
   const [activeIndex, setActiveIndex] = useState(0);
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState<PaymentMethod | "">("");
+  const [method, setMethod] = useState<string>("");
+  const [purpose, setPurpose] = useState<"P2P" | "DIRECT">("DIRECT");
   const [note, setNote] = useState("");
   const [refNo, setRefNo] = useState("");
   const [fileIds, setFileIds] = useState<string[]>([]);
@@ -51,7 +52,7 @@ export default function CreateDepositPage() {
       await createDeposit({
         amount,
         method,
-        purpose: "P2P",
+        purpose,
         refNo: refNo || undefined,
         note: note || undefined,
         fileIds: fileIds.length ? fileIds : undefined,
@@ -59,7 +60,7 @@ export default function CreateDepositPage() {
       toast({ title: "واریز ثبت شد" });
       router.push("/trader/history?tab=deposits");
     } catch (error) {
-      toast({ title: "خطا", description: "ثبت واریز ناموفق بود", variant: "destructive" });
+      toast({ title: "ثبت واریز ناموفق بود", variant: "destructive" });
     }
   };
 
@@ -92,6 +93,18 @@ export default function CreateDepositPage() {
             </Select>
           </div>
           <div className="space-y-2">
+            <label className="text-sm">هدف</label>
+            <Select value={purpose} onValueChange={(value) => setPurpose(value as "P2P" | "DIRECT")}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="DIRECT">مستقیم</SelectItem>
+                <SelectItem value="P2P">P2P</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <label className="text-sm">شناسه/پیگیری بانکی (اختیاری)</label>
             <Input value={refNo} onChange={(event) => setRefNo(event.target.value)} />
           </div>
@@ -107,6 +120,7 @@ export default function CreateDepositPage() {
         <div className="space-y-2 rounded-lg border p-4 text-sm">
           <p>مبلغ: {amount}</p>
           <p>روش پرداخت: {methodOptions.find((item) => item.value === method)?.label}</p>
+          <p>هدف: {purpose}</p>
           <p>شناسه: {refNo || "-"}</p>
           <p>یادداشت: {note || "-"}</p>
           <p>تعداد فایل: {fileIds.length}</p>
