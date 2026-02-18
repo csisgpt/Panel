@@ -170,16 +170,15 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
     return () => clearTimeout(timer);
   }, [localSearch, params.search, setParams]);
 
-  const cleanedParams = useMemo(
-    () => cleanDefaults(withDefaults(params, defaultParams), defaultParams),
-    [params, defaultParams]
-  );
+  const paramsFull = useMemo(() => withDefaults(params, defaultParams), [params, defaultParams]);
+
+  const cleanedParams = useMemo(() => cleanDefaults(paramsFull, defaultParams), [paramsFull, defaultParams]);
 
   const queryKey = useMemo(() => queryKeyFactory(cleanedParams as ListParams<TFilters>), [queryKeyFactory, cleanedParams]);
 
   const query = useQuery<{ items: TItem[]; meta: ListMeta }, ApiError>({
     queryKey,
-    queryFn: () => queryFn(cleanedParams as ListParams<TFilters>),
+    queryFn: () => queryFn(paramsFull as ListParams<TFilters>),
     refetchInterval: refetchIntervalMs,
     placeholderData: (previous) => previous,
   });
@@ -320,15 +319,19 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
 
       if (filter.type === "dateRange") {
         return (
-          <Input
-            key={filter.key}
-            type="date"
-            value={(current as string | undefined) ?? ""}
-            onChange={(event) => handleChange(event.target.value)}
-            placeholder={filter.label}
-            className="w-[180px]"
-            disabled={query.isLoading}
-          />
+          <div key={filter.key} className="flex items-center gap-2">
+            <Input
+              type="date"
+              value={current ? new Date(String(current)).toISOString().slice(0, 10) : ""}
+              onChange={(event) => handleChange(event.target.value ? new Date(event.target.value).toISOString() : "")}
+              placeholder={filter.label}
+              className="w-[180px]"
+              disabled={query.isLoading}
+            />
+            {current ? (
+              <Button variant="ghost" size="sm" onClick={() => handleChange("")}>حذف</Button>
+            ) : null}
+          </div>
         );
       }
 

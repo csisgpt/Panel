@@ -199,8 +199,13 @@ export function mapP2PAllocationVm(vm: AllocationVmDto): P2PAllocation {
     paymentMethod: vm.payment?.method ?? null,
     bankRef: vm.payment?.bankRef ?? null,
     paidAt: vm.payment?.paidAt ?? null,
+    payment: vm.payment
+      ? { method: vm.payment.method, bankRef: vm.payment.bankRef ?? null, paidAt: vm.payment.paidAt ?? null }
+      : null,
     attachments: vm.attachments.map(mapAttachmentToFileMeta),
     destinationSummary,
+    destinationToPay: vm.destinationToPay ?? null,
+    destinationCopyText: vm.destinationCopyText ?? null,
     paymentCode: vm.paymentCode ?? null,
     isExpired: vm.flags.isExpired,
     expiresSoon: vm.flags.expiresSoon,

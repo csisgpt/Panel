@@ -48,7 +48,21 @@ export interface P2PAllocation {
   attachments?: FileMeta[];
   proofFileIds?: string[];
   destinationSummary?: string | null;
+  destinationToPay?: {
+    type?: "IBAN" | "CARD" | "ACCOUNT";
+    bankName?: string;
+    ownerName?: string;
+    title?: string;
+    fullValue?: string;
+    masked?: string;
+  } | null;
+  destinationCopyText?: string | null;
   paymentCode?: string | null;
+  payment?: {
+    method?: PaymentMethod | string;
+    bankRef?: string | null;
+    paidAt?: string | null;
+  } | null;
   isExpired?: boolean;
   expiresSoon?: boolean;
   hasProof?: boolean;
