@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { JalaliDatePicker } from "@/components/ui/jalali-datetime-picker";
+import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
+import { toBackendDateOnlyEnd, toBackendDateOnlyStart } from "@/lib/date/jalali-serialization";
 import { AppliedFiltersBar, type AppliedFilter } from "@/components/kit/table/applied-filters-bar";
 import { EmptyState } from "@/components/kit/common/EmptyState";
 import { ErrorState } from "@/components/kit/common/ErrorState";
@@ -332,13 +333,8 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
                     handleChange("");
                     return;
                   }
-                  if (!isTo) {
-                    handleChange(value);
-                    return;
-                  }
-                  const end = new Date(value);
-                  end.setUTCHours(23, 59, 59, 999);
-                  handleChange(end.toISOString());
+                  const selectedDate = new Date(value);
+                  handleChange(isTo ? toBackendDateOnlyEnd(selectedDate) : toBackendDateOnlyStart(selectedDate));
                 }}
                 disabled={query.isLoading}
                 placeholder={filter.label}
