@@ -121,3 +121,24 @@ export async function uploadFile(file: File, label?: string): Promise<FileMeta> 
   }
   return apiPostForm<FileMeta>("/files", formData);
 }
+
+
+export async function getFileMetaBatch(fileIds: string[]): Promise<FileMeta[]> {
+  if (!fileIds.length) return [];
+  if (isMockMode()) {
+    const all = await getFiles();
+    return all.filter((item) => fileIds.includes(item.id));
+  }
+
+  const responses = await Promise.all(fileIds.map((fileId) => apiGet<FileDownloadLinkDto>(`/files/${fileId}`)));
+  return responses.map((item) => ({
+    id: item.id,
+    createdAt: new Date().toISOString(),
+    uploadedById: "",
+    storageKey: "",
+    fileName: item.name,
+    mimeType: item.mimeType,
+    sizeBytes: item.sizeBytes,
+    label: item.label ?? undefined,
+  }));
+}

@@ -106,6 +106,8 @@ function serializeFilterValue(value: unknown) {
   return value ? String(value) : "-";
 }
 
+
+
 /**
  * Unified list view wrapper combining QueryKit + React Query + TableKit.
  */
@@ -318,19 +320,31 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
       }
 
       if (filter.type === "dateRange") {
+        const rawValue = current ? String(current) : "";
+        const inputValue = rawValue ? new Date(rawValue).toISOString().slice(0, 10) : "";
+        const boundaryMode = filter.key.endsWith("To") ? "end" : "start";
+
         return (
           <div key={filter.key} className="flex items-center gap-2">
             <Input
               type="date"
-              value={current ? new Date(String(current)).toISOString().slice(0, 10) : ""}
-              onChange={(event) => handleChange(event.target.value ? new Date(event.target.value).toISOString() : "")}
+              value={inputValue}
+              onChange={(event) => {
+                const selected = event.target.value;
+                if (!selected) {
+                  handleChange("");
+                  return;
+                }
+                const date = new Date(selected);
+                if (boundaryMode === "start") date.setHours(0, 0, 0, 0);
+                else date.setHours(23, 59, 59, 999);
+                handleChange(date.toISOString());
+              }}
               placeholder={filter.label}
               className="w-[180px]"
               disabled={query.isLoading}
             />
-            {current ? (
-              <Button variant="ghost" size="sm" onClick={() => handleChange("")}>حذف</Button>
-            ) : null}
+            {current ? <Button variant="ghost" size="sm" onClick={() => handleChange("")}>پاک کردن</Button> : null}
           </div>
         );
       }
