@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { JalaliDatePicker } from "@/components/ui/jalali-datetime-picker";
 import { AppliedFiltersBar, type AppliedFilter } from "@/components/kit/table/applied-filters-bar";
 import { EmptyState } from "@/components/kit/common/EmptyState";
 import { ErrorState } from "@/components/kit/common/ErrorState";
@@ -320,31 +321,34 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
       }
 
       if (filter.type === "dateRange") {
-        const rawValue = current ? String(current) : "";
-        const inputValue = rawValue ? new Date(rawValue).toISOString().slice(0, 10) : "";
-        const boundaryMode = filter.key.endsWith("To") ? "end" : "start";
-
+        const isTo = filter.key.endsWith("To");
         return (
           <div key={filter.key} className="flex items-center gap-2">
-            <Input
-              type="date"
-              value={inputValue}
-              onChange={(event) => {
-                const selected = event.target.value;
-                if (!selected) {
-                  handleChange("");
-                  return;
-                }
-                const date = new Date(selected);
-                if (boundaryMode === "start") date.setHours(0, 0, 0, 0);
-                else date.setHours(23, 59, 59, 999);
-                handleChange(date.toISOString());
-              }}
-              placeholder={filter.label}
-              className="w-[180px]"
-              disabled={query.isLoading}
-            />
-            {current ? <Button variant="ghost" size="sm" onClick={() => handleChange("")}>پاک کردن</Button> : null}
+            <div className="w-[180px]">
+              <JalaliDatePicker
+                value={current ? String(current) : undefined}
+                onChange={(value) => {
+                  if (!value) {
+                    handleChange("");
+                    return;
+                  }
+                  if (!isTo) {
+                    handleChange(value);
+                    return;
+                  }
+                  const end = new Date(value);
+                  end.setUTCHours(23, 59, 59, 999);
+                  handleChange(end.toISOString());
+                }}
+                disabled={query.isLoading}
+                placeholder={filter.label}
+              />
+            </div>
+            {current ? (
+              <Button variant="ghost" size="sm" onClick={() => handleChange("")}>
+                پاک کردن
+              </Button>
+            ) : null}
           </div>
         );
       }

@@ -7,6 +7,7 @@ import { MoneyInput } from "@/components/ui/money-input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { StickyFormFooter } from "@/components/kit/forms/sticky-form-footer";
 import { ServerTableView } from "@/components/kit/table/server-table-view";
+import { ConfirmActionDialog } from "@/components/kit/dialogs/confirm-action-dialog";
 import { assignToWithdrawal, listWithdrawalCandidates } from "@/lib/api/p2p";
 import type { P2PWithdrawal } from "@/lib/contracts/p2p";
 import { formatMoney } from "@/lib/format/money";
@@ -16,6 +17,7 @@ export default function AdminP2PWithdrawalsPage() {
   const config = useMemo(() => createAdminP2PWithdrawalsListConfig(), []);
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [selected, setSelected] = useState<P2PWithdrawal | null>(null);
   const [amounts, setAmounts] = useState<Record<string, number | undefined>>({});
 
@@ -36,6 +38,7 @@ export default function AdminP2PWithdrawalsPage() {
         .map(([depositId, value]) => ({ depositId, amount: String(value) })),
     });
     await qc.invalidateQueries({ queryKey: ["admin", "p2p", "withdrawals"] });
+    setConfirmOpen(false);
     setOpen(false);
   };
 
@@ -82,7 +85,9 @@ export default function AdminP2PWithdrawalsPage() {
                     <div className="flex-1">
                       <MoneyInput
                         value={amounts[candidate.id]}
-                        onChange={(value) => setAmounts((prev) => ({ ...prev, [candidate.id]: value && value > maxAvailable ? maxAvailable : value }))}
+                        onChange={(value) =>
+                          setAmounts((prev) => ({ ...prev, [candidate.id]: value && value > maxAvailable ? maxAvailable : value }))
+                        }
                         min={0}
                         max={maxAvailable}
                       />
@@ -106,18 +111,21 @@ export default function AdminP2PWithdrawalsPage() {
               <Button variant="outline" onClick={() => setOpen(false)}>
                 انصراف
               </Button>
-              <Button
-                disabled={totalAssigned <= 0 || totalAssigned > remaining || !selected?.actions?.canAssign}
-                onClick={() => {
-                  if (window.confirm("آیا از انجام این عملیات مطمئن هستید؟")) submitAssign();
-                }}
-              >
+              <Button disabled={totalAssigned <= 0 || totalAssigned > remaining || !selected?.actions?.canAssign} onClick={() => setConfirmOpen(true)}>
                 ثبت
               </Button>
             </div>
           </StickyFormFooter>
         </SheetContent>
       </Sheet>
+
+      <ConfirmActionDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="تأیید عملیات"
+        description="آیا از انجام این عملیات مطمئن هستید؟"
+        onConfirm={submitAssign}
+      />
     </div>
   );
 }

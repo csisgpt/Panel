@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { AttachmentViewer } from "@/components/kit/files/attachment-viewer";
 import { StickyFormFooter } from "@/components/kit/forms/sticky-form-footer";
 import { ServerTableView } from "@/components/kit/table/server-table-view";
+import { ConfirmActionDialog } from "@/components/kit/dialogs/confirm-action-dialog";
 import { cancelAllocation, finalizeAllocation, verifyAllocation } from "@/lib/api/p2p";
 import type { P2PAllocation } from "@/lib/contracts/p2p";
 import { formatMoney } from "@/lib/format/money";
@@ -26,6 +27,8 @@ function formatPersianDateTime(value?: string | null) {
   }).format(date);
 }
 
+type PendingAction = { type: "finalize" | "cancel" | "verify"; allocationId?: string } | null;
+
 export default function AdminP2PAllocationsPage() {
   const config = useMemo(() => createAdminP2PAllocationsListConfig(), []);
   const qc = useQueryClient();
@@ -33,22 +36,26 @@ export default function AdminP2PAllocationsPage() {
   const [selected, setSelected] = useState<P2PAllocation | null>(null);
   const [approved, setApproved] = useState(true);
   const [note, setNote] = useState("");
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
 
   const submitVerify = async () => {
     if (!selected || !selected.actions?.canAdminVerify) return;
     await verifyAllocation(selected.id, { approved, note: note || undefined });
     await qc.invalidateQueries({ queryKey: ["admin", "p2p", "allocations"] });
+    setPendingAction(null);
     setOpen(false);
   };
 
   const runFinalize = async (allocationId: string) => {
     await finalizeAllocation(allocationId);
     await qc.invalidateQueries({ queryKey: ["admin", "p2p", "allocations"] });
+    setPendingAction(null);
   };
 
   const runCancel = async (allocationId: string) => {
     await cancelAllocation(allocationId);
     await qc.invalidateQueries({ queryKey: ["admin", "p2p", "allocations"] });
+    setPendingAction(null);
   };
 
   return (
@@ -72,25 +79,13 @@ export default function AdminP2PAllocationsPage() {
             ) : null}
 
             {row.actions?.canFinalize ? (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  if (window.confirm("آیا از انجام این عملیات مطمئن هستید؟")) runFinalize(row.id);
-                }}
-              >
+              <Button size="sm" variant="outline" onClick={() => setPendingAction({ type: "finalize", allocationId: row.id })}>
                 نهایی‌سازی
               </Button>
             ) : null}
 
             {row.actions?.canCancel ? (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  if (window.confirm("آیا از انجام این عملیات مطمئن هستید؟")) runCancel(row.id);
-                }}
-              >
+              <Button size="sm" variant="outline" onClick={() => setPendingAction({ type: "cancel", allocationId: row.id })}>
                 لغو
               </Button>
             ) : null}
@@ -133,18 +128,27 @@ export default function AdminP2PAllocationsPage() {
 
           <StickyFormFooter className="-mx-6">
             <div className="flex justify-end">
-              <Button
-                disabled={!selected?.actions?.canAdminVerify}
-                onClick={() => {
-                  if (window.confirm("آیا از انجام این عملیات مطمئن هستید؟")) submitVerify();
-                }}
-              >
+              <Button disabled={!selected?.actions?.canAdminVerify} onClick={() => setPendingAction({ type: "verify" })}>
                 ثبت
               </Button>
             </div>
           </StickyFormFooter>
         </SheetContent>
       </Sheet>
+
+      <ConfirmActionDialog
+        open={Boolean(pendingAction)}
+        onOpenChange={(openState) => !openState && setPendingAction(null)}
+        title="تأیید عملیات"
+        description="آیا از انجام این عملیات مطمئن هستید؟"
+        destructive={pendingAction?.type === "cancel"}
+        onConfirm={() => {
+          if (!pendingAction) return;
+          if (pendingAction.type === "verify") return submitVerify();
+          if (pendingAction.type === "finalize" && pendingAction.allocationId) return runFinalize(pendingAction.allocationId);
+          if (pendingAction.type === "cancel" && pendingAction.allocationId) return runCancel(pendingAction.allocationId);
+        }}
+      />
     </div>
   );
 }

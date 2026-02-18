@@ -49,6 +49,15 @@ function validateDestination(form: DestinationForm) {
   return errors;
 }
 
+
+function maskDestinationValue(type: DestinationForm["type"], value?: string) {
+  const normalized = normalizeDestinationValue(type, value ?? "");
+  if (!normalized) return "-";
+  const suffix = normalized.slice(-4);
+  if (type === "CARD") return `**** **** **** ${suffix}`;
+  if (type === "IBAN") return `IR** **** **** **** **** **** **${suffix.slice(-2)}`;
+  return `****${suffix}`;
+}
 export default function CreateWithdrawalPage() {
   const router = useRouter();
   const [amount, setAmount] = useState<number>();
@@ -239,7 +248,7 @@ export default function CreateWithdrawalPage() {
               <p>نوع: {form.type}</p>
               <p>عنوان: {form.title || "-"}</p>
               <p>نام بانک: {form.bankName || "-"}</p>
-              <p>شماره: {form.value || "-"}</p>
+              <p>شماره: {maskDestinationValue(form.type, form.value)}</p>
               <p>پیش‌فرض: {markAsDefault ? "بله" : "خیر"}</p>
             </Card>
           </FormSection>

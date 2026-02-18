@@ -152,7 +152,8 @@ export default function TraderPayerPage() {
                 placeholder="مثلاً ۱۲۳۴۵۶۷۸۹۰"
                 hint="فقط عدد وارد کنید."
               />
-              <JalaliDateTimePicker value={paidAt} onChange={setPaidAt} error={!paidAt ? "تاریخ پرداخت الزامی است." : undefined} />
+              <JalaliDateTimePicker value={paidAt} onChange={setPaidAt} />
+              {!paidAt ? <p className="text-xs text-destructive">تاریخ پرداخت الزامی است.</p> : null}
             </div>
           </FormSection>
         ) : null}
