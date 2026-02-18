@@ -32,7 +32,9 @@ export default function BottomNav() {
               <button
                 key={tab.key}
                 onClick={() => setOpen(true)}
-                className="flex flex-1 flex-col items-center gap-1 text-xs text-muted-foreground"
+                className={cn("flex flex-1 flex-col items-center font-light gap-1 text-xs text-muted-foreground p-2 max-w-12 max-h-12 rounded-lg",
+                  active ? "bg-primary-foreground text-white font-extrabold" : "bg-muted"
+                )}
               >
                 <tab.icon className="h-5 w-5" />
                 {tab.labelFa}
