@@ -10,6 +10,8 @@ import { P2PStatusBadge } from "@/components/kit/p2p/p2p-status-badge";
 import { P2PTimeline } from "@/components/kit/p2p/p2p-timeline";
 import type { P2PAllocation } from "@/lib/contracts/p2p";
 import { formatMoney } from "@/lib/format/money";
+import { useQuery } from "@tanstack/react-query";
+import { getAdminP2PAllocationDetail } from "@/lib/api/p2p";
 
 export function AdminAllocationDetailsSheet({
   open,
@@ -26,7 +28,15 @@ export function AdminAllocationDetailsSheet({
   onFinalize?: () => void;
   onCancel?: () => void;
 }) {
-  if (!allocation) return null;
+  const detailQuery = useQuery({
+    queryKey: ["admin", "p2p", "allocation", allocation?.id],
+    enabled: open && Boolean(allocation?.id),
+    queryFn: () => getAdminP2PAllocationDetail(allocation!.id),
+  });
+
+  const detail = detailQuery.data ?? allocation;
+
+  if (!detail) return null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -38,46 +48,46 @@ export function AdminAllocationDetailsSheet({
         <div className="space-y-4 pb-20">
           <FormSection title="خلاصه">
             <div className="grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
-              <p>شناسه: {allocation.id}</p>
-              <p>مبلغ: {formatMoney(allocation.amount)}</p>
-              <p>پرداخت‌کننده: {allocation.payerName ?? "-"}</p>
-              <p>دریافت‌کننده: {allocation.receiverName ?? "سیستمی"}</p>
-              <p>کد تخصیص: {allocation.paymentCode ?? "-"}</p>
+              <p>شناسه: {detail.id}</p>
+              <p>مبلغ: {formatMoney(detail.amount)}</p>
+              <p>پرداخت‌کننده: {detail.payerName ?? "-"}</p>
+              <p>دریافت‌کننده: {detail.receiverName ?? "سیستمی"}</p>
+              <p>کد تخصیص: {detail.paymentCode ?? "-"}</p>
               <div>
-                وضعیت: <P2PStatusBadge status={allocation.status} />
+                وضعیت: <P2PStatusBadge status={detail.status} />
               </div>
             </div>
           </FormSection>
 
           <FormSection title="مقصد پرداخت">
             <DestinationCard
-              destinationToPay={allocation.destinationToPay}
-              destinationCopyText={allocation.destinationCopyText}
-              paymentCode={allocation.paymentCode}
+              destinationToPay={detail.destinationToPay}
+              destinationCopyText={detail.destinationCopyText}
+              paymentCode={detail.paymentCode}
               mode="admin"
             />
           </FormSection>
 
           <FormSection title="اطلاعات پرداخت">
             <div className="grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
-              <p>روش: {allocation.payment?.method ?? allocation.paymentMethod ?? "-"}</p>
-              <p>شناسه پیگیری: {allocation.payment?.bankRef ?? allocation.bankRef ?? "-"}</p>
-              <p>زمان پرداخت: {allocation.payment?.paidAt ?? allocation.paidAt ?? "-"}</p>
+              <p>روش: {detail.payment?.method ?? detail.paymentMethod ?? "-"}</p>
+              <p>شناسه پیگیری: {detail.payment?.bankRef ?? detail.bankRef ?? "-"}</p>
+              <p>زمان پرداخت: {detail.payment?.paidAt ?? detail.paidAt ?? "-"}</p>
             </div>
           </FormSection>
 
           <FormSection title="پیوست‌ها">
-            <AttachmentViewer files={allocation.attachments ?? []} />
+            <AttachmentViewer files={detail.attachments ?? []} />
           </FormSection>
 
           <FormSection title="تایم‌لاین">
             <P2PTimeline
               items={[
-                { label: "ایجاد", value: allocation.createdAt },
-                { label: "ثبت رسید", value: allocation.timestamps?.proofSubmittedAt },
-                { label: "تأیید گیرنده", value: allocation.timestamps?.receiverConfirmedAt },
-                { label: "تأیید ادمین", value: allocation.timestamps?.adminVerifiedAt },
-                { label: "نهایی", value: allocation.timestamps?.settledAt },
+                { label: "ایجاد", value: detail.createdAt },
+                { label: "ثبت رسید", value: detail.timestamps?.proofSubmittedAt },
+                { label: "تأیید گیرنده", value: detail.timestamps?.receiverConfirmedAt },
+                { label: "تأیید ادمین", value: detail.timestamps?.adminVerifiedAt },
+                { label: "نهایی", value: detail.timestamps?.settledAt },
               ]}
             />
           </FormSection>
@@ -85,9 +95,9 @@ export function AdminAllocationDetailsSheet({
 
         <StickyFormFooter className="-mx-6">
           <div className="flex flex-wrap justify-end gap-2">
-            {allocation.actions?.canAdminVerify ? <Button onClick={onVerify}>بررسی</Button> : null}
-            {allocation.actions?.canFinalize ? <Button variant="outline" onClick={onFinalize}>نهایی‌سازی</Button> : null}
-            {allocation.actions?.canCancel ? <Button variant="destructive" onClick={onCancel}>لغو</Button> : null}
+            {detail.actions?.canAdminVerify ? <Button onClick={onVerify}>بررسی</Button> : null}
+            {detail.actions?.canFinalize ? <Button variant="outline" onClick={onFinalize}>نهایی‌سازی</Button> : null}
+            {detail.actions?.canCancel ? <Button variant="destructive" onClick={onCancel}>لغو</Button> : null}
             <Button variant="outline" onClick={() => onOpenChange(false)}>بستن</Button>
           </div>
         </StickyFormFooter>
