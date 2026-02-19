@@ -136,6 +136,7 @@ export const adminNavItems: NavigationItem[] = [
   { key: "p2p-ops", labelFa: "عملیات P2P", href: "/admin/p2p/ops", icon: Activity, roles: [UserRole.ADMIN], featureFlag: features.admin.p2p },
   { key: "p2p-withdrawals", labelFa: "صف برداشت P2P", href: "/admin/p2p/withdrawals", icon: FileStack, roles: [UserRole.ADMIN], featureFlag: features.admin.p2p },
   { key: "p2p-allocations", labelFa: "تخصیص‌های P2P", href: "/admin/p2p/allocations", icon: ScrollText, roles: [UserRole.ADMIN], featureFlag: features.admin.p2p },
+  { key: "p2p-system-destinations", labelFa: "مقاصد سیستمی", href: "/admin/p2p/system-destinations", icon: MapPinned, roles: [UserRole.ADMIN], featureFlag: features.admin.p2p },
   { key: "deposits", labelFa: "واریزها", href: "/admin/deposits", icon: Receipt, roles: [UserRole.ADMIN], featureFlag: true },
   { key: "withdrawals", labelFa: "برداشت‌ها", href: "/admin/withdrawals", icon: Banknote, roles: [UserRole.ADMIN], featureFlag: true },
   { key: "users", labelFa: "کاربران", href: "/admin/users", icon: Users, roles: [UserRole.ADMIN], featureFlag: true },

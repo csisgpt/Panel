@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
+import { toBackendDateOnlyEnd, toBackendDateOnlyStart } from "@/lib/date/jalali-serialization";
 import { AppliedFiltersBar, type AppliedFilter } from "@/components/kit/table/applied-filters-bar";
 import { EmptyState } from "@/components/kit/common/EmptyState";
 import { ErrorState } from "@/components/kit/common/ErrorState";
@@ -106,6 +108,8 @@ function serializeFilterValue(value: unknown) {
   return value ? String(value) : "-";
 }
 
+
+
 /**
  * Unified list view wrapper combining QueryKit + React Query + TableKit.
  */
@@ -170,16 +174,15 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
     return () => clearTimeout(timer);
   }, [localSearch, params.search, setParams]);
 
-  const cleanedParams = useMemo(
-    () => cleanDefaults(withDefaults(params, defaultParams), defaultParams),
-    [params, defaultParams]
-  );
+  const paramsFull = useMemo(() => withDefaults(params, defaultParams), [params, defaultParams]);
+
+  const cleanedParams = useMemo(() => cleanDefaults(paramsFull, defaultParams), [paramsFull, defaultParams]);
 
   const queryKey = useMemo(() => queryKeyFactory(cleanedParams as ListParams<TFilters>), [queryKeyFactory, cleanedParams]);
 
   const query = useQuery<{ items: TItem[]; meta: ListMeta }, ApiError>({
     queryKey,
-    queryFn: () => queryFn(cleanedParams as ListParams<TFilters>),
+    queryFn: () => queryFn(paramsFull as ListParams<TFilters>),
     refetchInterval: refetchIntervalMs,
     placeholderData: (previous) => previous,
   });
@@ -319,16 +322,30 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
       }
 
       if (filter.type === "dateRange") {
+        const isTo = filter.key.endsWith("To");
         return (
-          <Input
-            key={filter.key}
-            type="date"
-            value={(current as string | undefined) ?? ""}
-            onChange={(event) => handleChange(event.target.value)}
-            placeholder={filter.label}
-            className="w-[180px]"
-            disabled={query.isLoading}
-          />
+          <div key={filter.key} className="flex items-center gap-2">
+            <div className="w-[180px]">
+              <JalaliDatePicker
+                value={current ? String(current) : undefined}
+                onChange={(value) => {
+                  if (!value) {
+                    handleChange("");
+                    return;
+                  }
+                  const selectedDate = new Date(value);
+                  handleChange(isTo ? toBackendDateOnlyEnd(selectedDate) : toBackendDateOnlyStart(selectedDate));
+                }}
+                disabled={query.isLoading}
+                placeholder={filter.label}
+              />
+            </div>
+            {current ? (
+              <Button variant="ghost" size="sm" onClick={() => handleChange("")}>
+                پاک کردن
+              </Button>
+            ) : null}
+          </div>
         );
       }
 
@@ -409,6 +426,13 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
               </Button>
             }
           /> */}
+          <Input
+            placeholder="جستجو"
+            value={localSearch}
+            onChange={(event) => setLocalSearch(event.target.value)}
+            disabled={query.isLoading}
+            className="w-full sm:w-72"
+          />
           {tabs?.length ? (
             <QuickTabs
               tabs={tabs}

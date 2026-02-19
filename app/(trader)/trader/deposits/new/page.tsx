@@ -1,23 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
-import { Stepper } from "@/components/kit/flow/stepper";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createDeposit } from "@/lib/api/deposits";
-import { useToast } from "@/hooks/use-toast";
-import { PaymentMethod } from "@/lib/types/backend";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUploader } from "@/components/kit/files/file-uploader";
-
-const steps = [
-  { key: "amount", title: "مبلغ" },
-  { key: "method", title: "روش پرداخت" },
-  { key: "review", title: "بازبینی" },
-];
+import { FormSection } from "@/components/kit/forms/form-section";
+import { StickyFormFooter } from "@/components/kit/forms/sticky-form-footer";
+import { MoneyInput } from "@/components/ui/money-input";
+import { MaskedInput } from "@/components/ui/masked-input";
+import { createDeposit } from "@/lib/api/deposits";
+import { PaymentMethod } from "@/lib/types/backend";
+import { useToast } from "@/hooks/use-toast";
 
 const methodOptions = [
   { value: PaymentMethod.CARD_TO_CARD, label: "کارت به کارت" },
@@ -28,119 +23,67 @@ const methodOptions = [
 ];
 
 export default function CreateDepositPage() {
-  const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState<number>();
   const [method, setMethod] = useState<string>("");
-  const [purpose, setPurpose] = useState<"P2P" | "DIRECT">("DIRECT");
-  const [note, setNote] = useState("");
   const [refNo, setRefNo] = useState("");
+  const [note, setNote] = useState("");
   const [fileIds, setFileIds] = useState<string[]>([]);
+  const [pending, setPending] = useState(false);
+  const [depositPurpose, setDepositPurpose] = useState<"P2P" | "DIRECT">("P2P");
 
-  const completedKeys = useMemo(() => {
-    const keys: string[] = [];
-    if (amount) keys.push("amount");
-    if (method) keys.push("method");
-    return keys;
-  }, [amount, method]);
-
-  const handleSubmit = async () => {
-    if (!user || !method) return;
+  const submit = async () => {
+    if (!amount || amount <= 0 || !method) return;
+    setPending(true);
     try {
-      await createDeposit({
-        amount,
-        method,
-        purpose,
-        refNo: refNo || undefined,
-        note: note || undefined,
-        fileIds: fileIds.length ? fileIds : undefined,
-      });
-      toast({ title: "واریز ثبت شد" });
+      await createDeposit({ amount: String(amount), method, purpose: depositPurpose, refNo: refNo || undefined, note: note || undefined, fileIds: fileIds.length ? fileIds : undefined });
+      toast({ title: "ثبت شد" });
       router.push("/trader/history?tab=deposits");
-    } catch (error) {
-      toast({ title: "ثبت واریز ناموفق بود", variant: "destructive" });
+    } catch {
+      toast({ title: "خطا", variant: "destructive" });
+    } finally {
+      setPending(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <Stepper steps={steps} activeIndex={activeIndex} completedKeys={completedKeys} />
-
-      {activeIndex === 0 ? (
-        <div className="space-y-2">
-          <label className="text-sm">مبلغ قابل واریز</label>
-          <Input value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="مثلا ۲۵۰۰۰۰۰۰" />
-        </div>
-      ) : null}
-
-      {activeIndex === 1 ? (
-        <div className="space-y-4">
+    <div className="mx-auto w-full max-w-3xl space-y-6 overflow-auto px-4">
+      <header className="space-y-1">
+        <h1 className="text-lg font-semibold">ثبت واریز</h1>
+        <p className="text-sm text-muted-foreground">اطلاعات واریز را وارد کنید و در صورت نیاز رسید را بارگذاری کنید.</p>
+      </header>
+      <FormSection title="مبلغ و روش">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <MoneyInput value={amount} onChange={setAmount} error={amount !== undefined && amount <= 0 ? "مبلغ باید بزرگتر از صفر باشد." : undefined} />
           <div className="space-y-2">
             <label className="text-sm">روش پرداخت</label>
-            <Select value={method} onValueChange={(value) => setMethod(value as PaymentMethod)}>
-              <SelectTrigger>
-                <SelectValue placeholder="انتخاب روش" />
-              </SelectTrigger>
-              <SelectContent>
-                {methodOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+            <Select value={method} onValueChange={setMethod}>
+              <SelectTrigger><SelectValue placeholder="انتخاب روش" /></SelectTrigger>
+              <SelectContent>{methodOptions.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm">هدف</label>
-            <Select value={purpose} onValueChange={(value) => setPurpose(value as "P2P" | "DIRECT")}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="DIRECT">مستقیم</SelectItem>
-                <SelectItem value="P2P">P2P</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm">شناسه/پیگیری بانکی (اختیاری)</label>
-            <Input value={refNo} onChange={(event) => setRefNo(event.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm">یادداشت (اختیاری)</label>
-            <Textarea value={note} onChange={(event) => setNote(event.target.value)} />
-          </div>
-          <FileUploader maxFiles={3} accept="image/*,application/pdf" label="پیوست (اختیاری)" onUploaded={setFileIds} />
         </div>
-      ) : null}
-
-      {activeIndex === 2 ? (
-        <div className="space-y-2 rounded-lg border p-4 text-sm">
-          <p>مبلغ: {amount}</p>
-          <p>روش پرداخت: {methodOptions.find((item) => item.value === method)?.label}</p>
-          <p>هدف: {purpose}</p>
-          <p>شناسه: {refNo || "-"}</p>
-          <p>یادداشت: {note || "-"}</p>
-          <p>تعداد فایل: {fileIds.length}</p>
+        <div className="space-y-2">
+          <label className="text-sm">نوع واریز</label>
+          <Select value={depositPurpose} onValueChange={(v) => setDepositPurpose(v as "P2P" | "DIRECT")}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="P2P">تخصیص‌پذیر (P2P)</SelectItem>
+              <SelectItem value="DIRECT">مستقیم (DIRECT)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">برای ورود به کاندیدهای تخصیص برداشت، این مقدار باید P2P باشد.</p>
         </div>
-      ) : null}
-
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onClick={() => setActiveIndex((prev) => Math.max(prev - 1, 0))} disabled={activeIndex === 0}>
-          بازگشت
-        </Button>
-        {activeIndex === steps.length - 1 ? (
-          <Button onClick={handleSubmit} disabled={!amount || !method}>
-            ثبت واریز
-          </Button>
-        ) : (
-          <Button onClick={() => setActiveIndex((prev) => Math.min(prev + 1, steps.length - 1))} disabled={activeIndex === 0 ? !amount : !method}>
-            بعدی
-          </Button>
-        )}
-      </div>
+      </FormSection>
+      <FormSection title="اطلاعات تکمیلی">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <MaskedInput maskType="bankRef" value={refNo} onChange={setRefNo} label="شناسه پیگیری / کد رهگیری" placeholder="مثلاً ۱۲۳۴۵۶۷۸۹۰" hint="فقط عدد وارد کنید." />
+          <div className="space-y-2 md:col-span-2"><label className="text-sm">توضیحات</label><Textarea value={note} onChange={(e) => setNote(e.target.value)} /></div>
+        </div>
+      </FormSection>
+      <FormSection title="رسید / پیوست‌ها"><FileUploader maxFiles={3} accept="image/*,application/pdf" label="رسید / پیوست‌ها" onUploaded={setFileIds} /></FormSection>
+      <StickyFormFooter><div className="flex justify-end"><Button onClick={submit} disabled={pending || !amount || amount <= 0 || !method}>{pending ? "در حال ثبت..." : "ثبت"}</Button></div></StickyFormFooter>
     </div>
   );
 }
