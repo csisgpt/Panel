@@ -47,7 +47,7 @@ export default function CreateDepositPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto w-full max-w-3xl space-y-6 overflow-auto px-4">
       <header className="space-y-1">
         <h1 className="text-lg font-semibold">ثبت واریز</h1>
         <p className="text-sm text-muted-foreground">اطلاعات واریز را وارد کنید و در صورت نیاز رسید را بارگذاری کنید.</p>

@@ -10,6 +10,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { isAdmin, isUserPanel } from "@/lib/auth/roles";
 import { getVisibleNav, traderNavItems } from "@/lib/navigation/registry";
 import BottomNav from "@/components/navigation/BottomNav";
+import { PageShell } from "@/components/layout/page-shell";
 
 export default function TraderLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -75,7 +76,11 @@ export default function TraderLayout({ children }: { children: React.ReactNode }
           />
         }
       >
-        <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</div>
+        <PageShell >
+          <div className="overflow-auto max-h-[calc(100vh-68px)] grow! [&>div]:h-full">
+            {children}
+          </div>
+        </PageShell>
         <BottomNav />
       </AppShell>
 

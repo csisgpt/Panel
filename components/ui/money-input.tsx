@@ -76,7 +76,7 @@ export function MoneyInput({
           readOnly={readOnly}
           className={cn("pe-16", readOnly && "bg-muted")}
         />
-        <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-xs text-muted-foreground">
+        <span className="pointer-events-none absolute inset-y-0 end-3 flex items-center text-xs text-muted-foreground">
           {currencyLabel}
         </span>
       </div>
