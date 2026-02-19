@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
+import { toBackendDateOnlyEnd, toBackendDateOnlyStart } from "@/lib/date/jalali-serialization";
 import { AppliedFiltersBar, type AppliedFilter } from "@/components/kit/table/applied-filters-bar";
 import { EmptyState } from "@/components/kit/common/EmptyState";
 import { ErrorState } from "@/components/kit/common/ErrorState";
@@ -105,6 +107,8 @@ function serializeFilterValue(value: unknown) {
   if (typeof value === "boolean") return value ? "بله" : "خیر";
   return value ? String(value) : "-";
 }
+
+
 
 /**
  * Unified list view wrapper combining QueryKit + React Query + TableKit.
@@ -318,18 +322,28 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
       }
 
       if (filter.type === "dateRange") {
+        const isTo = filter.key.endsWith("To");
         return (
           <div key={filter.key} className="flex items-center gap-2">
-            <Input
-              type="date"
-              value={current ? new Date(String(current)).toISOString().slice(0, 10) : ""}
-              onChange={(event) => handleChange(event.target.value ? new Date(event.target.value).toISOString() : "")}
-              placeholder={filter.label}
-              className="w-[180px]"
-              disabled={query.isLoading}
-            />
+            <div className="w-[180px]">
+              <JalaliDatePicker
+                value={current ? String(current) : undefined}
+                onChange={(value) => {
+                  if (!value) {
+                    handleChange("");
+                    return;
+                  }
+                  const selectedDate = new Date(value);
+                  handleChange(isTo ? toBackendDateOnlyEnd(selectedDate) : toBackendDateOnlyStart(selectedDate));
+                }}
+                disabled={query.isLoading}
+                placeholder={filter.label}
+              />
+            </div>
             {current ? (
-              <Button variant="ghost" size="sm" onClick={() => handleChange("")}>حذف</Button>
+              <Button variant="ghost" size="sm" onClick={() => handleChange("")}>
+                پاک کردن
+              </Button>
             ) : null}
           </div>
         );
@@ -412,6 +426,13 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
               </Button>
             }
           /> */}
+          <Input
+            placeholder="جستجو"
+            value={localSearch}
+            onChange={(event) => setLocalSearch(event.target.value)}
+            disabled={query.isLoading}
+            className="w-full sm:w-72"
+          />
           {tabs?.length ? (
             <QuickTabs
               tabs={tabs}

@@ -1,43 +1,69 @@
 "use client";
 
+import DatePicker, { type DateObject } from "react-multi-date-picker";
+import persian from "react-date-object/calendars/persian";
+import persianFa from "react-date-object/locales/persian_fa";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { FormError, FormField, FormLabel } from "@/components/ui/form-field";
+import { FormField, FormLabel } from "@/components/ui/form-field";
+import { toBackendDateTime } from "@/lib/date/jalali-serialization";
 
-interface JalaliDateTimePickerProps {
+export type JalaliDateTimePickerProps = {
   value?: string;
   onChange: (value?: string) => void;
-  label?: string;
+  disabled?: boolean;
   placeholder?: string;
-  error?: string;
-  withTime?: boolean;
+  label?: string;
+};
+
+function toDateObject(value?: string) {
+  if (!value) return undefined;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return undefined;
+  return new DateObject({ date: parsed, calendar: persian, locale: persianFa });
 }
 
 export function JalaliDateTimePicker({
   value,
   onChange,
+  disabled,
+  placeholder = "انتخاب تاریخ و زمان",
   label = "تاریخ و زمان پرداخت",
-  placeholder = "انتخاب تاریخ...",
-  error,
-  withTime = true,
 }: JalaliDateTimePickerProps) {
-  const inputValue = value ? new Date(value).toISOString().slice(0, withTime ? 16 : 10) : "";
-
   return (
     <FormField>
       <FormLabel required>{label}</FormLabel>
-      <div className="space-y-2">
-        <Input
-          type={withTime ? "datetime-local" : "date"}
-          value={inputValue}
+      <div className="space-y-2" dir="rtl">
+        <DatePicker
+          value={toDateObject(value)}
+          onChange={(date) => {
+            if (!date) {
+              onChange(undefined);
+              return;
+            }
+            onChange(toBackendDateTime((date as DateObject).toDate()));
+          }}
+          calendar={persian}
+          locale={persianFa}
+          calendarPosition="bottom-right"
+          format="YYYY/MM/DD - HH:mm"
+          inputClass="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground"
+          containerClassName="w-full"
+          disabled={disabled}
+          editable={false}
           placeholder={placeholder}
-          onChange={(event) => onChange(event.target.value ? new Date(event.target.value).toISOString() : undefined)}
+          plugins={[]}
+          timePicker
+          timePickerPosition="bottom"
         />
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange(new Date().toISOString())}>
-          اکنون
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={() => onChange(toBackendDateTime(new Date()))} disabled={disabled}>
+            اکنون
+          </Button>
+          <Button type="button" size="sm" variant="ghost" onClick={() => onChange(undefined)} disabled={disabled || !value}>
+            پاک کردن
+          </Button>
+        </div>
       </div>
-      {error ? <FormError>{error}</FormError> : null}
     </FormField>
   );
 }
