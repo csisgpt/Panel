@@ -87,6 +87,7 @@ export default function TraderReceiverPage() {
           {selected ? (
             <div className="space-y-4 text-sm">
               <div className="rounded-2xl border p-4">
+                <p>وضعیت: {selected.status}</p>
                 <p>مبلغ: {formatMoney(selected.amount)}</p>
                 <p>تاریخ پرداخت: {formatPersianDateTime(selected.payment?.paidAt ?? selected.paidAt)}</p>
                 <p>شناسه پیگیری: {selected.payment?.bankRef ?? selected.bankRef ?? "-"}</p>

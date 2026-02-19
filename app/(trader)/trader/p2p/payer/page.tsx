@@ -118,12 +118,19 @@ export default function TraderPayerPage() {
         submitLabel="ثبت"
       >
         {step === 0 && selected ? (
+          <div className="space-y-3">
+            <div className="rounded-xl border p-3 text-sm">
+              <p>وضعیت فعلی: {selected.status}</p>
+              <p>راهنما: {selected.actions?.canSubmitProof ? "پس از پرداخت، مرحله بعد را تکمیل کنید." : "در حال حاضر امکان ثبت رسید وجود ندارد."}</p>
+              <p>مهلت: {selected.expiresAt ?? "-"}</p>
+            </div>
           <DestinationCard
             destinationToPay={selected.destinationToPay}
             destinationCopyText={selected.destinationCopyText}
             paymentCode={selected.paymentCode}
             mode="payer"
           />
+          </div>
         ) : null}
 
         {step === 1 ? (
@@ -185,6 +192,7 @@ export default function TraderPayerPage() {
             ) : null}
           </FormSection>
         ) : null}
+      {!selected?.actions?.canSubmitProof && open ? <p className="text-xs text-destructive">امکان ثبت رسید برای این تخصیص فعال نیست.</p> : null}
       </WizardSheet>
     </div>
   );
