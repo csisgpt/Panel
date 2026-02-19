@@ -9,12 +9,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/kit/common/EmptyState";
 import { StickyFormFooter } from "@/components/kit/forms/sticky-form-footer";
 import { ConfirmActionDialog } from "@/components/kit/dialogs/confirm-action-dialog";
+import { AdminAllocationDetailsSheet } from "@/components/kit/p2p/admin-allocation-details-sheet";
 import { AdminWithdrawalDetailsSheet } from "@/components/kit/p2p/admin-withdrawal-details-sheet";
 import { P2PActionsMenu } from "@/components/kit/p2p/p2p-actions-menu";
 import { ServerTableView } from "@/components/kit/table/server-table-view";
-import { listAdminDestinations } from "@/lib/api/payment-destinations";
-import { assignToWithdrawal, listWithdrawalCandidates } from "@/lib/api/p2p";
-import type { P2PWithdrawal } from "@/lib/contracts/p2p";
+import { assignToWithdrawal, listAdminP2PSystemDestinations, listWithdrawalCandidates } from "@/lib/api/p2p";
+import type { P2PAllocation, P2PWithdrawal } from "@/lib/contracts/p2p";
 import { formatMoney } from "@/lib/format/money";
 import { createAdminP2PWithdrawalsListConfig } from "@/lib/screens/admin/p2p-withdrawals.list";
 
@@ -25,38 +25,75 @@ export default function AdminP2PWithdrawalsPage() {
   const [assignOpen, setAssignOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [allocationDetailsOpen, setAllocationDetailsOpen] = useState(false);
+  const [selectedAllocationId, setSelectedAllocationId] = useState<string | null>(null);
   const [selected, setSelected] = useState<P2PWithdrawal | null>(null);
   const [amounts, setAmounts] = useState<Record<string, number | undefined>>({});
   const [assignMode, setAssignMode] = useState<"candidate" | "system">("candidate");
   const [systemDestinationId, setSystemDestinationId] = useState<string>("");
+  const [systemAmount, setSystemAmount] = useState<number | undefined>(undefined);
 
   const candidatesQuery = useQuery({
     queryKey: ["admin", "p2p", "withdrawals", selected?.id, "candidates"],
-    enabled: assignOpen && Boolean(selected),
+    enabled: assignOpen && Boolean(selected) && assignMode === "candidate",
     queryFn: () => listWithdrawalCandidates(selected!.id, { page: 1, limit: 20 }),
   });
 
   const systemDestinationsQuery = useQuery({
-    queryKey: ["admin", "destinations", "payout"],
-    enabled: assignOpen,
-    queryFn: () => listAdminDestinations("PAYOUT"),
+    queryKey: ["admin", "p2p", "system-destinations"],
+    enabled: assignOpen && assignMode === "system",
+    queryFn: listAdminP2PSystemDestinations,
   });
 
   const remaining = Number(selected?.remainingToAssign || 0);
-  const totalAssigned = Object.values(amounts).reduce<number>((acc, value) => acc + (value ?? 0), 0);
+  const candidateTotalAssigned = Object.values(amounts).reduce<number>((acc, value) => acc + (value ?? 0), 0);
+
+  const canSubmitCandidate = assignMode === "candidate"
+    && candidateTotalAssigned > 0
+    && candidateTotalAssigned <= remaining
+    && Boolean(selected?.actions?.canAssign);
+
+  const canSubmitSystem = assignMode === "system"
+    && Boolean(systemDestinationId)
+    && Boolean(systemAmount && systemAmount > 0)
+    && Number(systemAmount) <= remaining
+    && Boolean(selected?.actions?.canAssign);
 
   const submitAssign = async () => {
-    if (!selected || assignMode !== "candidate" || totalAssigned <= 0 || totalAssigned > remaining || !selected.actions?.canAssign) return;
-    await assignToWithdrawal(selected.id, {
-      items: Object.entries(amounts)
-        .filter(([, value]) => (value || 0) > 0)
-        .map(([depositId, value]) => ({ depositId, amount: String(value) })),
-    });
+    if (!selected || !selected.actions?.canAssign) return;
+
+    if (assignMode === "candidate") {
+      if (!canSubmitCandidate) return;
+      await assignToWithdrawal(selected.id, {
+        // Backend DTO reference: assign-withdrawal.dto.ts
+        mode: "CANDIDATES",
+        items: Object.entries(amounts)
+          .filter(([, value]) => (value || 0) > 0)
+          .map(([depositId, value]) => ({ depositId, amount: Number(value || 0) })),
+      });
+    } else {
+      if (!canSubmitSystem || !systemAmount) return;
+      await assignToWithdrawal(selected.id, {
+        // Backend DTO reference: assign-withdrawal.dto.ts
+        mode: "SYSTEM_DESTINATION",
+        destinationId: systemDestinationId,
+        amount: Number(systemAmount),
+      });
+    }
+
     await qc.invalidateQueries({ queryKey: ["admin", "p2p", "withdrawals"] });
     await qc.invalidateQueries({ queryKey: ["admin", "p2p", "allocations"] });
+    if (selected?.id) {
+      await qc.invalidateQueries({ queryKey: ["admin", "p2p", "withdrawal", selected.id] });
+      await qc.invalidateQueries({ queryKey: ["admin", "p2p", "withdrawal-details", selected.id] });
+    }
     setConfirmOpen(false);
     setAssignOpen(false);
   };
+
+  const selectedAllocation: P2PAllocation | null = selectedAllocationId
+    ? ({ id: selectedAllocationId, createdAt: "", status: "ASSIGNED", amount: "0" } as P2PAllocation)
+    : null;
 
   return (
     <div className="space-y-4 pb-24">
@@ -80,20 +117,32 @@ export default function AdminP2PWithdrawalsPage() {
                   setSelected(row);
                   setAmounts({});
                   setAssignMode("candidate");
+                  setSystemDestinationId("");
+                  setSystemAmount(undefined);
                   setAssignOpen(true);
                 },
                 disabled: !row.actions?.canAssign,
               },
               {
+                key: "view-allocations",
+                label: "نمایش تخصیص‌ها",
+                onClick: () => {
+                  setSelected(row);
+                  setDetailsOpen(true);
+                },
+                disabled: !row.actions?.canViewAllocations,
+              },
+              {
+                key: "cancel",
+                label: "لغو (بک‌اند عملیات لغو برداشت را پشتیبانی نمی‌کند)",
+                destructive: true,
+                onClick: () => undefined,
+                disabled: true,
+              },
+              {
                 key: "copy-id",
                 label: "کپی شناسه برداشت",
                 onClick: () => navigator.clipboard.writeText(row.id),
-              },
-              {
-                key: "copy-destination",
-                label: "کپی مقصد",
-                onClick: () => navigator.clipboard.writeText(row.destinationSummary ?? ""),
-                disabled: !row.destinationSummary,
               },
             ]}
           />
@@ -150,7 +199,7 @@ export default function AdminP2PWithdrawalsPage() {
               ) : (
                 <EmptyState
                   title="کاندیدی برای تخصیص یافت نشد"
-                  description="ممکن است همه واریزی‌ها قبلاً تخصیص داده شده باشند یا شرایط تخصیص برقرار نباشد. فیلترها و مانده برداشت را بررسی کنید."
+                  description="ممکن است همه واریزی‌ها قبلاً تخصیص داده شده باشند یا شرایط تخصیص برقرار نباشد."
                 />
               )}
             </TabsContent>
@@ -168,28 +217,31 @@ export default function AdminP2PWithdrawalsPage() {
                       <p className="font-medium">{destination.title ?? destination.id}</p>
                       <p className="text-xs text-muted-foreground">{destination.maskedValue}</p>
                       <p className="text-xs text-muted-foreground">{destination.bankName ?? "-"}</p>
+                      <p className="text-xs text-muted-foreground">{destination.type}</p>
                     </button>
                   ))}
                 </div>
               ) : (
                 <EmptyState title="مقصد سیستمی یافت نشد" description="در حال حاضر مقصد سیستمی فعالی برای تخصیص موجود نیست." />
               )}
-              <div className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground">
-                در حال حاضر تخصیص به مقصد سیستمی توسط بک‌اند پشتیبانی نمی‌شود.
+
+              <div className="rounded-xl border p-3">
+                <p className="mb-2 text-sm">مبلغ تخصیص به مقصد سیستمی</p>
+                <MoneyInput value={systemAmount} onChange={setSystemAmount} min={0} max={remaining} />
               </div>
             </TabsContent>
           </Tabs>
 
           <div className="rounded-lg border p-3 text-sm">
-            <p>جمع تخصیص: {formatMoney(totalAssigned)}</p>
-            <p>باقی‌مانده: {formatMoney(Math.max(remaining - totalAssigned, 0))}</p>
+            <p>جمع تخصیص: {formatMoney(assignMode === "candidate" ? candidateTotalAssigned : Number(systemAmount || 0))}</p>
+            <p>باقی‌مانده: {formatMoney(Math.max(remaining - (assignMode === "candidate" ? candidateTotalAssigned : Number(systemAmount || 0)), 0))}</p>
           </div>
 
           <StickyFormFooter className="-mx-6">
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setAssignOpen(false)}>انصراف</Button>
               <Button
-                disabled={assignMode !== "candidate" || totalAssigned <= 0 || totalAssigned > remaining || !selected?.actions?.canAssign}
+                disabled={assignMode === "candidate" ? !canSubmitCandidate : !canSubmitSystem}
                 onClick={() => setConfirmOpen(true)}
               >
                 ثبت تخصیص
@@ -207,7 +259,16 @@ export default function AdminP2PWithdrawalsPage() {
           setDetailsOpen(false);
           setAssignOpen(true);
         }}
-        onViewAllocation={() => {}}
+        onViewAllocation={(id) => {
+          setSelectedAllocationId(id);
+          setAllocationDetailsOpen(true);
+        }}
+      />
+
+      <AdminAllocationDetailsSheet
+        open={allocationDetailsOpen}
+        onOpenChange={setAllocationDetailsOpen}
+        allocation={selectedAllocation}
       />
 
       <ConfirmActionDialog

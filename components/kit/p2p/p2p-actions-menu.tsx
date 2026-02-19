@@ -13,8 +13,7 @@ export type ActionItem = {
 };
 
 export function P2PActionsMenu({ actions }: { actions: ActionItem[] }) {
-  const visible = actions.filter((item) => !item.disabled);
-  if (!visible.length) return null;
+  if (!actions.length) return null;
 
   return (
     <DropdownMenu>
@@ -24,10 +23,10 @@ export function P2PActionsMenu({ actions }: { actions: ActionItem[] }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {visible.map((item, index) => (
+        {actions.map((item, index) => (
           <div key={item.key}>
             {index > 0 ? <DropdownMenuSeparator /> : null}
-            <DropdownMenuItem onClick={item.onClick} destructive={item.destructive}>
+            <DropdownMenuItem onClick={item.onClick} destructive={item.destructive} disabled={item.disabled}>
               {item.label}
             </DropdownMenuItem>
           </div>
