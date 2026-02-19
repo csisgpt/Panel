@@ -26,9 +26,7 @@ export async function listDeposits(
 }
 
 export async function getDeposits(): Promise<DepositRequest[]> {
-  if (isMockMode()) return getMockDeposits();
-  const { items } = await listDeposits();
-  return items;
+  return getMyDeposits();
 }
 
 export async function getMyDeposits(): Promise<DepositRequest[]> {

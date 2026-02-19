@@ -1,12 +1,12 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
-import type { PaymentDestination } from "@/lib/contracts/p2p";
+import type { PaymentDestinationView } from "@/lib/types/backend";
 import { listUserDestinations } from "@/lib/api/payment-destinations";
 import type { ServerTableViewProps } from "@/components/kit/table/server-table-view";
 import { adaptListResponse } from "@/lib/adapters/list-response-adapter";
 
-export function createUserDestinationsListConfig(): ServerTableViewProps<PaymentDestination, Record<string, unknown>> {
-  const columns: ColumnDef<PaymentDestination>[] = [
+export function createUserDestinationsListConfig(): ServerTableViewProps<PaymentDestinationView, Record<string, unknown>> {
+  const columns: ColumnDef<PaymentDestinationView>[] = [
     {
       id: "title",
       header: "عنوان",
@@ -25,7 +25,7 @@ export function createUserDestinationsListConfig(): ServerTableViewProps<Payment
     {
       id: "masked",
       header: "مقدار",
-      cell: ({ row }) => row.original.maskedValue ?? row.original.iban ?? row.original.cardNumber ?? "-",
+      cell: ({ row }) => row.original.maskedValue ?? "-",
     },
     {
       id: "default",

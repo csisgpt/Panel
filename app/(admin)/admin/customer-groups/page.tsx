@@ -68,29 +68,34 @@ export default function CustomerGroupsPage() {
 
   return (
     <div className="space-y-3 grow! flex flex-col">
-      {/* <Button onClick={() => { setEditing(null); setOpen(true); }}>ثبت گروه جدید</Button> */}
-      <ServerTableView<CustomerGroup>
-        storageKey="foundation-customer-groups"
-        title="گروه‌های مشتریان"
-        columns={[
-          { accessorKey: "code", header: "کد گروه" },
-          { accessorKey: "name", header: "نام گروه" },
-          { accessorKey: "tahesabGroupName", header: "نام گروه در ته‌حساب" },
-          { id: "isDefault", header: "پیش‌فرض", cell: ({ row }) => (row.original.isDefault ? "بله" : "خیر") },
-        ]}
-        queryKeyFactory={(params) => ["foundation-customer-groups", params]}
-        queryFn={async (params) => {
-          const data = await adminListCustomerGroupsPaged({ page: params.page, limit: params.limit, q: params.search });
-          return { items: data.items, meta: { page: data.meta.page, limit: data.meta.limit, total: data.meta.totalItems, totalPages: data.meta.totalPages, hasNextPage: data.meta.hasNextPage, hasPrevPage: data.meta.hasPrevPage } };
-        }}
-        rowActions={(row) => (
-          <div className="flex gap-2">
-            <Button asChild size="sm" variant="outline"><Link href={`/admin/customer-groups/${row.id}`}>مشاهده</Link></Button>
-            <Button size="sm" onClick={() => { setEditing(row); setUpdateForm({ name: row.name, tahesabGroupName: row.tahesabGroupName ?? "", isDefault: row.isDefault }); setOpen(true); }}>ویرایش</Button>
-            <Button size="sm" variant="destructive" onClick={() => deleteMutation.mutate(row.id)}>حذف</Button>
-          </div>
-        )}
-      />
+      <div className="flex justify-end z-[999]">
+      <Button onClick={() => { setEditing(null); setOpen(true); }}>ثبت گروه جدید</Button>
+      </div>
+      <div className="-mt-8">
+        <ServerTableView<CustomerGroup>
+
+          storageKey="foundation-customer-groups"
+          title="گروه‌های مشتریان"
+          columns={[
+            { accessorKey: "code", header: "کد گروه" },
+            { accessorKey: "name", header: "نام گروه" },
+            { accessorKey: "tahesabGroupName", header: "نام گروه در ته‌حساب" },
+            { id: "isDefault", header: "پیش‌فرض", cell: ({ row }) => (row.original.isDefault ? "بله" : "خیر") },
+          ]}
+          queryKeyFactory={(params) => ["foundation-customer-groups", params]}
+          queryFn={async (params) => {
+            const data = await adminListCustomerGroupsPaged({ page: params.page, limit: params.limit, q: params.search });
+            return { items: data.items, meta: { page: data.meta.page, limit: data.meta.limit, total: data.meta.totalItems, totalPages: data.meta.totalPages, hasNextPage: data.meta.hasNextPage, hasPrevPage: data.meta.hasPrevPage } };
+          }}
+          rowActions={(row) => (
+            <div className="flex gap-2">
+              <Button asChild size="sm" variant="outline"><Link href={`/admin/customer-groups/${row.id}`}>مشاهده</Link></Button>
+              <Button size="sm" onClick={() => { setEditing(row); setUpdateForm({ name: row.name, tahesabGroupName: row.tahesabGroupName ?? "", isDefault: row.isDefault }); setOpen(true); }}>ویرایش</Button>
+              <Button size="sm" variant="destructive" onClick={() => deleteMutation.mutate(row.id)}>حذف</Button>
+            </div>
+          )}
+        />
+      </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>

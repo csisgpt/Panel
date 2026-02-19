@@ -1,14 +1,6 @@
 import type { ListParams } from "@/lib/querykit/schemas";
 import { listParamsToQuery } from "@/lib/adapters/list-params-to-query";
 
-const withdrawalSortMap: Record<string, string | { asc?: string; desc?: string }> = {
-  createdAt: { asc: "createdAt_asc", desc: "createdAt_desc" },
-  amount: { asc: "amount_asc", desc: "amount_desc" },
-  remainingToAssign: { asc: "remainingToAssign_asc", desc: "remainingToAssign_desc" },
-  priority: "priority",
-  nearestExpire: "nearestExpire_asc",
-};
-
 const allocationSortMap: Record<string, string | { asc?: string; desc?: string }> = {
   createdAt: "createdAt_desc",
   expiresAt: "expiresAt_asc",
@@ -25,32 +17,6 @@ const supportsBooleanQuery = process.env.NEXT_PUBLIC_API_SUPPORTS_BOOLEAN_QUERY 
 // TODO(backend): add DTO transforms for boolean query params (e.g. "true"/"false") to enable boolean filters safely.
 const booleanFilters = ["hasDispute", "hasProof", "receiverConfirmed", "adminVerified", "expired", "expiresSoon"];
 const booleanDenyList = supportsBooleanQuery ? [] : booleanFilters;
-
-export function buildAdminWithdrawalsQuery(params: ListParams) {
-  return listParamsToQuery(params, {
-    searchKey: "mobile",
-    sortParam: "sort",
-    sortMap: withdrawalSortMap,
-    filterAllowList: [
-      "status",
-      "userId",
-      "mobile",
-      "amountMin",
-      "amountMax",
-      "remainingToAssignMin",
-      "remainingToAssignMax",
-      "createdFrom",
-      "createdTo",
-      "destinationBank",
-      "destinationType",
-      "expiringSoonMinutes",
-      "hasDispute",
-      "hasProof",
-    ],
-    filterDenyList: booleanDenyList,
-    includeTab: false,
-  }).toString();
-}
 
 export function buildAdminAllocationsQuery(params: ListParams) {
   return listParamsToQuery(params, {

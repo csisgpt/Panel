@@ -22,3 +22,8 @@ export async function getTrades(): Promise<Trade[]> {
   if (isMockMode()) return getMockTrades();
   return apiGet<Trade[]>("/trades");
 }
+
+export async function getAdminTrades(): Promise<Trade[]> {
+  if (isMockMode()) return getMockTrades();
+  return apiGet<Trade[]>("/admin/trades");
+}

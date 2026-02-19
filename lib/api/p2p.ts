@@ -3,10 +3,10 @@ import { isMockMode } from "./config";
 import type { ListParams } from "@/lib/querykit/schemas";
 import {
   buildAdminAllocationsQuery as buildAdminAllocationsQueryInternal,
-  buildAdminWithdrawalsQuery as buildAdminWithdrawalsQueryInternal,
   buildTraderHistoryQuery,
   buildWithdrawalCandidatesQuery as buildWithdrawalCandidatesQueryInternal,
 } from "@/lib/adapters/list-query-builders";
+import { buildAdminP2PWithdrawalsQuery as buildAdminP2PWithdrawalsQueryInternal } from "@/lib/contract-mappers/p2p-withdrawals.mapper";
 import { adaptListResponse } from "@/lib/adapters/list-response-adapter";
 import { adaptP2PMeta } from "@/lib/adapters/p2p-meta-adapter";
 import { normalizeListResponse } from "@/lib/contracts/list";
@@ -27,6 +27,7 @@ import {
 } from "@/lib/adapters/p2p-vm-mappers";
 import { adaptOpsSummary, type BackendOpsSummaryDto } from "@/lib/adapters/p2p-ops-summary-adapter";
 import { buildApiError } from "@/lib/api/http";
+import type { PaymentDestinationView } from "@/lib/types/backend";
 import {
   getMockOpsSummary,
   getMockP2PAllocationsEnvelope,
@@ -152,7 +153,7 @@ function buildMockDepositVm(candidate: { id: string; name: string; mobile: strin
 }
 
 export function buildAdminP2PWithdrawalsQuery(params: ListParams) {
-  return buildAdminWithdrawalsQueryInternal(params);
+  return buildAdminP2PWithdrawalsQueryInternal(params);
 }
 
 export function buildAdminP2PAllocationsQuery(params: ListParams) {
@@ -339,4 +340,44 @@ export async function confirmAllocationReceipt(allocationId: string, payload: Al
     payload
   );
   return mapP2PAllocationVm(response);
+}
+
+
+export async function getAdminP2PWithdrawalDetail(withdrawalId: string): Promise<P2PWithdrawal> {
+  if (isMockMode()) {
+    const envelope = getMockP2PWithdrawalsEnvelope();
+    const found = (envelope.data ?? []).find((item) => item.id === withdrawalId);
+    if (!found) throw buildApiError({ message: "برداشت یافت نشد", code: "not_found" });
+    return mapP2PWithdrawalVm(buildMockWithdrawalVm(found));
+  }
+  const response = await apiGet<WithdrawalVmDto>(`/admin/p2p/withdrawals/${withdrawalId}`);
+  return mapP2PWithdrawalVm(response);
+}
+
+export async function getAdminP2PAllocationDetail(allocationId: string): Promise<P2PAllocation> {
+  if (isMockMode()) {
+    const envelope = getMockP2PAllocationsEnvelope();
+    const found = (envelope.data ?? []).find((item) => item.id === allocationId);
+    if (!found) throw buildApiError({ message: "تخصیص یافت نشد", code: "not_found" });
+    return mapP2PAllocationVm(buildMockAllocationVm(found));
+  }
+  const response = await apiGet<AllocationVmDto>(`/admin/p2p/allocations/${allocationId}`);
+  return mapP2PAllocationVm(response);
+}
+
+export async function listAdminP2PSystemDestinations(): Promise<PaymentDestinationView[]> {
+  if (isMockMode()) {
+    const items = await getMockUserDestinations();
+    return items.map((item) => ({
+      id: item.id,
+      type: "ACCOUNT",
+      maskedValue: item.label,
+      title: item.label,
+      bankName: "-",
+      isDefault: false,
+      status: "ACTIVE",
+      lastUsedAt: null,
+    }));
+  }
+  return apiGet<PaymentDestinationView[]>("/admin/p2p/system-destinations");
 }

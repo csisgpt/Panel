@@ -3,265 +3,220 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { PageHeader } from "@/components/layout/page-header";
-import { PageShell } from "@/components/layout/page-shell";
-import { LoadingState } from "@/components/kit/common/LoadingState";
-import { ErrorState } from "@/components/kit/common/ErrorState";
-import { StatusBadge } from "@/components/kit/ops/status-badge";
-import { DetailsDrawer } from "@/components/kit/table/details-drawer";
-import { RowActionsMenu } from "@/components/kit/table/row-actions-menu";
+import { MoneyInput } from "@/components/ui/money-input";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EmptyState } from "@/components/kit/common/EmptyState";
+import { StickyFormFooter } from "@/components/kit/forms/sticky-form-footer";
+import { ConfirmActionDialog } from "@/components/kit/dialogs/confirm-action-dialog";
+import { AdminWithdrawalDetailsSheet } from "@/components/kit/p2p/admin-withdrawal-details-sheet";
+import { P2PActionsMenu } from "@/components/kit/p2p/p2p-actions-menu";
 import { ServerTableView } from "@/components/kit/table/server-table-view";
-import { createAdminP2PWithdrawalsListConfig } from "@/lib/screens/admin/p2p-withdrawals.list";
+import { listAdminDestinations } from "@/lib/api/payment-destinations";
 import { assignToWithdrawal, listWithdrawalCandidates } from "@/lib/api/p2p";
 import type { P2PWithdrawal } from "@/lib/contracts/p2p";
-import type { CandidateRow } from "@/lib/adapters/p2p-vm-mappers";
 import { formatMoney } from "@/lib/format/money";
-import { useToast } from "@/hooks/use-toast";
-import { TabsContent, TabsList, Tabs, TabsTrigger } from "@/components/ui/tabs";
+import { createAdminP2PWithdrawalsListConfig } from "@/lib/screens/admin/p2p-withdrawals.list";
 
 export default function AdminP2PWithdrawalsPage() {
   const config = useMemo(() => createAdminP2PWithdrawalsListConfig(), []);
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const qc = useQueryClient();
 
-  const [open, setOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [selectedWithdrawal, setSelectedWithdrawal] = useState<P2PWithdrawal | null>(null);
-  const [amounts, setAmounts] = useState<Record<string, string>>({});
-  const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selected, setSelected] = useState<P2PWithdrawal | null>(null);
+  const [amounts, setAmounts] = useState<Record<string, number | undefined>>({});
+  const [assignMode, setAssignMode] = useState<"candidate" | "system">("candidate");
+  const [systemDestinationId, setSystemDestinationId] = useState<string>("");
 
   const candidatesQuery = useQuery({
-    queryKey: ["admin", "p2p", "withdrawals", selectedWithdrawal?.id ?? "none", "candidates"],
-    enabled: open && !!selectedWithdrawal,
-    queryFn: () => listWithdrawalCandidates(selectedWithdrawal!.id, { page: 1, limit: 20 }),
+    queryKey: ["admin", "p2p", "withdrawals", selected?.id, "candidates"],
+    enabled: assignOpen && Boolean(selected),
+    queryFn: () => listWithdrawalCandidates(selected!.id, { page: 1, limit: 20 }),
   });
 
-  const candidates = (candidatesQuery.data?.items ?? []) as CandidateRow[];
+  const systemDestinationsQuery = useQuery({
+    queryKey: ["admin", "destinations", "payout"],
+    enabled: assignOpen,
+    queryFn: () => listAdminDestinations("PAYOUT"),
+  });
 
-  const remaining = Number(selectedWithdrawal?.remainingToAssign ?? 0);
-  const selectedItems = candidates.filter((item) => checked[item.id]);
-  const totalAssigned = selectedItems.reduce<number>((sum, item) => sum + Number(amounts[item.id] ?? 0), 0);
+  const remaining = Number(selected?.remainingToAssign || 0);
+  const totalAssigned = Object.values(amounts).reduce<number>((acc, value) => acc + (value ?? 0), 0);
 
-  const errors = selectedItems.reduce<Record<string, string>>((acc, item) => {
-    const amount = Number(amounts[item.id] ?? 0);
-    if (amount <= 0) acc[item.id] = "مبلغ نامعتبر";
-    if (amount > Number(item.remainingAmount)) acc[item.id] = "بیشتر از باقی‌مانده";
-    return acc;
-  }, {});
-
-  const isInvalid = totalAssigned > remaining || selectedItems.length === 0 || Object.keys(errors).length > 0;
-
-  const handleAssign = async () => {
-    if (!selectedWithdrawal) return;
-    try {
-      await assignToWithdrawal(selectedWithdrawal.id, {
-        items: selectedItems.map((item) => ({ depositId: item.id, amount: amounts[item.id] })),
-      });
-      toast({ title: "تخصیص ثبت شد" });
-      queryClient.invalidateQueries({ queryKey: ["admin", "p2p", "withdrawals"] });
-      setOpen(false);
-      setSelectedWithdrawal(null);
-      setAmounts({});
-      setChecked({});
-    } catch (error) {
-      toast({ title: "خطا", description: "تخصیص ناموفق بود", variant: "destructive" });
-    }
+  const submitAssign = async () => {
+    if (!selected || assignMode !== "candidate" || totalAssigned <= 0 || totalAssigned > remaining || !selected.actions?.canAssign) return;
+    await assignToWithdrawal(selected.id, {
+      items: Object.entries(amounts)
+        .filter(([, value]) => (value || 0) > 0)
+        .map(([depositId, value]) => ({ depositId, amount: String(value) })),
+    });
+    await qc.invalidateQueries({ queryKey: ["admin", "p2p", "withdrawals"] });
+    await qc.invalidateQueries({ queryKey: ["admin", "p2p", "allocations"] });
+    setConfirmOpen(false);
+    setAssignOpen(false);
   };
 
   return (
-    <>
-      <PageHeader
-        title="برداشت‌های P2P"
-        subtitle="مدیریت صف برداشت‌ها، بررسی وضعیت و تخصیص دستی"
-      />
+    <div className="space-y-4 pb-24">
       <ServerTableView<P2PWithdrawal>
         {...config}
-        renderCard={(row) => (
-          <div className="rounded-lg border p-4 text-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">مبلغ: {formatMoney(row.amount)}</p>
-                <p className="text-xs text-muted-foreground">مقصد: {row.destinationSummary ?? "-"}</p>
-                <p className="text-xs text-muted-foreground">موبایل: {row.userMobile ?? "-"}</p>
-              </div>
-              <StatusBadge status={row.status} />
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              className="mt-3"
-              onClick={() => {
-                setSelectedWithdrawal(row);
-                setDetailsOpen(true);
-              }}
-            >
-              مشاهده جزئیات
-            </Button>
-          </div>
-        )}
         rowActions={(row) => (
-          <RowActionsMenu
+          <P2PActionsMenu
             actions={[
               {
-                label: "مشاهده جزئیات",
+                key: "details",
+                label: "جزئیات",
                 onClick: () => {
-                  setSelectedWithdrawal(row);
+                  setSelected(row);
                   setDetailsOpen(true);
                 },
               },
               {
-                label: "تخصیص دستی",
+                key: "assign",
+                label: "تخصیص",
                 onClick: () => {
-                  setSelectedWithdrawal(row);
-                  setOpen(true);
+                  setSelected(row);
+                  setAmounts({});
+                  setAssignMode("candidate");
+                  setAssignOpen(true);
                 },
+                disabled: !row.actions?.canAssign,
+              },
+              {
+                key: "copy-id",
+                label: "کپی شناسه برداشت",
+                onClick: () => navigator.clipboard.writeText(row.id),
+              },
+              {
+                key: "copy-destination",
+                label: "کپی مقصد",
+                onClick: () => navigator.clipboard.writeText(row.destinationSummary ?? ""),
+                disabled: !row.destinationSummary,
               },
             ]}
           />
         )}
       />
 
-      <DetailsDrawer
-        open={detailsOpen}
-        onOpenChange={(next) => {
-          setDetailsOpen(next);
-          if (!next) setSelectedWithdrawal(null);
-        }}
-        title="جزئیات برداشت"
-      >
-        {selectedWithdrawal ? (
-          <div className="space-y-6">
-            <div className="rounded-lg border p-4 text-sm">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <p className="text-xs text-muted-foreground">شناسه برداشت</p>
-                  <p className="font-medium">{selectedWithdrawal.id}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">وضعیت</p>
-                  <StatusBadge status={selectedWithdrawal.status} />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">مبلغ</p>
-                  <p className="font-medium">{formatMoney(selectedWithdrawal.amount)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">باقی‌مانده تخصیص</p>
-                  <p className="font-medium">{formatMoney(selectedWithdrawal.remainingToAssign)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">مقصد</p>
-                  <p className="font-medium">{selectedWithdrawal.destinationSummary ?? "-"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">موبایل</p>
-                  <p className="font-medium">{selectedWithdrawal.userMobile ?? "-"}</p>
-                </div>
-              </div>
-            </div>
-            <Tabs defaultValue="overview">
-              <TabsList>
-                <TabsTrigger value="overview">نمای کلی</TabsTrigger>
-                <TabsTrigger value="attachments">پیوست‌ها</TabsTrigger>
-                <TabsTrigger value="logs">لاگ‌ها</TabsTrigger>
-              </TabsList>
-              <TabsContent value="overview" className="text-sm text-muted-foreground">
-                خلاصه عملیات این برداشت به‌زودی تکمیل می‌شود.
-              </TabsContent>
-              <TabsContent value="attachments" className="text-sm text-muted-foreground">
-                فایلی برای نمایش وجود ندارد.
-              </TabsContent>
-              <TabsContent value="logs" className="text-sm text-muted-foreground">
-                لاگ‌های عملیات در این بخش نمایش داده خواهد شد.
-              </TabsContent>
-            </Tabs>
-          </div>
-        ) : null}
-      </DetailsDrawer>
-
-      <Sheet
-        open={open}
-        onOpenChange={(next) => {
-          setOpen(next);
-          if (!next) {
-            setSelectedWithdrawal(null);
-            setAmounts({});
-            setChecked({});
-          }
-        }}
-      >
-        <SheetContent side="right" size="lg" className="flex w-full flex-col gap-4" stickyHeader stickyFooter>
+      <Sheet open={assignOpen} onOpenChange={setAssignOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-4xl">
           <SheetHeader>
-            <SheetTitle>تخصیص دستی</SheetTitle>
+            <SheetTitle>تخصیص برداشت</SheetTitle>
           </SheetHeader>
 
-          {!selectedWithdrawal ? null : (
-            <div className="rounded-lg border p-4 text-sm">
-              <p>شناسه برداشت: {selectedWithdrawal.id}</p>
-              <p>مبلغ: {formatMoney(selectedWithdrawal.amount)}</p>
-              <p>باقی‌مانده تخصیص: {formatMoney(selectedWithdrawal.remainingToAssign)}</p>
-              <p>وضعیت: <StatusBadge status={selectedWithdrawal.status} /></p>
-            </div>
-          )}
-
-          {candidatesQuery.isLoading ? <LoadingState lines={3} /> : null}
-          {candidatesQuery.error ? (
-            <ErrorState description="خطا در دریافت کاندیدها" onAction={() => candidatesQuery.refetch()} />
-          ) : null}
-
-          {candidates.length ? (
-            <div className="space-y-2">
-              {candidates.map((candidate) => (
-                <div key={candidate.id} className="rounded-md border p-3 text-sm">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={checked[candidate.id] ?? false}
-                        onChange={(event) =>
-                          setChecked((prev) => ({ ...prev, [candidate.id]: event.target.checked }))
-                        }
-                      />
-                      <span className="font-medium">{candidate.id}</span>
-                    </label>
-                    <span className="text-xs text-muted-foreground">باقی‌مانده: {formatMoney(candidate.remainingAmount)}</span>
-                  </div>
-                  <div className="mt-2">
-                    <Input
-                      type="number"
-                      disabled={!checked[candidate.id]}
-                      placeholder="مبلغ تخصیص"
-                      value={amounts[candidate.id] ?? ""}
-                      onChange={(event) =>
-                        setAmounts((prev) => ({ ...prev, [candidate.id]: event.target.value }))
-                      }
-                    />
-                    {errors[candidate.id] ? (
-                      <p className="mt-1 text-xs text-destructive">{errors[candidate.id]}</p>
-                    ) : null}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="rounded-md border p-3 text-sm">
-            <p>مجموع تخصیص: {formatMoney(String(totalAssigned))}</p>
-            <p>باقی‌مانده: {formatMoney(String(remaining))}</p>
-            {totalAssigned > remaining ? (
-              <p className="text-xs text-destructive">مجموع تخصیص از باقی‌مانده بیشتر است.</p>
-            ) : null}
+          <div className="rounded-2xl border p-4 text-sm">
+            <p>مبلغ: {selected ? formatMoney(selected.amount) : "-"}</p>
+            <p>باقی‌مانده: {selected ? formatMoney(selected.remainingToAssign) : "-"}</p>
+            <p>مقصد: {selected?.destinationSummary ?? "-"}</p>
           </div>
 
-          <SheetFooter className="mt-auto">
-            <Button onClick={handleAssign} disabled={isInvalid}>
-              ثبت تخصیص
-            </Button>
-          </SheetFooter>
+          <Tabs value={assignMode} onValueChange={(v) => setAssignMode(v as "candidate" | "system")}>
+            <TabsList>
+              <TabsTrigger value="candidate">تخصیص به کاربر</TabsTrigger>
+              <TabsTrigger value="system">تخصیص به مقصد سیستمی</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="candidate" className="space-y-3">
+              {(candidatesQuery.data?.items || []).length ? (
+                (candidatesQuery.data?.items || []).map((candidate) => {
+                  const maxAvailable = Number(candidate.remainingAmount);
+                  return (
+                    <div key={candidate.id} className="rounded-xl border p-3">
+                      <div className="mb-2 flex items-start justify-between text-sm">
+                        <div>
+                          <p className="font-medium">کاندید: {candidate.id}</p>
+                          <p className="text-xs text-muted-foreground">موجود: {formatMoney(candidate.remainingAmount)}</p>
+                        </div>
+                        <div className="text-xs text-muted-foreground">وضعیت: {candidate.status}</div>
+                      </div>
+                      <div className="flex items-end gap-2">
+                        <div className="flex-1">
+                          <MoneyInput
+                            value={amounts[candidate.id]}
+                            onChange={(value) => setAmounts((prev) => ({ ...prev, [candidate.id]: value && value > maxAvailable ? maxAvailable : value }))}
+                            min={0}
+                            max={maxAvailable}
+                          />
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => setAmounts((prev) => ({ ...prev, [candidate.id]: maxAvailable }))}>
+                          حداکثر
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <EmptyState
+                  title="کاندیدی برای تخصیص یافت نشد"
+                  description="ممکن است همه واریزی‌ها قبلاً تخصیص داده شده باشند یا شرایط تخصیص برقرار نباشد. فیلترها و مانده برداشت را بررسی کنید."
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="system" className="space-y-3">
+              {(systemDestinationsQuery.data || []).length ? (
+                <div className="space-y-2">
+                  {(systemDestinationsQuery.data || []).map((destination) => (
+                    <button
+                      key={destination.id}
+                      type="button"
+                      className={`w-full rounded-xl border p-3 text-right text-sm ${systemDestinationId === destination.id ? "border-primary" : ""}`}
+                      onClick={() => setSystemDestinationId(destination.id)}
+                    >
+                      <p className="font-medium">{destination.title ?? destination.id}</p>
+                      <p className="text-xs text-muted-foreground">{destination.maskedValue}</p>
+                      <p className="text-xs text-muted-foreground">{destination.bankName ?? "-"}</p>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState title="مقصد سیستمی یافت نشد" description="در حال حاضر مقصد سیستمی فعالی برای تخصیص موجود نیست." />
+              )}
+              <div className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground">
+                در حال حاضر تخصیص به مقصد سیستمی توسط بک‌اند پشتیبانی نمی‌شود.
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <div className="rounded-lg border p-3 text-sm">
+            <p>جمع تخصیص: {formatMoney(totalAssigned)}</p>
+            <p>باقی‌مانده: {formatMoney(Math.max(remaining - totalAssigned, 0))}</p>
+          </div>
+
+          <StickyFormFooter className="-mx-6">
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setAssignOpen(false)}>انصراف</Button>
+              <Button
+                disabled={assignMode !== "candidate" || totalAssigned <= 0 || totalAssigned > remaining || !selected?.actions?.canAssign}
+                onClick={() => setConfirmOpen(true)}
+              >
+                ثبت تخصیص
+              </Button>
+            </div>
+          </StickyFormFooter>
         </SheetContent>
       </Sheet>
-    </>
+
+      <AdminWithdrawalDetailsSheet
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        withdrawal={selected}
+        onAssign={() => {
+          setDetailsOpen(false);
+          setAssignOpen(true);
+        }}
+        onViewAllocation={() => {}}
+      />
+
+      <ConfirmActionDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="تأیید عملیات"
+        description="آیا از انجام این عملیات مطمئن هستید؟"
+        onConfirm={submitAssign}
+      />
+    </div>
   );
 }
