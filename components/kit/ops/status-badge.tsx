@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 
 const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "success" | "warning" | "destructive" | "outline" }> = {
   PENDING: { label: "در انتظار", variant: "warning" },
+  WAITING_ASSIGNMENT : {label: "در انتظار تخصیص مقصد", variant: "warning"} ,
   APPROVED: { label: "تایید شد", variant: "success" },
   REJECTED: { label: "رد شد", variant: "destructive" },
   CANCELLED: { label: "لغو شد", variant: "secondary" },

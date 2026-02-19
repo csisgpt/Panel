@@ -103,6 +103,18 @@ export interface PaymentDestination {
   cardNumber?: string;
 }
 
+
+export interface P2PSystemDestinationVm {
+  id: string;
+  title?: string | null;
+  type: "IBAN" | "CARD" | "ACCOUNT";
+  maskedValue: string;
+  bankName?: string | null;
+  isActive: boolean;
+  createdAt?: string | null;
+  status?: "ACTIVE" | "PENDING_VERIFY" | "DISABLED";
+}
+
 export interface DestinationForm {
   type?: "IBAN" | "CARD" | "ACCOUNT";
   value?: string;

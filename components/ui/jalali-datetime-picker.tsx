@@ -1,6 +1,6 @@
 "use client";
 
-import DatePicker, { type DateObject } from "react-multi-date-picker";
+import DatePicker ,{ DateObject} from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persianFa from "react-date-object/locales/persian_fa";
 import { Button } from "@/components/ui/button";

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-
+import { formatJalali, formatJalaliDateTime } from "@/lib/format/date";
 function formatDuration(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
   const hours = Math.floor(totalSeconds / 3600);
@@ -24,7 +24,8 @@ export function CountdownBadge({ targetDate }: { targetDate: string }) {
 
   return (
     <Badge variant={isExpired ? "destructive" : "warning"}>
-      {isExpired ? "منقضی شد" : formatDuration(remaining)}
+      {formatJalaliDateTime(targetDate)}
+      {/* {isExpired ? "منقضی شد" : formatDuration(remaining)} */}
     </Badge>
   );
 }

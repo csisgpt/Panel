@@ -15,6 +15,7 @@ import type {
   AllocationReceiverConfirmDto,
   P2PAllocation,
   P2POpsSummary,
+  P2PSystemDestinationVm,
   P2PWithdrawal,
 } from "@/lib/contracts/p2p";
 import {
@@ -33,11 +34,21 @@ import {
   getMockP2PAllocationsEnvelope,
   getMockP2PWithdrawalsEnvelope,
   getMockP2PCandidates,
+  getMockUserDestinations,
 } from "@/lib/mock-data";
 
-export type AssignToWithdrawalDto = {
-  items: Array<{ depositId: string; amount: string }>;
-};
+export type AssignToWithdrawalRequest =
+  | {
+    // Mirrors backend AssignWithdrawalDto (gold-nest: assign-withdrawal.dto.ts)
+    mode: "CANDIDATES";
+    items: Array<{ depositId: string; amount: number }>;
+  }
+  | {
+    // Mirrors backend AssignWithdrawalDto (gold-nest: assign-withdrawal.dto.ts)
+    mode: "SYSTEM_DESTINATION";
+    destinationId: string;
+    amount: number;
+  };
 
 type AllocationPaymentMethod = AllocationVmDto["payment"] extends { method: infer M } ? M : never;
 
@@ -101,10 +112,10 @@ function buildMockAllocationVm(allocation: P2PAllocation): AllocationVmDto {
     paymentCode: allocation.paymentCode ?? undefined,
     payment: allocation.paymentMethod
       ? {
-          method: allocation.paymentMethod as AllocationPaymentMethod,
-          bankRef: allocation.bankRef ?? undefined,
-          paidAt: allocation.paidAt ?? undefined,
-        }
+        method: allocation.paymentMethod as AllocationPaymentMethod,
+        bankRef: allocation.bankRef ?? undefined,
+        paidAt: allocation.paidAt ?? undefined,
+      }
       : undefined,
     attachments: [...attachments.map((file) => ({
       id: file.id,
@@ -213,24 +224,14 @@ export async function listWithdrawalCandidates(withdrawalId: string, params: Lis
   return { items: items.map(mapP2PCandidateDepositVm), meta: adaptP2PMeta(meta as any) };
 }
 
-function normalizeAssignPayload(payload: AssignToWithdrawalDto | { candidateId: string }): AssignToWithdrawalDto {
-  if ("candidateId" in payload) {
-    return { items: [{ depositId: payload.candidateId, amount: "0" }] };
+export async function assignToWithdrawal(withdrawalId: string, payload: AssignToWithdrawalRequest) {
+  if (payload.mode === "CANDIDATES" && payload.items.some((item) => !item.amount || item.amount <= 0)) {
+    throw buildApiError({ message: "مبلغ تخصیص برای هر آیتم اجباری است", code: "validation_failed" });
   }
-  return payload;
-}
+  if (payload.mode === "SYSTEM_DESTINATION" && (!payload.destinationId || payload.amount <= 0)) {
+    throw buildApiError({ message: "مقصد سیستمی و مبلغ تخصیص اجباری است", code: "validation_failed" });
+  }
 
-export async function assignToWithdrawal(
-  withdrawalId: string,
-  payload: AssignToWithdrawalDto | { candidateId: string }
-) {
-  const dto = normalizeAssignPayload(payload);
-  if (dto.items.some((item) => !item.amount || item.amount === "0")) {
-    throw buildApiError({
-      message: "مبلغ تخصیص برای هر آیتم اجباری است",
-      code: "validation_failed",
-    });
-  }
   if (isMockMode()) {
     const envelope = getMockP2PWithdrawalsEnvelope();
     const withdrawal = envelope.data?.find((item) => item.id === withdrawalId);
@@ -238,7 +239,9 @@ export async function assignToWithdrawal(
       throw buildApiError({ message: "برداشت یافت نشد", code: "not_found" });
     }
     const remaining = Number(withdrawal.remainingToAssign ?? 0);
-    const totalAssigned = dto.items.reduce((sum, item) => sum + Number(item.amount), 0);
+    const totalAssigned = payload.mode === "CANDIDATES"
+      ? payload.items.reduce((sum, item) => sum + Number(item.amount), 0)
+      : Number(payload.amount);
     if (totalAssigned > remaining) {
       throw buildApiError({
         message: "مجموع تخصیص از باقی‌مانده بیشتر است",
@@ -248,7 +251,7 @@ export async function assignToWithdrawal(
     }
     return (getMockP2PAllocationsEnvelope().data ?? []).map((item) => mapP2PAllocationVm(buildMockAllocationVm(item)));
   }
-  const response = await apiPost<AllocationVmDto[]>(`/admin/p2p/withdrawals/${withdrawalId}/assign`, dto);
+  const response = await apiPost<AllocationVmDto[]>(`/admin/p2p/withdrawals/${withdrawalId}/assign`, payload);
   return response.map(mapP2PAllocationVm);
 }
 
@@ -365,19 +368,52 @@ export async function getAdminP2PAllocationDetail(allocationId: string): Promise
   return mapP2PAllocationVm(response);
 }
 
-export async function listAdminP2PSystemDestinations(): Promise<PaymentDestinationView[]> {
+type P2PSystemDestinationDto = PaymentDestinationView & {
+  isActive?: boolean;
+  createdAt?: string | null;
+};
+
+function mapSystemDestination(dto: P2PSystemDestinationDto): P2PSystemDestinationVm {
+  const resolvedStatus = dto.status ?? (dto.isActive ? "ACTIVE" : "DISABLED");
+
+  return {
+    id: dto.id,
+    title: dto.title,
+    type: dto.type,
+    maskedValue: dto.maskedValue,
+    bankName: dto.bankName,
+    isActive: dto.isActive ?? resolvedStatus === "ACTIVE",
+    createdAt: dto.createdAt ?? null,
+    status: resolvedStatus,
+  };
+}
+
+export async function listAdminP2PSystemDestinations(): Promise<P2PSystemDestinationVm[]> {
   if (isMockMode()) {
     const items = await getMockUserDestinations();
-    return items.map((item) => ({
-      id: item.id,
-      type: "ACCOUNT",
-      maskedValue: item.label,
-      title: item.label,
-      bankName: "-",
-      isDefault: false,
-      status: "ACTIVE",
-      lastUsedAt: null,
-    }));
+    return items.map((item) =>
+      mapSystemDestination({
+        id: item.id,
+        type: "ACCOUNT",
+        maskedValue: item.label ?? item.id,
+        title: item.label ?? item.id,
+        bankName: "-",
+        isDefault: false,
+        status: "ACTIVE",
+        lastUsedAt: null,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      })
+    );
   }
-  return apiGet<PaymentDestinationView[]>("/admin/p2p/system-destinations");
+
+  const raw = await apiGet<any>("/admin/p2p/system-destinations");
+
+  const items: P2PSystemDestinationDto[] =
+    Array.isArray(raw) ? raw :
+      Array.isArray(raw?.items) ? raw.items :
+        Array.isArray(raw?.data) ? raw.data :
+          [];
+
+  return items.map(mapSystemDestination);
 }
