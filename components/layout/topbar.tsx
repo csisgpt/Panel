@@ -48,8 +48,8 @@ export function Topbar({
 
   return (
     <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
-      <div className="flex w-full flex-col gap-3 px-3 py-3 sm:px-4 lg:px-8">
-        <div className="flex items-center justify-between gap-3">
+      <div className="flex w-full justify-between gap-3 px-3 py-3 sm:px-4 lg:px-8">
+        <div className="flex w-full items-center justify-between gap-3">
           <div className="flex flex-1 items-center gap-3">
             <Button
               variant="ghost"
@@ -62,7 +62,7 @@ export function Topbar({
             </Button>
             <div
               className={cn(
-                "flex w-full items-center gap-2 rounded-2xl border bg-card/80 px-3 py-0 shadow-sm",
+                "hidden sm:flex w-full items-center gap-2 rounded-2xl border bg-card/80 px-3 py-0 shadow-sm",
                 "lg:max-w-xl"
               )}
             >

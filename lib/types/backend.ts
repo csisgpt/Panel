@@ -218,8 +218,9 @@ export interface DepositRequest {
 
   userId: string;
   amount: string;
-  method: PaymentMethod;
+  method: string;
   status: DepositStatus;
+  purpose?: "P2P" | "DIRECT";
 
   refNo?: string | null;
   note?: string | null;
@@ -228,7 +229,8 @@ export interface DepositRequest {
   processedById?: string | null;
 
   accountTxId?: string | null;
-  user?: BackendUser;
+  processedBy?: UserMinimalDto | null;
+  user?: UserSafeDto | null;
 }
 
 export interface WithdrawRequest {
@@ -239,6 +241,8 @@ export interface WithdrawRequest {
   userId: string;
   amount: string;
   status: WithdrawStatus;
+  purpose?: "P2P" | "DIRECT";
+  destination?: WithdrawalDestination | null;
 
   bankName?: string | null;
   iban?: string | null;
@@ -248,7 +252,93 @@ export interface WithdrawRequest {
   processedAt?: string | null;
   processedById?: string | null;
   accountTxId?: string | null;
-  user?: BackendUser;
+  processedBy?: UserMinimalDto | null;
+  user?: UserSafeDto | null;
+}
+
+export interface UserMinimalDto {
+  id: string;
+  fullName?: string | null;
+  mobile?: string | null;
+}
+
+export interface UserSafeDto {
+  id: string;
+  fullName: string;
+  mobile: string;
+  email?: string | null;
+  role?: UserRole;
+  status?: UserStatus;
+}
+
+export type PaymentDestinationType = "IBAN" | "CARD" | "ACCOUNT";
+
+export interface WithdrawalDestination {
+  type: PaymentDestinationType;
+  maskedValue: string;
+  bankName?: string | null;
+  ownerNameMasked?: string | null;
+}
+
+export interface PaymentDestinationView {
+  id: string;
+  type: PaymentDestinationType;
+  maskedValue: string;
+  bankName?: string | null;
+  ownerNameMasked?: string | null;
+  title?: string | null;
+  isDefault: boolean;
+  status: "ACTIVE" | "PENDING_VERIFY" | "DISABLED";
+  lastUsedAt?: string | null;
+}
+
+export interface AdminListDepositsParams {
+  page?: number;
+  limit?: number;
+  offset?: number;
+  sort?: string;
+  sortBy?: "createdAt";
+  orderBy?: string;
+  order?: "asc" | "desc";
+  direction?: string;
+  dir?: string;
+  status?: DepositStatus;
+  userId?: string;
+  mobile?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  amountFrom?: string;
+  amountTo?: string;
+  q?: string;
+}
+
+export interface AdminListWithdrawalsParams {
+  page?: number;
+  limit?: number;
+  offset?: number;
+  sort?: string;
+  sortBy?: "createdAt";
+  orderBy?: string;
+  order?: "asc" | "desc";
+  direction?: string;
+  dir?: string;
+  status?: WithdrawStatus;
+  userId?: string;
+  mobile?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  amountFrom?: string;
+  amountTo?: string;
+  q?: string;
+}
+
+export interface DecisionDto {
+  note?: string;
+  reason?: string;
+}
+
+export interface CancelRequestDto {
+  reason?: string;
 }
 
 export interface GoldLot {
@@ -336,7 +426,7 @@ export interface CreateTradeDto {
 export interface CreateDepositDto {
   userId?: string;
   amount: string;
-  method: PaymentMethod;
+  method: string;
   purpose?: "P2P" | "DIRECT";
   refNo?: string;
   note?: string;
@@ -348,7 +438,7 @@ export interface CreateWithdrawalDto {
   amount: string;
   purpose?: "P2P" | "DIRECT";
   channel?: "USER_TO_USER" | "USER_TO_ORG";
-  payoutDestinationId: string;
+  payoutDestinationId?: string;
   bankName?: string;
   iban?: string;
   cardNumber?: string;

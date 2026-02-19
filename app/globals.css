@@ -19,12 +19,14 @@
   --popover-foreground: 222.2 47% 11.2%;
 
   /* آبی-سبز مینیمال به عنوان رنگ اصلی */
-  --primary: 200 100% 45%;
+  --primary: 226 71% 33%;
   --primary-foreground: 210 40% 98%;
-
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222.2 47% 11.2%;
-
+  
+  --secondary: 226 100% 94%;
+  --secondary-foreground: 226 71% 33%;
+  
+  --ring: 226 71% 33%;
+  
   --muted: 210 24% 94%;
   --muted-foreground: 215 16% 46%;
 
@@ -37,21 +39,20 @@
 
   --border: 214 32% 91%;
   --input: 214 32% 91%;
-  --ring: 200 100% 45%;
 
   /* کمی گردتر برای حس مدرن‌تر */
   --radius: 14px;
 
-  --z-dropdown: 40;
-  --z-dialog: 60;
+  --z-dropdown: 96;
+  --z-dialog: 95;
   --z-sheet: 70;
-  --z-toast: 80;
+  --z-toast: 97;
 }
 
 @theme {
   --radius: 14px;
   --font-sans: "Vazirmatn", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --shadow-soft: 0 8px 30px rgba(0,0,0,0.05);
+  --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.05);
 
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
@@ -85,6 +86,7 @@
     from {
       height: 0;
     }
+
     to {
       height: var(--radix-accordion-content-height);
     }
@@ -94,6 +96,7 @@
     from {
       height: var(--radix-accordion-content-height);
     }
+
     to {
       height: 0;
     }
@@ -171,7 +174,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(0 0% 60% / 0.35);
+  background: hsl(var(--primary));
   border-radius: 9999px;
 }
 
@@ -184,6 +187,10 @@ body {
   outline: none;
   box-shadow: 0 0 0 2px hsl(var(--background)),
     0 0 0 4px hsl(var(--ring));
+}
+
+html,body {
+  overflow: hidden
 }
 
 /* کارت‌ها و المان‌های شبیه کارت اگر از bg-card استفاده کنی */
@@ -203,18 +210,23 @@ body {
   .animate-accordion-down {
     animation: accordion-down 200ms ease-out;
   }
+
   .animate-accordion-up {
     animation: accordion-up 200ms ease-out;
   }
+
   .z-dropdown {
     z-index: var(--z-dropdown);
   }
+
   .z-dialog {
     z-index: var(--z-dialog);
   }
+
   .z-sheet {
     z-index: var(--z-sheet);
   }
+
   .z-toast {
     z-index: var(--z-toast);
   }

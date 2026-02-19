@@ -1,6 +1,7 @@
 import { apiGet, apiPatch, apiPost } from "./client";
 import { isMockMode } from "./config";
-import type { DestinationForm, PaymentDestination } from "@/lib/contracts/p2p";
+import type { DestinationForm } from "@/lib/contracts/p2p";
+import type { PaymentDestinationView } from "@/lib/types/backend";
 import {
   createMockDestination,
   getMockUserDestinations,
@@ -22,7 +23,7 @@ function normalizeDestinationPayload(payload: DestinationForm): DestinationForm 
   return payload;
 }
 
-function mapMockDestinationToView(input: PaymentDestination): PaymentDestination {
+function mapMockDestinationToView(input: any): PaymentDestinationView {
   const maskedValue = input.maskedValue ?? input.iban ?? input.cardNumber ?? input.label ?? input.id;
   return {
     id: input.id,
@@ -37,48 +38,48 @@ function mapMockDestinationToView(input: PaymentDestination): PaymentDestination
   };
 }
 
-export async function listUserDestinations(): Promise<PaymentDestination[]> {
+export async function listUserDestinations(): Promise<PaymentDestinationView[]> {
   if (isMockMode()) return (await getMockUserDestinations()).map(mapMockDestinationToView);
-  return apiGet<PaymentDestination[]>(ME_DESTINATIONS_BASE);
+  return apiGet<PaymentDestinationView[]>(ME_DESTINATIONS_BASE);
 }
 
-export async function createUserDestination(payload: DestinationForm): Promise<PaymentDestination> {
+export async function createUserDestination(payload: DestinationForm): Promise<PaymentDestinationView> {
   if (isMockMode()) {
     const created = await createMockDestination({ label: payload.title ?? payload.value, id: "", isDefault: false } as any);
     return mapMockDestinationToView(created as any);
   }
-  return apiPost<PaymentDestination, DestinationForm>(ME_DESTINATIONS_BASE, normalizeDestinationPayload(payload));
+  return apiPost<PaymentDestinationView, DestinationForm>(ME_DESTINATIONS_BASE, normalizeDestinationPayload(payload));
 }
 
 export async function updateUserDestination(
   destinationId: string,
   payload: DestinationForm
-): Promise<PaymentDestination> {
+): Promise<PaymentDestinationView> {
   if (isMockMode()) {
     const updated = await updateMockDestination({ label: payload.title ?? payload.value, id: destinationId } as any);
     return mapMockDestinationToView(updated as any);
   }
-  return apiPatch<PaymentDestination, DestinationForm>(`${ME_DESTINATIONS_BASE}/${destinationId}`, normalizeDestinationPayload(payload));
+  return apiPatch<PaymentDestinationView, DestinationForm>(`${ME_DESTINATIONS_BASE}/${destinationId}`, normalizeDestinationPayload(payload));
 }
 
-export async function makeUserDestinationDefault(destinationId: string): Promise<PaymentDestination> {
+export async function makeUserDestinationDefault(destinationId: string): Promise<PaymentDestinationView> {
   if (isMockMode()) {
     const items = await setMockDefaultDestination(destinationId);
     const current = items.find((item) => item.id === destinationId) ?? items[0];
     return mapMockDestinationToView(current as any);
   }
-  return apiPost<PaymentDestination, Record<string, never>>(`${ME_DESTINATIONS_BASE}/${destinationId}/make-default`, {});
+  return apiPost<PaymentDestinationView, Record<string, never>>(`${ME_DESTINATIONS_BASE}/${destinationId}/make-default`, {});
 }
 
-export async function listAdminDestinations(direction: "PAYOUT" | "COLLECTION" = "PAYOUT"): Promise<PaymentDestination[]> {
+export async function listAdminDestinations(direction: "PAYOUT" | "COLLECTION" = "PAYOUT"): Promise<PaymentDestinationView[]> {
   if (isMockMode()) return (await getMockUserDestinations()).map(mapMockDestinationToView);
-  return apiGet<PaymentDestination[]>(`${ADMIN_DESTINATIONS_BASE}?direction=${direction}`);
+  return apiGet<PaymentDestinationView[]>(`${ADMIN_DESTINATIONS_BASE}?direction=${direction}`);
 }
 
-export async function createSystemDestination(payload: DestinationForm): Promise<PaymentDestination> {
+export async function createSystemDestination(payload: DestinationForm): Promise<PaymentDestinationView> {
   if (isMockMode()) {
     const created = await createMockDestination({ label: payload.title ?? payload.value, id: "", isDefault: false } as any);
     return mapMockDestinationToView(created as any);
   }
-  return apiPost<PaymentDestination, DestinationForm>(`${ADMIN_DESTINATIONS_BASE}/system`, normalizeDestinationPayload(payload));
+  return apiPost<PaymentDestinationView, DestinationForm>(`${ADMIN_DESTINATIONS_BASE}/system`, normalizeDestinationPayload(payload));
 }

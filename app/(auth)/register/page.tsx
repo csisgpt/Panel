@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
-import { ApiError } from "@/lib/api/client";
+import { isApiError } from "@/lib/contracts/errors";
 import { RegisterDto } from "@/lib/types/backend";
 
 const mobileRegex = /^09\d{9}$/;
@@ -92,14 +92,14 @@ export default function RegisterPage() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-      <Card className="border-none bg-white/80 shadow-2xl backdrop-blur">
+      <Card className="border-none bg-white/80 shadow-2xl backdrop-blur max-h-[calc(100vh-50px)] overflow-hidden flex flex-col">
         <CardHeader className="space-y-2 text-center">
           <CardTitle className="text-2xl font-bold">ساخت حساب کاربری</CardTitle>
           <CardDescription className="text-sm text-muted-foreground">
             برای شروع، مشخصات خود را وارد کنید.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="grow! overflow-auto max-h-full">
           <form className="space-y-4" onSubmit={handleSubmit}>
             <input type="hidden" value={step} readOnly />
             <div className="space-y-2">
@@ -123,7 +123,7 @@ export default function RegisterPage() {
                 autoComplete="tel"
               />
             </div>
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="email">ایمیل (اختیاری)</Label>
               <Input
                 id="email"
@@ -133,7 +133,7 @@ export default function RegisterPage() {
                 placeholder="name@example.com"
                 autoComplete="email"
               />
-            </div>
+            </div> */}
             <div className="space-y-2">
               <Label htmlFor="password">رمز عبور</Label>
               <div className="relative">
@@ -225,7 +225,7 @@ function ChecklistItem({ label, active }: { label: string; active: boolean }) {
 }
 
 function getErrorStatus(error: unknown) {
-  if (error instanceof ApiError) return error.status;
+  if (isApiError(error)) return error.status;
   if (typeof error === "object" && error && "status" in error) {
     const value = (error as { status?: number }).status;
     if (typeof value === "number") return value;

@@ -29,7 +29,7 @@ export function AdvancedFilterBar({
   ...props
 }: AdvancedFilterBarProps) {
   return (
-    <div className={cn("space-y-3 rounded-xl border bg-card p-4", className)} {...props}>
+    <div className={cn("space-y-3 rounded-xl bg-card py-1", className)} {...props}>
       <div className="flex flex-wrap items-center gap-2">
         {primaryFilters}
         {onReset ? (

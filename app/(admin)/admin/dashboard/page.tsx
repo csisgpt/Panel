@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getUsers } from "@/lib/api/users";
-import { getDeposits } from "@/lib/api/deposits";
-import { getWithdrawals } from "@/lib/api/withdrawals";
-import { getTrades } from "@/lib/api/trades";
+import { listAdminDeposits } from "@/lib/api/admin-deposits";
+import { listAdminWithdrawals } from "@/lib/api/admin-withdrawals";
+import { getTrades , getAdminTrades } from "@/lib/api/trades";
 import { getSystemStatus } from "@/lib/api/system";
 import {
   BackendUser,
@@ -33,18 +33,18 @@ export default function AdminDashboardPage() {
     const load = async () => {
       try {
         setLoading(true);
-        const [u, t, d, w, status] = await Promise.all([
+        const [u, d, w] = await Promise.all([
           getUsers(),
-          getTrades(),
-          getDeposits(),
-          getWithdrawals(),
-          getSystemStatus(),
+          // getAdminTrades(),
+listAdminDeposits({ page: 1, limit: 5, sort: "-createdAt" }),
+          listAdminWithdrawals({ page: 1, limit: 5, sort: "-createdAt" }),
+          // getSystemStatus(),
         ]);
         setUsers(u);
-        setTrades(t);
-        setDeposits(d);
-        setWithdrawals(w);
-        setSystemStatus(status);
+        // setTrades(t);
+        setDeposits(d.items);
+        setWithdrawals(w.items);
+        // setSystemStatus(status);
         setError(null);
       } catch (err) {
         setError("خطا در دریافت داده‌ها");
@@ -102,8 +102,8 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-6 overflow-auto max-h-full">
+      {/* <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">داشبورد ادمین</h1>
           <p className="text-sm text-muted-foreground">نمای کلی از کاربران، معاملات و نقدینگی</p>
@@ -113,7 +113,7 @@ export default function AdminDashboardPage() {
             {systemStatus.tahesabOnline ? "اتصال تاهساب برقرار" : "قطع ارتباط"} - آخرین همگام سازی: {new Date(systemStatus.lastSyncAt).toLocaleString("fa-IR")}
           </Badge>
         )}
-      </div>
+      </div> */}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {metrics.map((metric) => (
@@ -128,7 +128,7 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      {/* <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>آخرین معاملات</CardTitle>
@@ -167,7 +167,7 @@ export default function AdminDashboardPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

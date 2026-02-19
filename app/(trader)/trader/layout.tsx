@@ -10,6 +10,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { isAdmin, isUserPanel } from "@/lib/auth/roles";
 import { getVisibleNav, traderNavItems } from "@/lib/navigation/registry";
 import BottomNav from "@/components/navigation/BottomNav";
+import { PageShell } from "@/components/layout/page-shell";
 
 export default function TraderLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function TraderLayout({ children }: { children: React.ReactNode }
     const sections: NavSection[] = [
       { id: "main", label: "اصلی", items: byKey(["dashboard", "requests", "history"]) },
       { id: "p2p", label: "عملیات P2P", items: byKey(["payer", "receiver"]) },
-      { id: "settings", label: "سایر", items: byKey(["destinations"]) },
+      { id: "settings", label: "سایر", items: byKey(["destinations", "profile"]) },
     ];
     return sections.filter((section) => section.items.length > 0);
   }, []);
@@ -75,7 +76,11 @@ export default function TraderLayout({ children }: { children: React.ReactNode }
           />
         }
       >
-        <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</div>
+        <PageShell >
+          <div className="overflow-auto max-h-[calc(100vh-68px)] grow! [&>div]:h-full">
+            {children}
+          </div>
+        </PageShell>
         <BottomNav />
       </AppShell>
 

@@ -8,7 +8,7 @@ import type { P2PWithdrawal } from "@/lib/contracts/p2p";
 import type { ServerTableViewProps } from "@/components/kit/table/server-table-view";
 import { serializeListParams } from "@/lib/querykit/serialize";
 
-const supportsBooleanQuery = process.env.NEXT_PUBLIC_API_SUPPORTS_BOOLEAN_QUERY === "true";
+const supportsBooleanQuery = process.env.NEXT_PUBLIC_API_SUPPORTS_BOOLEAN_QUERY !== "false";
 
 export function createAdminP2PWithdrawalsListConfig(): ServerTableViewProps<P2PWithdrawal, Record<string, unknown>> {
   const columns: ColumnDef<P2PWithdrawal>[] = [

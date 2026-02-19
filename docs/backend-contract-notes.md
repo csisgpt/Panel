@@ -2,6 +2,22 @@
 
 Source of truth: **Verified backend contract** provided in the task prompt.
 
+## Global API Envelope
+- Success responses are always wrapped:
+  ```json
+  { "ok": true, "result": "<payload>", "traceId": "string", "ts": "ISO8601" }
+  ```
+- Error responses are always wrapped:
+  ```json
+  {
+    "ok": false,
+    "result": null,
+    "error": { "code": "string", "message": "string", "details": [] },
+    "traceId": "string",
+    "ts": "ISO8601"
+  }
+  ```
+
 ## P2P Admin Withdrawals
 **Method:** `GET`  
 **Path:** `/admin/p2p/withdrawals`
@@ -9,7 +25,7 @@ Source of truth: **Verified backend contract** provided in the task prompt.
 **Query**
 - `page` (int, default 1)
 - `limit` (int, default 20, max 100)
-- `offset` (int, optional; overrides page/limit if present)
+- `offset` (int, optional; overrides page/limit if present; **deprecated** — frontend maps offset → page)
 - `sort` enum:
   - `createdAt_desc` | `createdAt_asc`
   - `amount_desc` | `amount_asc`
@@ -28,18 +44,25 @@ Source of truth: **Verified backend contract** provided in the task prompt.
 - `hasProof` (boolean)
 - `expiringSoonMinutes` (number string)
 
-**Response**
+**Response (enveloped)**
 ```json
 {
-  "data": [WithdrawalVmDto],
-  "meta": {
-    "total": 0,
-    "nextCursor": null,
-    "limit": 20,
-    "offset": 0,
-    "sort": "priority",
-    "filtersApplied": {}
-  }
+  "ok": true,
+  "result": {
+    "items": [WithdrawalVmDto],
+    "meta": {
+      "page": 1,
+      "limit": 20,
+      "totalItems": 0,
+      "totalPages": 1,
+      "hasNextPage": false,
+      "hasPrevPage": false,
+      "sort": "priority",
+      "filtersApplied": {}
+    }
+  },
+  "traceId": "TRACE-ID",
+  "ts": "2024-01-01T00:00:00Z"
 }
 ```
 
@@ -93,11 +116,23 @@ Source of truth: **Verified backend contract** provided in the task prompt.
 - `createdFrom`, `createdTo` (ISO 8601)
 - `excludeUserId`
 
-**Response**
+**Response (enveloped)**
 ```json
 {
-  "data": [DepositVmDto],
-  "meta": { "total": 0, "limit": 20, "offset": 0 }
+  "ok": true,
+  "result": {
+    "items": [DepositVmDto],
+    "meta": {
+      "page": 1,
+      "limit": 20,
+      "totalItems": 0,
+      "totalPages": 1,
+      "hasNextPage": false,
+      "hasPrevPage": false
+    }
+  },
+  "traceId": "TRACE-ID",
+  "ts": "2024-01-01T00:00:00Z"
 }
 ```
 
@@ -163,11 +198,23 @@ Source of truth: **Verified backend contract** provided in the task prompt.
 - `createdFrom`, `createdTo` (ISO 8601)
 - `paidFrom`, `paidTo` (ISO 8601)
 
-**Response**
+**Response (enveloped)**
 ```json
 {
-  "data": [AllocationVmDto],
-  "meta": { "total": 0, "limit": 20, "offset": 0 }
+  "ok": true,
+  "result": {
+    "items": [AllocationVmDto],
+    "meta": {
+      "page": 1,
+      "limit": 20,
+      "totalItems": 0,
+      "totalPages": 1,
+      "hasNextPage": false,
+      "hasPrevPage": false
+    }
+  },
+  "traceId": "TRACE-ID",
+  "ts": "2024-01-01T00:00:00Z"
 }
 ```
 

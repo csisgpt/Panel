@@ -6,7 +6,16 @@ import {
   useReactTable,
   type ColumnDef,
 } from "@tanstack/react-table";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
 import type { ApiError } from "@/lib/contracts/errors";
 import type { ListMeta } from "@/lib/contracts/list";
 import { EmptyState } from "@/components/kit/common/EmptyState";
@@ -41,6 +50,10 @@ interface DataTableProps<TData> {
 
 /**
  * Server-driven data table with meta-aware pagination and state placeholders.
+ * Standard layout:
+ * - Container: flex-col h-full min-h-0
+ * - Table area: flex-1 min-h-0 (scroll lives inside Table component)
+ * - Pagination: fixed at bottom
  */
 export function DataTable<TData>({
   data,
@@ -75,16 +88,22 @@ export function DataTable<TData>({
   const headerPadding = density === "compact" ? "py-2 px-3 text-xs" : "p-4";
 
   return (
-    <div className="space-y-3">
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      {/* Table area must be flex-1 min-h-0 so only rows scroll */}
+      <div className="flex-1 min-h-0">
+        <Table
+          className="relative"
+          containerClassName="h-full"
+          scrollClassName="h-full"
+        >
+          <TableHeader className="sticky top-0 z-10">
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="hover:bg-transparent">
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
                     className={[
+                      "sticky top-0 z-10", // sticky روی th هم کمک می‌کنه
                       headerPadding,
                       (header.column.columnDef.meta as { headerClassName?: string } | undefined)?.headerClassName,
                     ]
@@ -99,22 +118,23 @@ export function DataTable<TData>({
               </TableRow>
             ))}
           </TableHeader>
+
           <TableBody>
             {loading ? (
-              <TableRow>
-                <TableCell colSpan={colSpan}>
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={colSpan} className={cellPadding}>
                   <LoadingState />
                 </TableCell>
               </TableRow>
             ) : error ? (
-              <TableRow>
-                <TableCell colSpan={colSpan}>
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={colSpan} className={cellPadding}>
                   <ErrorState error={error} onAction={onRetry} />
                 </TableCell>
               </TableRow>
             ) : data.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={colSpan}>
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={colSpan} className={cellPadding}>
                   <EmptyState
                     title={emptyState?.title}
                     description={emptyState?.description}
@@ -143,8 +163,12 @@ export function DataTable<TData>({
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination stays fixed (not in scroll area) */}
       {showPagination && meta && onPageChange ? (
-        <Pagination meta={meta} onPageChange={onPageChange} onLimitChange={onLimitChange} />
+        <div className="shrink-0">
+          <Pagination meta={meta} onPageChange={onPageChange} onLimitChange={onLimitChange} />
+        </div>
       ) : null}
     </div>
   );

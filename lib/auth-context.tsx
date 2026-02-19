@@ -4,7 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { login as apiLogin, register as apiRegister, me as apiMe } from "@/lib/api/auth";
 import { LoginDto, BackendUser, RegisterDto } from "@/lib/types/backend";
 import { clearSession, getSession, setSession } from "@/lib/session";
-import { ApiError } from "@/lib/api/client";
+import { isApiError } from "@/lib/contracts/errors";
 
 interface AuthContextValue {
   user: BackendUser | null;
@@ -64,7 +64,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       persistSession(profile, existing.token);
       return profile;
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
+      if (isApiError(err) && err.status === 401) {
         logout();
         return null;
       }

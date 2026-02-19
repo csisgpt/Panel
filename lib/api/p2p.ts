@@ -3,12 +3,13 @@ import { isMockMode } from "./config";
 import type { ListParams } from "@/lib/querykit/schemas";
 import {
   buildAdminAllocationsQuery as buildAdminAllocationsQueryInternal,
-  buildAdminWithdrawalsQuery as buildAdminWithdrawalsQueryInternal,
   buildTraderHistoryQuery,
   buildWithdrawalCandidatesQuery as buildWithdrawalCandidatesQueryInternal,
 } from "@/lib/adapters/list-query-builders";
+import { buildAdminP2PWithdrawalsQuery as buildAdminP2PWithdrawalsQueryInternal } from "@/lib/contract-mappers/p2p-withdrawals.mapper";
 import { adaptListResponse } from "@/lib/adapters/list-response-adapter";
 import { adaptP2PMeta } from "@/lib/adapters/p2p-meta-adapter";
+import { normalizeListResponse } from "@/lib/contracts/list";
 import type {
   AllocationProofDto,
   AllocationReceiverConfirmDto,
@@ -26,6 +27,7 @@ import {
 } from "@/lib/adapters/p2p-vm-mappers";
 import { adaptOpsSummary, type BackendOpsSummaryDto } from "@/lib/adapters/p2p-ops-summary-adapter";
 import { buildApiError } from "@/lib/api/http";
+import type { PaymentDestinationView } from "@/lib/types/backend";
 import {
   getMockOpsSummary,
   getMockP2PAllocationsEnvelope,
@@ -151,7 +153,7 @@ function buildMockDepositVm(candidate: { id: string; name: string; mobile: strin
 }
 
 export function buildAdminP2PWithdrawalsQuery(params: ListParams) {
-  return buildAdminWithdrawalsQueryInternal(params);
+  return buildAdminP2PWithdrawalsQueryInternal(params);
 }
 
 export function buildAdminP2PAllocationsQuery(params: ListParams) {
@@ -174,8 +176,9 @@ export async function listAdminP2PWithdrawals(params: ListParams) {
     return { items, meta: adaptP2PMeta(envelope.meta) };
   }
   const query = buildAdminP2PWithdrawalsQuery(params);
-  const response = await apiGet<{ data: WithdrawalVmDto[]; meta: any }>(`/admin/p2p/withdrawals?${query}`);
-  return { items: (response.data ?? []).map(mapP2PWithdrawalVm), meta: adaptP2PMeta(response.meta) };
+  const response = await apiGet<any>(`/admin/p2p/withdrawals?${query}`);
+  const { items, meta } = normalizeListResponse<WithdrawalVmDto>(response as any);
+  return { items: items.map(mapP2PWithdrawalVm), meta: adaptP2PMeta(meta as any) };
 }
 
 export async function listAdminP2PAllocations(params: ListParams) {
@@ -190,8 +193,9 @@ export async function listAdminP2PAllocations(params: ListParams) {
     return { items, meta: adaptP2PMeta(envelope.meta) };
   }
   const query = buildAdminP2PAllocationsQuery(params);
-  const response = await apiGet<{ data: AllocationVmDto[]; meta: any }>(`/admin/p2p/allocations?${query}`);
-  return { items: (response.data ?? []).map(mapP2PAllocationVm), meta: adaptP2PMeta(response.meta) };
+  const response = await apiGet<any>(`/admin/p2p/allocations?${query}`);
+  const { items, meta } = normalizeListResponse<AllocationVmDto>(response as any);
+  return { items: items.map(mapP2PAllocationVm), meta: adaptP2PMeta(meta as any) };
 }
 
 export async function listWithdrawalCandidates(withdrawalId: string, params: ListParams) {
@@ -204,10 +208,9 @@ export async function listWithdrawalCandidates(withdrawalId: string, params: Lis
     return { items: data, meta };
   }
   const query = buildWithdrawalCandidatesQuery(params);
-  const response = await apiGet<{ data: DepositVmDto[]; meta: any }>(
-    `/admin/p2p/withdrawals/${withdrawalId}/candidates?${query}`
-  );
-  return { items: (response.data ?? []).map(mapP2PCandidateDepositVm), meta: adaptP2PMeta(response.meta) };
+  const response = await apiGet<any>(`/admin/p2p/withdrawals/${withdrawalId}/candidates?${query}`);
+  const { items, meta } = normalizeListResponse<DepositVmDto>(response as any);
+  return { items: items.map(mapP2PCandidateDepositVm), meta: adaptP2PMeta(meta as any) };
 }
 
 function normalizeAssignPayload(payload: AssignToWithdrawalDto | { candidateId: string }): AssignToWithdrawalDto {
@@ -301,10 +304,9 @@ export async function listMyAllocationsAsPayer(params: ListParams) {
     return { items, meta: adaptP2PMeta(envelope.meta) };
   }
   const query = buildTraderHistoryQuery(params);
-  const response = await apiGet<{ data: AllocationVmDto[]; meta: any }>(
-    `/p2p/allocations/my-as-payer?${query}`
-  );
-  return { items: (response.data ?? []).map(mapP2PAllocationVm), meta: adaptP2PMeta(response.meta) };
+  const response = await apiGet<any>(`/p2p/allocations/my-as-payer?${query}`);
+  const { items, meta } = normalizeListResponse<AllocationVmDto>(response as any);
+  return { items: items.map(mapP2PAllocationVm), meta: adaptP2PMeta(meta as any) };
 }
 
 export async function listMyAllocationsAsReceiver(params: ListParams) {
@@ -319,10 +321,9 @@ export async function listMyAllocationsAsReceiver(params: ListParams) {
     return { items, meta: adaptP2PMeta(envelope.meta) };
   }
   const query = buildTraderHistoryQuery(params);
-  const response = await apiGet<{ data: AllocationVmDto[]; meta: any }>(
-    `/p2p/allocations/my-as-receiver?${query}`
-  );
-  return { items: (response.data ?? []).map(mapP2PAllocationVm), meta: adaptP2PMeta(response.meta) };
+  const response = await apiGet<any>(`/p2p/allocations/my-as-receiver?${query}`);
+  const { items, meta } = normalizeListResponse<AllocationVmDto>(response as any);
+  return { items: items.map(mapP2PAllocationVm), meta: adaptP2PMeta(meta as any) };
 }
 
 export async function submitAllocationProof(allocationId: string, payload: AllocationProofDto) {
@@ -339,4 +340,44 @@ export async function confirmAllocationReceipt(allocationId: string, payload: Al
     payload
   );
   return mapP2PAllocationVm(response);
+}
+
+
+export async function getAdminP2PWithdrawalDetail(withdrawalId: string): Promise<P2PWithdrawal> {
+  if (isMockMode()) {
+    const envelope = getMockP2PWithdrawalsEnvelope();
+    const found = (envelope.data ?? []).find((item) => item.id === withdrawalId);
+    if (!found) throw buildApiError({ message: "برداشت یافت نشد", code: "not_found" });
+    return mapP2PWithdrawalVm(buildMockWithdrawalVm(found));
+  }
+  const response = await apiGet<WithdrawalVmDto>(`/admin/p2p/withdrawals/${withdrawalId}`);
+  return mapP2PWithdrawalVm(response);
+}
+
+export async function getAdminP2PAllocationDetail(allocationId: string): Promise<P2PAllocation> {
+  if (isMockMode()) {
+    const envelope = getMockP2PAllocationsEnvelope();
+    const found = (envelope.data ?? []).find((item) => item.id === allocationId);
+    if (!found) throw buildApiError({ message: "تخصیص یافت نشد", code: "not_found" });
+    return mapP2PAllocationVm(buildMockAllocationVm(found));
+  }
+  const response = await apiGet<AllocationVmDto>(`/admin/p2p/allocations/${allocationId}`);
+  return mapP2PAllocationVm(response);
+}
+
+export async function listAdminP2PSystemDestinations(): Promise<PaymentDestinationView[]> {
+  if (isMockMode()) {
+    const items = await getMockUserDestinations();
+    return items.map((item) => ({
+      id: item.id,
+      type: "ACCOUNT",
+      maskedValue: item.label,
+      title: item.label,
+      bankName: "-",
+      isDefault: false,
+      status: "ACTIVE",
+      lastUsedAt: null,
+    }));
+  }
+  return apiGet<PaymentDestinationView[]>("/admin/p2p/system-destinations");
 }

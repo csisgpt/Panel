@@ -15,7 +15,7 @@ interface SelectContextValue {
 const SelectContext = React.createContext<SelectContextValue>({});
 
 const triggerVariants = cva(
-  "flex h-10 w-full items-center justify-between rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+  "flex h-10 w-full items-center justify-between rounded-xl border border-input bg-background px-3 py-2 text-xs ring-offset-background transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
   {
     variants: {
       size: {
@@ -124,7 +124,7 @@ export const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-dropdown max-h-64 min-w-[8rem] overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-md",
+        "relative z-dropdown max-h-64  min-w-[8rem] overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-md",
         position === "popper" && "translate-y-1",
         className
       )}
@@ -146,7 +146,7 @@ export const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-pointer select-none items-center rounded-lg px-3 py-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex w-full cursor-pointer select-none items-center rounded-lg px-3 py-2 text-[10px]! outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className
     )}
     {...props}

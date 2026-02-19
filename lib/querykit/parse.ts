@@ -4,6 +4,7 @@ import { listParamsDefaults, type ListParams, type SortDir, withDefaults } from 
 const rawParamsSchema = z.object({
   page: z.coerce.number().int().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
   search: z.string().optional(),
   sortKey: z.string().optional(),
   sortDir: z.enum(["asc", "desc"]).optional(),
@@ -15,9 +16,23 @@ const rawParamsSchema = z.object({
   endDate: z.string().optional(),
   minAmount: z.coerce.number().optional(),
   maxAmount: z.coerce.number().optional(),
-  hasProof: z.coerce.boolean().optional(),
-  expiresSoon: z.coerce.boolean().optional(),
+  hasProof: z.preprocess(coerceBoolean, z.boolean()).optional(),
+  expiresSoon: z.preprocess(coerceBoolean, z.boolean()).optional(),
 });
+
+function coerceBoolean(input: unknown) {
+  if (typeof input === "boolean") return input;
+  if (typeof input === "string") {
+    const normalized = input.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1") return true;
+    if (normalized === "false" || normalized === "0") return false;
+  }
+  if (typeof input === "number") {
+    if (input === 1) return true;
+    if (input === 0) return false;
+  }
+  return undefined;
+}
 
 function parseFilters(raw?: string) {
   if (!raw) return undefined;
@@ -61,9 +76,13 @@ export function parseListParams<TFilters = Record<string, unknown>>(
   const mergedFilters = { ...legacyFilters, ...(filtersFromJson ?? {}) };
   const filters = Object.keys(mergedFilters).length ? (mergedFilters as TFilters) : undefined;
 
+  const resolvedLimit = raw.limit ?? defaults.limit ?? listParamsDefaults.limit;
+  const resolvedPage =
+    raw.page ?? (raw.offset !== undefined ? Math.floor(raw.offset / resolvedLimit) + 1 : undefined);
+
   return withDefaults(
     {
-      page: raw.page,
+      page: resolvedPage,
       limit: raw.limit,
       search: raw.search,
       sort,

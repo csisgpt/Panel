@@ -38,12 +38,15 @@ export function listParamsToQuery<TFilters>(
   }
 
   if (options.offsetBased) {
-    const offset = (params.page - 1) * params.limit;
-    searchParams.set("limit", String(params.limit));
-    searchParams.set("offset", String(offset));
+    if (params.limit !== undefined) {
+      const page = params.page ?? 1;
+      const offset = (page - 1) * params.limit;
+      searchParams.set("limit", String(params.limit));
+      searchParams.set("offset", String(offset));
+    }
   } else {
-    searchParams.set("page", String(params.page));
-    searchParams.set("limit", String(params.limit));
+    if (params.page !== undefined) searchParams.set("page", String(params.page));
+    if (params.limit !== undefined) searchParams.set("limit", String(params.limit));
   }
 
   const filters = params.filters as Record<string, unknown> | undefined;

@@ -1,17 +1,6 @@
 import { API_BASE_URL } from "./config";
 import { normalizeApiError } from "./error-normalizer";
-import { fetchWithRetry, getAuthToken, parseResponse } from "./http";
-
-export class ApiError extends Error {
-  status: number;
-  body: string;
-
-  constructor(status: number, body: string) {
-    super(body || `API error ${status}`);
-    this.status = status;
-    this.body = body;
-  }
-}
+import { fetchWithRetry, getAuthToken, parseResponse, unwrapApiResult } from "./http";
 
 function getAuthHeader() {
   if (typeof window === "undefined") return undefined;
@@ -41,7 +30,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw await normalizeApiError(res);
   }
 
-  return await parseResponse<T>(res);
+  if (res.status === 204) {
+    return undefined as T;
+  }
+  const parsed = await parseResponse<unknown>(res);
+  return unwrapApiResult(parsed) as T;
 }
 
 async function requestForm<T>(path: string, formData: FormData, options: RequestInit = {}): Promise<T> {
@@ -66,15 +59,20 @@ async function requestForm<T>(path: string, formData: FormData, options: Request
     throw await normalizeApiError(res);
   }
 
-  return await parseResponse<T>(res);
+  if (res.status === 204) {
+    return undefined as T;
+  }
+  const parsed = await parseResponse<unknown>(res);
+  return unwrapApiResult(parsed) as T;
 }
 
 export function apiGet<T>(path: string): Promise<T> {
   return request<T>(path, { method: "GET" });
 }
 
-export function apiPost<T, B = unknown>(path: string, body: B): Promise<T> {
+export function apiPost<T, B = unknown>(path: string, body: B, options?: RequestInit): Promise<T> {
   return request<T>(path, {
+    ...options,
     method: "POST",
     body: JSON.stringify(body),
   });
@@ -89,4 +87,15 @@ export function apiPatch<T, B = unknown>(path: string, body: B): Promise<T> {
 
 export function apiPostForm<T>(path: string, formData: FormData): Promise<T> {
   return requestForm<T>(path, formData);
+}
+
+export function apiPut<T, B = unknown>(path: string, body: B): Promise<T> {
+  return request<T>(path, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export function apiDelete<T = void>(path: string): Promise<T> {
+  return request<T>(path, { method: "DELETE" });
 }

@@ -50,9 +50,9 @@ export const DialogContent = React.forwardRef<
 >(({ className, children, size, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
-    <DialogPrimitive.Content ref={ref} className={cn(dialogContentVariants({ size }), className)} {...props}>
+    <DialogPrimitive.Content ref={ref} className={cn(dialogContentVariants({ size }), className , "p-2")} {...props}>
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-sm text-muted-foreground transition hover:bg-muted">
+      <DialogPrimitive.Close className="absolute left-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-sm text-muted-foreground transition hover:bg-muted">
         ×
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
@@ -61,7 +61,7 @@ export const DialogContent = React.forwardRef<
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 export function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("border-b px-5 py-4", className)} {...props} />;
+  return <div className={cn("border-b px-2 py-2", className)} {...props} />;
 }
 
 export function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
