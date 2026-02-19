@@ -37,6 +37,8 @@ export interface P2PAllocation {
   createdAt: string;
   status: P2PAllocationStatus | string;
   amount: string;
+  withdrawalId?: string | null;
+  depositId?: string | null;
   expiresAt?: string | null;
   payerName?: string | null;
   payerMobile?: string | null;
@@ -62,6 +64,12 @@ export interface P2PAllocation {
     method?: PaymentMethod | string;
     bankRef?: string | null;
     paidAt?: string | null;
+  } | null;
+  timestamps?: {
+    proofSubmittedAt?: string | null;
+    receiverConfirmedAt?: string | null;
+    adminVerifiedAt?: string | null;
+    settledAt?: string | null;
   } | null;
   isExpired?: boolean;
   expiresSoon?: boolean;

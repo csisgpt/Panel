@@ -27,6 +27,7 @@ import {
 } from "@/lib/adapters/p2p-vm-mappers";
 import { adaptOpsSummary, type BackendOpsSummaryDto } from "@/lib/adapters/p2p-ops-summary-adapter";
 import { buildApiError } from "@/lib/api/http";
+import type { PaymentDestinationView } from "@/lib/types/backend";
 import {
   getMockOpsSummary,
   getMockP2PAllocationsEnvelope,
@@ -339,4 +340,44 @@ export async function confirmAllocationReceipt(allocationId: string, payload: Al
     payload
   );
   return mapP2PAllocationVm(response);
+}
+
+
+export async function getAdminP2PWithdrawalDetail(withdrawalId: string): Promise<P2PWithdrawal> {
+  if (isMockMode()) {
+    const envelope = getMockP2PWithdrawalsEnvelope();
+    const found = (envelope.data ?? []).find((item) => item.id === withdrawalId);
+    if (!found) throw buildApiError({ message: "برداشت یافت نشد", code: "not_found" });
+    return mapP2PWithdrawalVm(buildMockWithdrawalVm(found));
+  }
+  const response = await apiGet<WithdrawalVmDto>(`/admin/p2p/withdrawals/${withdrawalId}`);
+  return mapP2PWithdrawalVm(response);
+}
+
+export async function getAdminP2PAllocationDetail(allocationId: string): Promise<P2PAllocation> {
+  if (isMockMode()) {
+    const envelope = getMockP2PAllocationsEnvelope();
+    const found = (envelope.data ?? []).find((item) => item.id === allocationId);
+    if (!found) throw buildApiError({ message: "تخصیص یافت نشد", code: "not_found" });
+    return mapP2PAllocationVm(buildMockAllocationVm(found));
+  }
+  const response = await apiGet<AllocationVmDto>(`/admin/p2p/allocations/${allocationId}`);
+  return mapP2PAllocationVm(response);
+}
+
+export async function listAdminP2PSystemDestinations(): Promise<PaymentDestinationView[]> {
+  if (isMockMode()) {
+    const items = await getMockUserDestinations();
+    return items.map((item) => ({
+      id: item.id,
+      type: "ACCOUNT",
+      maskedValue: item.label,
+      title: item.label,
+      bankName: "-",
+      isDefault: false,
+      status: "ACTIVE",
+      lastUsedAt: null,
+    }));
+  }
+  return apiGet<PaymentDestinationView[]>("/admin/p2p/system-destinations");
 }

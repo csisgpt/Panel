@@ -31,12 +31,13 @@ export default function CreateDepositPage() {
   const [note, setNote] = useState("");
   const [fileIds, setFileIds] = useState<string[]>([]);
   const [pending, setPending] = useState(false);
+  const [depositPurpose, setDepositPurpose] = useState<"P2P" | "DIRECT">("P2P");
 
   const submit = async () => {
     if (!amount || amount <= 0 || !method) return;
     setPending(true);
     try {
-      await createDeposit({ amount: String(amount), method, purpose: "DIRECT", refNo: refNo || undefined, note: note || undefined, fileIds: fileIds.length ? fileIds : undefined });
+      await createDeposit({ amount: String(amount), method, purpose: depositPurpose, refNo: refNo || undefined, note: note || undefined, fileIds: fileIds.length ? fileIds : undefined });
       toast({ title: "ثبت شد" });
       router.push("/trader/history?tab=deposits");
     } catch {
@@ -62,6 +63,17 @@ export default function CreateDepositPage() {
               <SelectContent>{methodOptions.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
             </Select>
           </div>
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm">نوع واریز</label>
+          <Select value={depositPurpose} onValueChange={(v) => setDepositPurpose(v as "P2P" | "DIRECT")}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="P2P">تخصیص‌پذیر (P2P)</SelectItem>
+              <SelectItem value="DIRECT">مستقیم (DIRECT)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">برای ورود به کاندیدهای تخصیص برداشت، این مقدار باید P2P باشد.</p>
         </div>
       </FormSection>
       <FormSection title="اطلاعات تکمیلی">

@@ -5,34 +5,22 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { AttachmentViewer } from "@/components/kit/files/attachment-viewer";
 import { StickyFormFooter } from "@/components/kit/forms/sticky-form-footer";
 import { ServerTableView } from "@/components/kit/table/server-table-view";
 import { ConfirmActionDialog } from "@/components/kit/dialogs/confirm-action-dialog";
+import { AdminAllocationDetailsSheet } from "@/components/kit/p2p/admin-allocation-details-sheet";
+import { P2PActionsMenu } from "@/components/kit/p2p/p2p-actions-menu";
 import { cancelAllocation, finalizeAllocation, verifyAllocation } from "@/lib/api/p2p";
 import type { P2PAllocation } from "@/lib/contracts/p2p";
-import { formatMoney } from "@/lib/format/money";
 import { createAdminP2PAllocationsListConfig } from "@/lib/screens/admin/p2p-allocations.list";
-
-function formatPersianDateTime(value?: string | null) {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
 
 type PendingAction = { type: "finalize" | "cancel" | "verify"; allocationId?: string } | null;
 
 export default function AdminP2PAllocationsPage() {
   const config = useMemo(() => createAdminP2PAllocationsListConfig(), []);
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [selected, setSelected] = useState<P2PAllocation | null>(null);
   const [approved, setApproved] = useState(true);
   const [note, setNote] = useState("");
@@ -43,7 +31,8 @@ export default function AdminP2PAllocationsPage() {
     await verifyAllocation(selected.id, { approved, note: note || undefined });
     await qc.invalidateQueries({ queryKey: ["admin", "p2p", "allocations"] });
     setPendingAction(null);
-    setOpen(false);
+    setVerifyOpen(false);
+    setDetailsOpen(false);
   };
 
   const runFinalize = async (allocationId: string) => {
@@ -63,78 +52,83 @@ export default function AdminP2PAllocationsPage() {
       <ServerTableView<P2PAllocation>
         {...config}
         rowActions={(row) => (
-          <div className="flex flex-wrap gap-2">
-            {row.actions?.canAdminVerify ? (
-              <Button
-                size="sm"
-                onClick={() => {
+          <P2PActionsMenu
+            actions={[
+              {
+                key: "details",
+                label: "جزئیات",
+                onClick: () => {
+                  setSelected(row);
+                  setDetailsOpen(true);
+                },
+              },
+              {
+                key: "verify",
+                label: "بررسی",
+                onClick: () => {
                   setSelected(row);
                   setApproved(true);
                   setNote("");
-                  setOpen(true);
-                }}
-              >
-                بررسی
-              </Button>
-            ) : null}
-
-            {row.actions?.canFinalize ? (
-              <Button size="sm" variant="outline" onClick={() => setPendingAction({ type: "finalize", allocationId: row.id })}>
-                نهایی‌سازی
-              </Button>
-            ) : null}
-
-            {row.actions?.canCancel ? (
-              <Button size="sm" variant="outline" onClick={() => setPendingAction({ type: "cancel", allocationId: row.id })}>
-                لغو
-              </Button>
-            ) : null}
-          </div>
+                  setVerifyOpen(true);
+                },
+                disabled: !row.actions?.canAdminVerify,
+              },
+              {
+                key: "finalize",
+                label: "نهایی‌سازی",
+                onClick: () => setPendingAction({ type: "finalize", allocationId: row.id }),
+                disabled: !row.actions?.canFinalize,
+              },
+              {
+                key: "cancel",
+                label: "لغو",
+                destructive: true,
+                onClick: () => setPendingAction({ type: "cancel", allocationId: row.id }),
+                disabled: !row.actions?.canCancel,
+              },
+              {
+                key: "copy-code",
+                label: "کپی کد تخصیص",
+                onClick: () => navigator.clipboard.writeText(row.paymentCode ?? ""),
+                disabled: !row.paymentCode,
+              },
+            ]}
+          />
         )}
       />
 
-      <Sheet open={open} onOpenChange={setOpen}>
+      <Sheet open={verifyOpen} onOpenChange={setVerifyOpen}>
         <SheetContent side="right" className="w-full sm:max-w-3xl">
           <SheetHeader>
             <SheetTitle>بررسی تخصیص</SheetTitle>
           </SheetHeader>
 
-          {selected ? (
-            <div className="space-y-4 text-sm">
-              <div className="rounded-2xl border p-4">
-                <p>مبلغ: {formatMoney(selected.amount)}</p>
-                <p>وضعیت: {selected.status}</p>
-                <p>پرداخت‌کننده: {selected.payerName || "-"}</p>
-                <p>گیرنده: {selected.receiverName || "-"}</p>
-                <p>روش: {selected.payment?.method ?? selected.paymentMethod ?? "-"}</p>
-                <p>شناسه پیگیری: {selected.payment?.bankRef ?? selected.bankRef ?? "-"}</p>
-                <p>تاریخ پرداخت: {formatPersianDateTime(selected.payment?.paidAt ?? selected.paidAt)}</p>
-              </div>
-
-              <AttachmentViewer files={selected.attachments ?? []} />
-
-              <div className="flex gap-2">
-                <Button variant={approved ? "default" : "outline"} onClick={() => setApproved(true)}>
-                  تأیید
-                </Button>
-                <Button variant={!approved ? "default" : "outline"} onClick={() => setApproved(false)}>
-                  رد
-                </Button>
-              </div>
-
-              <Textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="یادداشت" />
+          <div className="space-y-4 text-sm">
+            <p>برای بررسی تخصیص یادداشت اختیاری ثبت کنید.</p>
+            <div className="flex gap-2">
+              <Button variant={approved ? "default" : "outline"} onClick={() => setApproved(true)}>تأیید</Button>
+              <Button variant={!approved ? "default" : "outline"} onClick={() => setApproved(false)}>رد</Button>
             </div>
-          ) : null}
+            <Textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="یادداشت" />
+          </div>
 
           <StickyFormFooter className="-mx-6">
-            <div className="flex justify-end">
-              <Button disabled={!selected?.actions?.canAdminVerify} onClick={() => setPendingAction({ type: "verify" })}>
-                ثبت
-              </Button>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setVerifyOpen(false)}>انصراف</Button>
+              <Button disabled={!selected?.actions?.canAdminVerify} onClick={() => setPendingAction({ type: "verify" })}>ثبت</Button>
             </div>
           </StickyFormFooter>
         </SheetContent>
       </Sheet>
+
+      <AdminAllocationDetailsSheet
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        allocation={selected}
+        onVerify={selected?.actions?.canAdminVerify ? () => setVerifyOpen(true) : undefined}
+        onFinalize={selected?.actions?.canFinalize ? () => setPendingAction({ type: "finalize", allocationId: selected.id }) : undefined}
+        onCancel={selected?.actions?.canCancel ? () => setPendingAction({ type: "cancel", allocationId: selected.id }) : undefined}
+      />
 
       <ConfirmActionDialog
         open={Boolean(pendingAction)}

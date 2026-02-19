@@ -426,6 +426,13 @@ export function ServerTableView<TItem, TFilters = Record<string, unknown>>({
               </Button>
             }
           /> */}
+          <Input
+            placeholder="جستجو"
+            value={localSearch}
+            onChange={(event) => setLocalSearch(event.target.value)}
+            disabled={query.isLoading}
+            className="w-full sm:w-72"
+          />
           {tabs?.length ? (
             <QuickTabs
               tabs={tabs}
