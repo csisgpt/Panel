@@ -140,6 +140,7 @@ export default function TraderHistoryPage() {
                 label: "وضعیت",
                 options: [
                   { label: "در انتظار", value: "PENDING" },
+                  { label: "در انتظار تخصیص مقصد", value: "WAITING_ASSIGNMENT" },
                   { label: "تایید شده", value: "APPROVED" },
                   { label: "رد شده", value: "REJECTED" },
                 ],
@@ -193,6 +194,7 @@ export default function TraderHistoryPage() {
                 label: "وضعیت",
                 options: [
                   { label: "در انتظار", value: "PENDING" },
+                  { label: "در انتظار تخصیص مقصد", value: "WAITING_ASSIGNMENT" },
                   { label: "تایید شده", value: "APPROVED" },
                   { label: "رد شده", value: "REJECTED" },
                 ],
@@ -246,6 +248,7 @@ export default function TraderHistoryPage() {
                 label: "وضعیت",
                 options: [
                   { label: "در انتظار", value: "PENDING" },
+                  { label: "در انتظار تخصیص مقصد", value: "WAITING_ASSIGNMENT" },
                   { label: "تایید شده", value: "APPROVED" },
                   { label: "رد شده", value: "REJECTED" },
                 ],

@@ -56,12 +56,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {
         id: "ops",
         label: "عملیات",
-        items: byKey(["dashboard", "deposits", "withdrawals", "p2p-ops", "p2p-withdrawals", "p2p-allocations"]),
+        items: byKey(["dashboard", "deposits", "withdrawals", "p2p-ops", "p2p-withdrawals", "p2p-allocations" , "p2p-system-destinations"]),
       },
       {
         id: "management",
         label: "مدیریت",
-        items: byKey(["users", "customer-groups", "kyc", "policy-rules", "instruments", "pricing", "pricing-logs"]),
+        items: byKey(["users", "customer-groups", "kyc", "policy-rules", "instruments"]),
       },
       {
         id: "tahesab",

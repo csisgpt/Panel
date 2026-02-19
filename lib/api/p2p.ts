@@ -39,16 +39,16 @@ import {
 
 export type AssignToWithdrawalRequest =
   | {
-      // Mirrors backend AssignWithdrawalDto (gold-nest: assign-withdrawal.dto.ts)
-      mode: "CANDIDATES";
-      items: Array<{ depositId: string; amount: number }>;
-    }
+    // Mirrors backend AssignWithdrawalDto (gold-nest: assign-withdrawal.dto.ts)
+    mode: "CANDIDATES";
+    items: Array<{ depositId: string; amount: number }>;
+  }
   | {
-      // Mirrors backend AssignWithdrawalDto (gold-nest: assign-withdrawal.dto.ts)
-      mode: "SYSTEM_DESTINATION";
-      destinationId: string;
-      amount: number;
-    };
+    // Mirrors backend AssignWithdrawalDto (gold-nest: assign-withdrawal.dto.ts)
+    mode: "SYSTEM_DESTINATION";
+    destinationId: string;
+    amount: number;
+  };
 
 type AllocationPaymentMethod = AllocationVmDto["payment"] extends { method: infer M } ? M : never;
 
@@ -112,10 +112,10 @@ function buildMockAllocationVm(allocation: P2PAllocation): AllocationVmDto {
     paymentCode: allocation.paymentCode ?? undefined,
     payment: allocation.paymentMethod
       ? {
-          method: allocation.paymentMethod as AllocationPaymentMethod,
-          bankRef: allocation.bankRef ?? undefined,
-          paidAt: allocation.paidAt ?? undefined,
-        }
+        method: allocation.paymentMethod as AllocationPaymentMethod,
+        bankRef: allocation.bankRef ?? undefined,
+        paidAt: allocation.paidAt ?? undefined,
+      }
       : undefined,
     attachments: [...attachments.map((file) => ({
       id: file.id,
@@ -374,34 +374,46 @@ type P2PSystemDestinationDto = PaymentDestinationView & {
 };
 
 function mapSystemDestination(dto: P2PSystemDestinationDto): P2PSystemDestinationVm {
+  const resolvedStatus = dto.status ?? (dto.isActive ? "ACTIVE" : "DISABLED");
+
   return {
     id: dto.id,
     title: dto.title,
     type: dto.type,
     maskedValue: dto.maskedValue,
     bankName: dto.bankName,
-    isActive: dto.isActive ?? dto.status === "ACTIVE",
+    isActive: dto.isActive ?? resolvedStatus === "ACTIVE",
     createdAt: dto.createdAt ?? null,
-    status: dto.status,
+    status: resolvedStatus,
   };
 }
 
 export async function listAdminP2PSystemDestinations(): Promise<P2PSystemDestinationVm[]> {
   if (isMockMode()) {
     const items = await getMockUserDestinations();
-    return items.map((item) => mapSystemDestination({
-      id: item.id,
-      type: "ACCOUNT",
-      maskedValue: item.label ?? item.id,
-      title: item.label ?? item.id,
-      bankName: "-",
-      isDefault: false,
-      status: "ACTIVE",
-      lastUsedAt: null,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-    }));
+    return items.map((item) =>
+      mapSystemDestination({
+        id: item.id,
+        type: "ACCOUNT",
+        maskedValue: item.label ?? item.id,
+        title: item.label ?? item.id,
+        bankName: "-",
+        isDefault: false,
+        status: "ACTIVE",
+        lastUsedAt: null,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      })
+    );
   }
-  const response = await apiGet<P2PSystemDestinationDto[]>("/admin/p2p/system-destinations");
-  return response.map(mapSystemDestination);
+
+  const raw = await apiGet<any>("/admin/p2p/system-destinations");
+
+  const items: P2PSystemDestinationDto[] =
+    Array.isArray(raw) ? raw :
+      Array.isArray(raw?.items) ? raw.items :
+        Array.isArray(raw?.data) ? raw.data :
+          [];
+
+  return items.map(mapSystemDestination);
 }

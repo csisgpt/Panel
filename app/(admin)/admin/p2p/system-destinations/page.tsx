@@ -16,9 +16,10 @@ export default function AdminSystemDestinationsPage() {
 
   const destinationsQuery = useQuery({
     queryKey: ["admin", "p2p", "system-destinations"],
-    queryFn: listAdminP2PSystemDestinations,
+    queryFn: () => listAdminP2PSystemDestinations(),
   });
 
+  console.log(destinationsQuery)
   const rows = useMemo(() => {
     return (destinationsQuery.data ?? []).filter((row) => {
       const resolvedStatus = row.status ?? (row.isActive ? "ACTIVE" : "DISABLED");
