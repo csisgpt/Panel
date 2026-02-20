@@ -58,12 +58,12 @@ export function createAdminP2PAllocationsListConfig(): ServerTableViewProps<P2PA
     {
       id: "payer",
       header: "پرداخت‌کننده",
-      cell: ({ row }) => row.original.payerName ?? "-",
+      cell: ({ row }) => `${row.original.payer?.displayName ?? row.original.payerName ?? "-"} / ${row.original.payer?.mobile ?? row.original.payerMobile ?? "-"}` ,
     },
     {
       id: "receiver",
       header: "دریافت‌کننده",
-      cell: ({ row }) => row.original.receiverName ?? "-",
+      cell: ({ row }) => `${row.original.receiver?.displayName ?? row.original.receiverName ?? "-"} / ${row.original.receiver?.mobile ?? row.original.receiverMobile ?? "-"}` ,
     },
     {
       id: "proof",
@@ -83,7 +83,7 @@ export function createAdminP2PAllocationsListConfig(): ServerTableViewProps<P2PA
     {
       id: "destination",
       header: "مقصد پرداخت",
-      cell: ({ row }) => row.original.destinationSummary ?? "-",
+      cell: ({ row }) => `${row.original.destinationToPay?.ownerName ?? "-"} | ${row.original.destinationToPay?.fullValue ?? row.original.destinationToPay?.masked ?? row.original.destinationSummary ?? "-"}` ,
     },
   ];
 

@@ -54,7 +54,7 @@ export default function TraderPayerPage() {
   }, [fileIds]);
 
   const submit = async () => {
-    if (!selected || !method || !bankRef || !paidAt || !selected.actions?.canSubmitProof) return;
+    if (!selected || !method || !bankRef || !paidAt || !fileIds.length || !selected.actions?.canSubmitProof) return;
     await submitAllocationProof(selected.id, { method, bankRef, paidAt, fileIds });
     await qc.invalidateQueries({ queryKey: ["p2p", "allocations", "payer"] });
     setOpen(false);
@@ -86,7 +86,7 @@ export default function TraderPayerPage() {
                 setSelected(row);
                 setMethod("");
                 setBankRef("");
-                setPaidAt(undefined);
+                setPaidAt(new Date().toISOString());
                 setFileIds([]);
                 setStep(0);
                 setOpen(true);
@@ -113,8 +113,8 @@ export default function TraderPayerPage() {
         onBack={() => setStep((prev) => Math.max(prev - 1, 0))}
         onNext={() => setStep((prev) => Math.min(prev + 1, 3))}
         onSubmit={submit}
-        isNextDisabled={step === 1 && (!method || !bankRef || !paidAt)}
-        isSubmitDisabled={!method || !bankRef || !paidAt || !selected?.actions?.canSubmitProof}
+        isNextDisabled={(step === 1 && (!method || !bankRef || !paidAt)) || (step === 2 && !fileIds.length)}
+        isSubmitDisabled={!method || !bankRef || !paidAt || !fileIds.length || !selected?.actions?.canSubmitProof}
         submitLabel="ثبت"
       >
         {step === 0 && selected ? (
@@ -122,7 +122,9 @@ export default function TraderPayerPage() {
             <div className="rounded-xl border p-3 text-sm">
               <p>وضعیت فعلی: {selected.status}</p>
               <p>راهنما: {selected.actions?.canSubmitProof ? "پس از پرداخت، مرحله بعد را تکمیل کنید." : "در حال حاضر امکان ثبت رسید وجود ندارد."}</p>
+              <p className="font-semibold">کد تخصیص: {selected.paymentCode ?? "-"}</p>
               <p>مهلت: {selected.expiresAt ?? "-"}</p>
+              {selected.expiresAt && (new Date(selected.expiresAt).getTime() - Date.now()) < 15 * 60 * 1000 ? <p className="text-destructive">کمتر از ۱۵ دقیقه تا انقضا باقی مانده است.</p> : null}
             </div>
           <DestinationCard
             destinationToPay={selected.destinationToPay}
@@ -168,6 +170,7 @@ export default function TraderPayerPage() {
         {step === 2 ? (
           <FormSection title="رسید / پیوست‌ها">
             <FileUploader maxFiles={5} accept="image/*,application/pdf" label="رسید / پیوست‌ها" onUploaded={setFileIds} />
+            {!fileIds.length ? <p className="text-xs text-destructive">حداقل یک فایل رسید الزامی است.</p> : null}
           </FormSection>
         ) : null}
 

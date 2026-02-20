@@ -13,6 +13,7 @@ import { P2PActionsMenu } from "@/components/kit/p2p/p2p-actions-menu";
 import { cancelAllocation, finalizeAllocation, verifyAllocation } from "@/lib/api/p2p";
 import type { P2PAllocation } from "@/lib/contracts/p2p";
 import { createAdminP2PAllocationsListConfig } from "@/lib/screens/admin/p2p-allocations.list";
+import { copyToClipboard } from "@/lib/copy";
 
 type PendingAction = { type: "finalize" | "cancel" | "verify"; allocationId?: string } | null;
 
@@ -72,12 +73,14 @@ export default function AdminP2PAllocationsPage() {
                   setVerifyOpen(true);
                 },
                 disabled: !row.actions?.canAdminVerify,
+                disabledReason: row.allowedActions?.find((a) => a.key === "ADMIN_VERIFY")?.reasonDisabled,
               },
               {
                 key: "finalize",
                 label: "نهایی‌سازی",
                 onClick: () => setPendingAction({ type: "finalize", allocationId: row.id }),
                 disabled: !row.actions?.canFinalize,
+                disabledReason: row.allowedActions?.find((a) => a.key === "FINALIZE")?.reasonDisabled,
               },
               {
                 key: "cancel",
@@ -85,11 +88,12 @@ export default function AdminP2PAllocationsPage() {
                 destructive: true,
                 onClick: () => setPendingAction({ type: "cancel", allocationId: row.id }),
                 disabled: !row.actions?.canCancel,
+                disabledReason: row.allowedActions?.find((a) => a.key === "CANCEL")?.reasonDisabled,
               },
               {
                 key: "copy-code",
                 label: "کپی کد تخصیص",
-                onClick: () => navigator.clipboard.writeText(row.paymentCode ?? ""),
+                onClick: () => copyToClipboard(row.paymentCode ?? "", "کد تخصیص کپی شد"),
                 disabled: !row.paymentCode,
               },
             ]}

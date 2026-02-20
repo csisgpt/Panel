@@ -14,6 +14,7 @@ import { AdminWithdrawalDetailsSheet } from "@/components/kit/p2p/admin-withdraw
 import { P2PActionsMenu } from "@/components/kit/p2p/p2p-actions-menu";
 import { ServerTableView } from "@/components/kit/table/server-table-view";
 import { assignToWithdrawal, listAdminP2PSystemDestinations, listWithdrawalCandidates } from "@/lib/api/p2p";
+import { copyToClipboard } from "@/lib/copy";
 import type { P2PAllocation, P2PWithdrawal } from "@/lib/contracts/p2p";
 import { formatMoney } from "@/lib/format/money";
 import { createAdminP2PWithdrawalsListConfig } from "@/lib/screens/admin/p2p-withdrawals.list";
@@ -77,7 +78,7 @@ export default function AdminP2PWithdrawalsPage() {
         // Backend DTO reference: assign-withdrawal.dto.ts
         mode: "SYSTEM_DESTINATION",
         destinationId: systemDestinationId,
-        amount: Number(systemAmount),
+        items: [{ amount: Number(systemAmount) }],
       });
     }
 
@@ -122,10 +123,11 @@ export default function AdminP2PWithdrawalsPage() {
                   setAssignOpen(true);
                 },
                 disabled: !row.actions?.canAssign,
+                disabledReason: row.allowedActions?.find((a) => a.key === "ASSIGN")?.reasonDisabled,
               },
               {
                 key: "view-allocations",
-                label: "نمایش تخصیص‌ها",
+                label: "مشاهده تخصیص‌ها",
                 onClick: () => {
                   setSelected(row);
                   setDetailsOpen(true);
@@ -138,11 +140,12 @@ export default function AdminP2PWithdrawalsPage() {
                 destructive: true,
                 onClick: () => undefined,
                 disabled: true,
+                disabledReason: row.allowedActions?.find((a) => a.key === "CANCEL")?.reasonDisabled ?? "در این نسخه غیرفعال است",
               },
               {
                 key: "copy-id",
                 label: "کپی شناسه برداشت",
-                onClick: () => navigator.clipboard.writeText(row.id),
+                onClick: () => copyToClipboard(row.id, "شناسه برداشت کپی شد"),
               },
             ]}
           />
@@ -175,7 +178,7 @@ export default function AdminP2PWithdrawalsPage() {
                     <div key={candidate.id} className="rounded-xl border p-3">
                       <div className="mb-2 flex items-start justify-between text-sm">
                         <div>
-                          <p className="font-medium">کاندید: {candidate.id}</p>
+                          <p className="font-medium">{candidate.payer?.displayName ?? "-"} ({candidate.payer?.mobile ?? "-"})</p><p className="text-xs">کاندید: {candidate.id}</p>
                           <p className="text-xs text-muted-foreground">موجود: {formatMoney(candidate.remainingAmount)}</p>
                         </div>
                         <div className="text-xs text-muted-foreground">وضعیت: {candidate.status}</div>
@@ -215,7 +218,8 @@ export default function AdminP2PWithdrawalsPage() {
                       onClick={() => setSystemDestinationId(destination.id)}
                     >
                       <p className="font-medium">{destination.title ?? destination.id}</p>
-                      <p className="text-xs text-muted-foreground">{destination.maskedValue}</p>
+                      <p className="text-xs text-muted-foreground">{destination.fullValue ?? destination.maskedValue}</p>
+                      <p className="text-xs text-muted-foreground">{destination.ownerName ?? "-"}</p>
                       <p className="text-xs text-muted-foreground">{destination.bankName ?? "-"}</p>
                       <p className="text-xs text-muted-foreground">{destination.type}</p>
                     </button>

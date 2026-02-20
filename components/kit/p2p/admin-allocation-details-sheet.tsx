@@ -50,8 +50,8 @@ export function AdminAllocationDetailsSheet({
             <div className="grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
               <p>شناسه: {detail.id}</p>
               <p>مبلغ: {formatMoney(detail.amount)}</p>
-              <p>پرداخت‌کننده: {detail.payerName ?? "-"}</p>
-              <p>دریافت‌کننده: {detail.receiverName ?? "سیستمی"}</p>
+              <p>پرداخت‌کننده: {detail.payer?.displayName ?? detail.payerName ?? "-"} - {detail.payer?.mobile ?? detail.payerMobile ?? "-"}</p>
+              <p>دریافت‌کننده: {detail.receiver?.displayName ?? detail.receiverName ?? "سیستمی"} - {detail.receiver?.mobile ?? detail.receiverMobile ?? "-"}</p>
               <p>کد تخصیص: {detail.paymentCode ?? "-"}</p>
               <div>
                 وضعیت: <P2PStatusBadge status={detail.status} />
@@ -95,9 +95,9 @@ export function AdminAllocationDetailsSheet({
 
         <StickyFormFooter className="-mx-6">
           <div className="flex flex-wrap justify-end gap-2">
-            {detail.actions?.canAdminVerify ? <Button onClick={onVerify}>بررسی</Button> : null}
-            {detail.actions?.canFinalize ? <Button variant="outline" onClick={onFinalize}>نهایی‌سازی</Button> : null}
-            {detail.actions?.canCancel ? <Button variant="destructive" onClick={onCancel}>لغو</Button> : null}
+            {detail.actions?.canAdminVerify ? <Button onClick={onVerify} title={detail.allowedActions?.find((a) => a.key === "ADMIN_VERIFY")?.reasonDisabled}>بررسی</Button> : null}
+            {detail.actions?.canFinalize ? <Button variant="outline" onClick={onFinalize} title={detail.allowedActions?.find((a) => a.key === "FINALIZE")?.reasonDisabled}>نهایی‌سازی</Button> : null}
+            {detail.actions?.canCancel ? <Button variant="destructive" onClick={onCancel} title={detail.allowedActions?.find((a) => a.key === "CANCEL")?.reasonDisabled}>لغو</Button> : null}
             <Button variant="outline" onClick={() => onOpenChange(false)}>بستن</Button>
           </div>
         </StickyFormFooter>

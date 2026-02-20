@@ -1,5 +1,5 @@
-import type { WithdrawalActions } from "@/lib/contracts/permissions";
-import type { P2PAllocation, P2PWithdrawal } from "@/lib/contracts/p2p";
+import type { AllocationActions, WithdrawalActions } from "@/lib/contracts/permissions";
+import type { DepositCandidate, P2PAllocation, P2PUserSummary, P2PWithdrawal, WithdrawalDestination } from "@/lib/contracts/p2p";
 import type { FileMeta } from "@/lib/types/backend";
 import { adaptAllocationActions } from "@/lib/adapters/p2p-actions-adapter";
 
@@ -15,11 +15,22 @@ export interface WithdrawalVmDto {
     remainingToAssign: string;
     remainingToSettle: string;
   };
+  withdrawer?: {
+    userId: string;
+    mobile?: string;
+    displayName?: string;
+    userStatus?: string;
+    kycLevel?: string;
+    kycStatus?: string;
+  } | null;
   destination?: {
     type: "IBAN" | "CARD" | "ACCOUNT";
     masked: string;
+    fullValue?: string;
     bankName?: string;
+    ownerName?: string;
     title?: string;
+    copyText?: string;
   } | null;
   flags: {
     hasDispute: boolean;
@@ -27,6 +38,9 @@ export interface WithdrawalVmDto {
     hasExpiringAllocations: boolean;
     isUrgent: boolean;
   };
+  riskFlags?: string[];
+  allowedActions?: Array<{ key: "ASSIGN" | "CANCEL" | string; enabled: boolean; reasonDisabled?: string }>;
+  allocations?: AllocationVmDto[];
   createdAt: string;
   updatedAt: string;
   actions: WithdrawalActions;
@@ -41,6 +55,14 @@ export interface DepositVmDto {
     assigned: string;
     settled: string;
     remaining: string;
+  };
+  payer?: {
+    userId: string;
+    mobile?: string;
+    displayName?: string;
+    userStatus?: string;
+    kycLevel?: string;
+    kycStatus?: string;
   };
   createdAt: string;
   updatedAt: string;
@@ -118,6 +140,7 @@ export interface AllocationVmDto {
     hasProof: boolean;
     isFinalizable: boolean;
   };
+  allowedActions?: Array<{ key: string; enabled: boolean; reasonDisabled?: string }>;
   createdAt: string;
   actions: {
     payerCanSubmitProof: boolean;
@@ -126,27 +149,38 @@ export interface AllocationVmDto {
   };
 }
 
-export interface CandidateRow {
-  id: string;
-  requestedAmount: string;
-  remainingAmount: string;
-  status: string;
-  isFullyAvailable: boolean;
-  isExpiring: boolean;
-  createdAt: string;
-  updatedAt: string;
-  actions: {
-    canCancel: boolean;
-    canBeAssigned: boolean;
+function mapUserSummary(dto?: DepositVmDto["payer"] | WithdrawalVmDto["withdrawer"] | AllocationVmDto["payer"] | null): P2PUserSummary | null {
+  if (!dto?.userId) return null;
+  return {
+    userId: dto.userId,
+    mobile: dto.mobile,
+    displayName: dto.displayName,
+    userStatus: "userStatus" in dto ? dto.userStatus : undefined,
+    kycLevel: "kycLevel" in dto ? dto.kycLevel : undefined,
+    kycStatus: "kycStatus" in dto ? dto.kycStatus : undefined,
   };
-  raw?: unknown;
 }
 
-function buildDestinationSummary(destination?: WithdrawalVmDto["destination"] | null) {
+function mapDestination(dto?: WithdrawalVmDto["destination"] | AllocationVmDto["destinationToPay"] | null): WithdrawalDestination | null {
+  if (!dto) return null;
+  return {
+    type: dto.type,
+    title: dto.title,
+    bankName: dto.bankName,
+    ownerName: dto.ownerName,
+    fullValue: dto.fullValue,
+    masked: dto.masked,
+    copyText: "copyText" in dto ? dto.copyText : undefined,
+  };
+}
+
+function buildDestinationSummary(destination?: WithdrawalDestination | null) {
   if (!destination) return null;
+  const value = destination.fullValue ?? destination.masked;
+  if (!value) return null;
   const bankLabel = destination.bankName ? `${destination.bankName} - ` : "";
   const title = destination.title ? `${destination.title} ` : "";
-  return `${bankLabel}${title}${destination.masked}`;
+  return `${bankLabel}${title}${value}`;
 }
 
 function mapAttachmentToFileMeta(attachment: AllocationVmDto["attachments"][number]): FileMeta {
@@ -162,30 +196,57 @@ function mapAttachmentToFileMeta(attachment: AllocationVmDto["attachments"][numb
   };
 }
 
+function toAllocationActions(actions: AllocationVmDto["actions"], status: string, allowedActions?: AllocationVmDto["allowedActions"]): AllocationActions {
+  const adapted = adaptAllocationActions(actions, status);
+  if (!allowedActions?.length) return adapted;
+  const enabled = (key: string, fallback: boolean) => allowedActions.find((a) => a.key === key)?.enabled ?? fallback;
+  return {
+    ...adapted,
+    canSubmitProof: enabled("SUBMIT_PROOF", adapted.canSubmitProof),
+    canConfirmReceived: enabled("RECEIVER_CONFIRM", adapted.canConfirmReceived),
+    canAdminVerify: enabled("ADMIN_VERIFY", adapted.canAdminVerify),
+    canFinalize: enabled("FINALIZE", adapted.canFinalize),
+    canCancel: enabled("CANCEL", adapted.canCancel),
+    canDispute: enabled("DISPUTE", adapted.canDispute),
+  };
+}
+
 export function mapP2PWithdrawalVm(vm: WithdrawalVmDto): P2PWithdrawal {
+  const destination = mapDestination(vm.destination);
+  const withdrawer = mapUserSummary(vm.withdrawer);
   return {
     id: vm.id,
     createdAt: vm.createdAt,
     updatedAt: vm.updatedAt,
     amount: vm.amount,
+    totals: vm.totals,
     remainingToAssign: vm.totals.remainingToAssign,
     status: vm.status,
     purpose: vm.purpose,
     channel: vm.channel ?? null,
-    destinationSummary: buildDestinationSummary(vm.destination),
+    withdrawer,
+    userMobile: withdrawer?.mobile ?? null,
+    destination,
+    destinationSummary: buildDestinationSummary(destination),
     hasProof: vm.flags.hasProof,
     hasDispute: vm.flags.hasDispute,
     hasExpiringAllocations: vm.flags.hasExpiringAllocations,
     isUrgent: vm.flags.isUrgent,
     actions: vm.actions,
+    allowedActions: vm.allowedActions,
+    riskFlags: vm.riskFlags ?? [],
+    allocations: vm.allocations?.map(mapP2PAllocationVm),
     raw: vm,
   };
 }
 
 export function mapP2PAllocationVm(vm: AllocationVmDto): P2PAllocation {
-  const destinationSummary = vm.destinationToPay
-    ? `${vm.destinationToPay.bankName ? `${vm.destinationToPay.bankName} - ` : ""}${vm.destinationToPay.masked}`
+  const destinationToPay = vm.destinationToPay ?? null;
+  const destinationSummary = destinationToPay
+    ? `${destinationToPay.bankName ? `${destinationToPay.bankName} - ` : ""}${destinationToPay.fullValue ?? destinationToPay.masked}`
     : null;
+  const payer = mapUserSummary(vm.payer);
+  const receiver = mapUserSummary(vm.receiver);
   return {
     id: vm.id,
     createdAt: vm.createdAt,
@@ -194,10 +255,12 @@ export function mapP2PAllocationVm(vm: AllocationVmDto): P2PAllocation {
     withdrawalId: vm.withdrawalId ?? null,
     depositId: vm.depositId ?? null,
     expiresAt: vm.expiresAt,
-    payerName: vm.payer.displayName ?? null,
-    payerMobile: vm.payer.mobile ?? null,
-    receiverName: vm.receiver.displayName ?? null,
-    receiverMobile: vm.receiver.mobile ?? null,
+    payer,
+    payerName: payer?.displayName ?? null,
+    payerMobile: payer?.mobile ?? null,
+    receiver,
+    receiverName: receiver?.displayName ?? null,
+    receiverMobile: receiver?.mobile ?? null,
     paymentMethod: vm.payment?.method ?? null,
     bankRef: vm.payment?.bankRef ?? null,
     paidAt: vm.payment?.paidAt ?? null,
@@ -206,7 +269,7 @@ export function mapP2PAllocationVm(vm: AllocationVmDto): P2PAllocation {
       : null,
     attachments: vm.attachments.map(mapAttachmentToFileMeta),
     destinationSummary,
-    destinationToPay: vm.destinationToPay ?? null,
+    destinationToPay,
     destinationCopyText: vm.destinationCopyText ?? null,
     paymentCode: vm.paymentCode ?? null,
     timestamps: {
@@ -219,12 +282,13 @@ export function mapP2PAllocationVm(vm: AllocationVmDto): P2PAllocation {
     expiresSoon: vm.flags.expiresSoon,
     hasProof: vm.flags.hasProof,
     isFinalizable: vm.flags.isFinalizable,
-    actions: adaptAllocationActions(vm.actions, vm.status),
+    actions: toAllocationActions(vm.actions, vm.status, vm.allowedActions),
+    allowedActions: vm.allowedActions ?? [],
     raw: vm,
   };
 }
 
-export function mapP2PCandidateDepositVm(vm: DepositVmDto): CandidateRow {
+export function mapP2PCandidateDepositVm(vm: DepositVmDto): DepositCandidate {
   return {
     id: vm.id,
     requestedAmount: vm.requestedAmount,
@@ -234,6 +298,7 @@ export function mapP2PCandidateDepositVm(vm: DepositVmDto): CandidateRow {
     isExpiring: vm.flags.isExpiring,
     createdAt: vm.createdAt,
     updatedAt: vm.updatedAt,
+    payer: mapUserSummary(vm.payer),
     actions: vm.actions,
     raw: vm,
   };
