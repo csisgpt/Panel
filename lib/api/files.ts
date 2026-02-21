@@ -90,6 +90,7 @@ function mapFileDownloadToLink(input: FileDownloadLinkDto): FileLink {
     id: input.id,
     previewUrl: input.previewUrl ?? input.url,
     downloadUrl: input.downloadUrl ?? input.url,
+    method: input.method,
     expiresInSeconds: input.expiresInSeconds ?? 0,
   };
 }

@@ -99,3 +99,29 @@ export function apiPut<T, B = unknown>(path: string, body: B): Promise<T> {
 export function apiDelete<T = void>(path: string): Promise<T> {
   return request<T>(path, { method: "DELETE" });
 }
+
+
+export async function apiGetBlob(pathOrUrl: string): Promise<Blob> {
+  const isAbsolute = /^https?:\/\//i.test(pathOrUrl);
+  const url = isAbsolute ? pathOrUrl : `${API_BASE_URL}${pathOrUrl}`;
+  const token = getAuthToken();
+  const headers = new Headers();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  if (process.env.NEXT_PUBLIC_API_ENVELOPE === "1") {
+    headers.set("x-api-envelope", "1");
+  }
+
+  const res = await fetchWithRetry(url, {
+    method: "GET",
+    headers,
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw await normalizeApiError(res);
+  }
+
+  return res.blob();
+}
