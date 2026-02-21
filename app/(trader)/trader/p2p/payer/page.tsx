@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormSection } from "@/components/kit/forms/form-section";
+import { CountdownBadge } from "@/components/kit/ops/countdown-badge";
 import { AttachmentViewer } from "@/components/kit/files/attachment-viewer";
 import { FileUploader } from "@/components/kit/files/file-uploader";
 import { DestinationCard } from "@/components/kit/p2p/destination-card";
@@ -123,7 +124,7 @@ export default function TraderPayerPage() {
               <p>وضعیت فعلی: {selected.status}</p>
               <p>راهنما: {selected.actions?.canSubmitProof ? "پس از پرداخت، مرحله بعد را تکمیل کنید." : "در حال حاضر امکان ثبت رسید وجود ندارد."}</p>
               <p className="font-semibold">کد تخصیص: {selected.paymentCode ?? "-"}</p>
-              <p>مهلت: {selected.expiresAt ?? "-"}</p>
+              <p>مهلت: {selected.expiresAt ? <CountdownBadge targetDate={selected.expiresAt} /> : "-"}</p>
               {selected.expiresAt && (new Date(selected.expiresAt).getTime() - Date.now()) < 15 * 60 * 1000 ? <p className="text-destructive">کمتر از ۱۵ دقیقه تا انقضا باقی مانده است.</p> : null}
             </div>
           <DestinationCard

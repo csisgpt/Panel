@@ -98,6 +98,9 @@ export default function TraderReceiverPage() {
               </div>
 
               <AttachmentViewer files={selected.attachments ?? []} />
+              <p className="text-xs text-muted-foreground">
+                در صورت صحیح بودن اطلاعات پرداخت، گزینه تأیید را بزنید. در غیر این صورت اعتراض ثبت کنید.
+              </p>
 
               <div className="flex flex-wrap gap-2">
                 <Button variant={decision === "confirm" ? "default" : "outline"} onClick={() => setDecision("confirm")}>

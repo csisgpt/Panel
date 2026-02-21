@@ -10,7 +10,7 @@ import { listAdminP2PWithdrawals } from "@/lib/api/p2p";
 import type { P2PWithdrawal } from "@/lib/contracts/p2p";
 import type { ServerTableViewProps } from "@/components/kit/table/server-table-view";
 import { serializeListParams } from "@/lib/querykit/serialize";
-import { copyToClipboard } from "@/lib/copy";
+import { copyText, destinationAllText, destinationValue } from "@/lib/utils/clipboard";
 
 const supportsBooleanQuery = process.env.NEXT_PUBLIC_API_SUPPORTS_BOOLEAN_QUERY !== "false";
 
@@ -25,10 +25,10 @@ export function createAdminP2PWithdrawalsListConfig(): ServerTableViewProps<P2PW
       id: "withdrawer",
       header: "برداشت‌کننده",
       cell: ({ row }) => (
-        <div className="space-y-1 text-xs">
+        <div className={`space-y-1 rounded-md p-2 text-xs ${row.original.isUrgent ? "bg-amber-50/70" : ""}`}>
           <p className="font-medium">{row.original.withdrawer?.displayName ?? "-"}</p>
           <p>{row.original.withdrawer?.mobile ?? row.original.userMobile ?? "-"}</p>
-          {row.original.withdrawer?.userId ? <Button size="sm" variant="outline" onClick={() => copyToClipboard(row.original.withdrawer!.userId, "شناسه کاربر کپی شد")}>کپی userId</Button> : null}
+          <Button size="sm" variant="outline" onClick={() => copyText(row.original.withdrawer?.userId ?? "")} disabled={!row.original.withdrawer?.userId}>کپی userId</Button>
         </div>
       ),
     },
@@ -36,18 +36,17 @@ export function createAdminP2PWithdrawalsListConfig(): ServerTableViewProps<P2PW
       id: "destination",
       header: "مقصد",
       cell: ({ row }) => {
-        const destination = row.original.destination;
-        const value = destination?.fullValue ?? destination?.masked;
-        const all = destination?.copyText ?? [destination?.title, destination?.bankName, destination?.ownerName, value].filter(Boolean).join(" | ");
+        const value = destinationValue(row.original.destination);
+        const all = row.original.destination?.copyText || destinationAllText(row.original.destination);
         return (
           <div className="space-y-1 text-xs">
-            <p>{destination?.title ?? "-"}</p>
-            <p>{destination?.bankName ?? "-"}</p>
-            <p>{destination?.ownerName ?? "-"}</p>
-            <p className="font-mono">{value ?? "-"}</p>
+            <p>{row.original.destination?.title ?? "-"}</p>
+            <p>{row.original.destination?.bankName ?? "-"}</p>
+            <p>{row.original.destination?.ownerName ?? "-"}</p>
+            <p className="font-mono">{value || "-"}</p>
             <div className="flex gap-1">
-              {all ? <Button size="sm" variant="outline" onClick={() => copyToClipboard(all, "اطلاعات مقصد کپی شد")}>کپی همه</Button> : null}
-              {value ? <Button size="sm" variant="outline" onClick={() => copyToClipboard(value, "شماره مقصد کپی شد")}>کپی شماره</Button> : null}
+              <Button size="sm" variant="outline" onClick={() => copyText(all)} disabled={!all}>کپی اطلاعات</Button>
+              <Button size="sm" variant="outline" onClick={() => copyText(value)} disabled={!value}>کپی شماره</Button>
             </div>
           </div>
         );

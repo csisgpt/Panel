@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/kit/common/EmptyState";
+import { ErrorState } from "@/components/kit/common/ErrorState";
+import { LoadingState } from "@/components/kit/common/LoadingState";
 import { ConfirmActionDialog } from "@/components/kit/dialogs/confirm-action-dialog";
 import { adminCreateSystemDestination, adminDeleteSystemDestination, adminSetSystemDestinationStatus, adminUpdateSystemDestination, listAdminP2PSystemDestinations } from "@/lib/api/p2p";
 import type { P2PSystemDestinationVm } from "@/lib/contracts/p2p";
-import { copyToClipboard } from "@/lib/copy";
+import { copyText } from "@/lib/utils/clipboard";
 
 type FormState = { title: string; type: "IBAN" | "CARD" | "ACCOUNT"; value: string; bankName: string; ownerName: string; isActive: boolean };
 const emptyForm: FormState = { title: "", type: "CARD", value: "", bankName: "", ownerName: "", isActive: true };
@@ -64,17 +66,20 @@ export default function AdminSystemDestinationsPage() {
         </Select>
       </div>
 
+      {destinationsQuery.isLoading ? <LoadingState /> : null}
+      {destinationsQuery.isError ? <ErrorState error={destinationsQuery.error as any} onAction={destinationsQuery.refetch} /> : null}
+
       {rows.length ? <div className="space-y-2">{rows.map((row) => {
         const value = row.fullValue ?? row.maskedValue;
-        const all = row.copyText ?? [row.title, row.bankName, row.ownerName, value].filter(Boolean).join(" | ");
+        const all = row.copyText ?? [row.title, row.bankName, row.ownerName, value].filter(Boolean).join("\n");
         return (
           <div key={row.id} className="flex items-start justify-between rounded-xl border p-3 text-sm">
             <div className="space-y-1">
               <p className="font-medium">{row.title ?? row.id}</p><p>{row.bankName ?? "-"}</p><p>{row.ownerName ?? "-"}</p><p>{value}</p>
-              <p className="text-xs text-muted-foreground">{row.type} | {row.isActive ? "فعال" : "غیرفعال"} | استفاده: {row.allocationCount ?? "-"}</p>
+              <p className="text-xs text-muted-foreground">{row.type} | {row.isActive ? "فعال" : "غیرفعال"} | تعداد تخصیص: {row.allocationCount ?? "-"} | آخرین استفاده: {row.lastUsedAt ?? "-"}</p>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => copyToClipboard(all, "اطلاعات مقصد کپی شد")}>کپی همه</Button>
-                <Button size="sm" variant="outline" onClick={() => copyToClipboard(value, "شماره مقصد کپی شد")}>کپی شماره</Button>
+                <Button size="sm" variant="outline" onClick={() => copyText(all)} disabled={!all}>کپی اطلاعات</Button>
+                <Button size="sm" variant="outline" onClick={() => copyText(value)} disabled={!value}>کپی شماره</Button>
               </div>
             </div>
             <div className="flex flex-col gap-2">
@@ -84,7 +89,7 @@ export default function AdminSystemDestinationsPage() {
             </div>
           </div>
         );
-      })}</div> : <EmptyState title="مقصد سیستمی یافت نشد" description="فیلترها را تغییر دهید یا دوباره تلاش کنید." />}
+      })}</div> : (!destinationsQuery.isLoading && !destinationsQuery.isError ? <EmptyState title="مقصد سیستمی یافت نشد" description="فیلترها را تغییر دهید یا دوباره تلاش کنید." /> : null)}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -104,7 +109,7 @@ export default function AdminSystemDestinationsPage() {
         open={Boolean(deleteItem)}
         onOpenChange={(state) => !state && setDeleteItem(null)}
         title="حذف مقصد سیستمی"
-        description={deleteItem?.allocationCount ? "این مقصد قبلاً استفاده شده و حذف آن نیازمند دقت است." : "آیا از حذف مقصد مطمئن هستید؟"}
+        description={deleteItem?.allocationCount ? "این مقصد قبلاً استفاده شده است. از حذف آن اطمینان دارید؟" : "آیا از حذف مقصد مطمئن هستید؟"}
         destructive
         onConfirm={() => deleteItem ? deleteMutation.mutate(deleteItem.id) : undefined}
       />

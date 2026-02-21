@@ -93,7 +93,7 @@ export default function AdminP2PAllocationsPage() {
               {
                 key: "copy-code",
                 label: "کپی کد تخصیص",
-                onClick: () => copyToClipboard(row.paymentCode ?? "", "کد تخصیص کپی شد"),
+                onClick: () => copyToClipboard(row.paymentCode ?? ""),
                 disabled: !row.paymentCode,
               },
             ]}

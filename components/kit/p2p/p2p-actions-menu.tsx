@@ -33,7 +33,7 @@ export function P2PActionsMenu({ actions }: { actions: ActionItem[] }) {
               disabled={item.disabled}
               title={item.disabled ? item.disabledReason : undefined}
             >
-              {item.label}
+              {item.disabled && item.disabledReason ? `${item.label} — ${item.disabledReason}` : item.label}
             </DropdownMenuItem>
           </div>
         ))}
