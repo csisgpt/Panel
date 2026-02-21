@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
+import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/kit/ops/status-badge";
 import { CountdownBadge } from "@/components/kit/ops/countdown-badge";
 import { AttachmentBadge } from "@/components/kit/files/attachment-badge";
@@ -11,25 +12,19 @@ import { formatMoney } from "@/lib/format/money";
 import { listAdminP2PAllocations } from "@/lib/api/p2p";
 import type { P2PAllocation } from "@/lib/contracts/p2p";
 import type { ServerTableViewProps } from "@/components/kit/table/server-table-view";
+import { copyText } from "@/lib/utils/clipboard";
 
 const supportsBooleanQuery = process.env.NEXT_PUBLIC_API_SUPPORTS_BOOLEAN_QUERY !== "false";
 
 function ProofAttachmentsCell({ allocation }: { allocation: P2PAllocation }) {
   const [open, setOpen] = useState(false);
-  const files = useMemo(() => {
-    if (allocation.attachments?.length) {
-      return allocation.attachments;
-    }
-    return [];
-  }, [allocation.attachments]);
+  const files = useMemo(() => allocation.attachments ?? [], [allocation.attachments]);
 
-  if (!files.length) return <span className="text-xs text-muted-foreground">بدون پیوست</span>;
+  if (!files.length) return <span className="text-xs text-muted-foreground">بدون فایل</span>;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {files.map((file) => (
-        <AttachmentBadge key={file.id} file={file} />
-      ))}
+    <div className="flex items-center gap-2">
+      <AttachmentBadge file={files[0]} />
       <AttachmentPreviewButton onClick={() => setOpen(true)} label="مشاهده" />
       <AttachmentGalleryModal open={open} onOpenChange={setOpen} files={files} />
     </div>
@@ -38,52 +33,31 @@ function ProofAttachmentsCell({ allocation }: { allocation: P2PAllocation }) {
 
 export function createAdminP2PAllocationsListConfig(): ServerTableViewProps<P2PAllocation, Record<string, unknown>> {
   const columns: ColumnDef<P2PAllocation>[] = [
-    {
-      id: "createdAt",
-      header: "انقضا",
-      cell: ({ row }) => (
-        <CountdownBadge targetDate={row.original.expiresAt ?? row.original.createdAt} />
-      ),
-    },
-    {
-      id: "amount",
-      header: "مبلغ",
-      cell: ({ row }) => formatMoney(row.original.amount),
-    },
-    {
-      id: "status",
-      header: "وضعیت",
-      cell: ({ row }) => <StatusBadge status={row.original.status} />,
-    },
-    {
-      id: "payer",
-      header: "پرداخت‌کننده",
-      cell: ({ row }) => row.original.payerName ?? "-",
-    },
-    {
-      id: "receiver",
-      header: "دریافت‌کننده",
-      cell: ({ row }) => row.original.receiverName ?? "-",
-    },
-    {
-      id: "proof",
-      header: "رسید",
-      cell: ({ row }) => <ProofAttachmentsCell allocation={row.original} />,
-    },
-    {
-      id: "paymentMethod",
-      header: "روش پرداخت",
-      cell: ({ row }) => row.original.paymentMethod ?? "-",
-    },
-    {
-      id: "bankRef",
-      header: "شماره مرجع",
-      cell: ({ row }) => row.original.bankRef ?? "-",
-    },
+    { id: "createdAt", header: "انقضا", cell: ({ row }) => <CountdownBadge targetDate={row.original.expiresAt ?? row.original.createdAt} /> },
+    { id: "amount", header: "مبلغ", cell: ({ row }) => formatMoney(row.original.amount) },
+    { id: "status", header: "وضعیت", cell: ({ row }) => <StatusBadge status={row.original.status} /> },
+    { id: "payer", header: "پرداخت‌کننده", cell: ({ row }) => `${row.original.payer?.displayName ?? row.original.payerName ?? "-"} / ${row.original.payer?.mobile ?? row.original.payerMobile ?? "-"}` },
+    { id: "receiver", header: "دریافت‌کننده", cell: ({ row }) => `${row.original.receiver?.displayName ?? row.original.receiverName ?? "-"} / ${row.original.receiver?.mobile ?? row.original.receiverMobile ?? "-"}` },
+    { id: "proof", header: "رسید", cell: ({ row }) => <ProofAttachmentsCell allocation={row.original} /> },
+    { id: "paymentMethod", header: "روش پرداخت", cell: ({ row }) => row.original.paymentMethod ?? "-" },
+    { id: "bankRef", header: "شماره مرجع", cell: ({ row }) => row.original.bankRef ?? "-" },
     {
       id: "destination",
       header: "مقصد پرداخت",
-      cell: ({ row }) => row.original.destinationSummary ?? "-",
+      cell: ({ row }) => {
+        const value = row.original.destinationToPay?.fullValue ?? row.original.destinationToPay?.masked ?? "";
+        const all = [row.original.destinationToPay?.title, row.original.destinationToPay?.bankName, row.original.destinationToPay?.ownerName, value].filter(Boolean).join("\n");
+        return (
+          <div className="text-xs space-y-1">
+            <p>{row.original.destinationToPay?.ownerName ?? "-"}</p>
+            <p>{value || "-"}</p>
+            <div className="flex gap-1">
+              <Button size="sm" variant="outline" onClick={() => copyText(all)} disabled={!all}>کپی اطلاعات</Button>
+              <Button size="sm" variant="outline" onClick={() => copyText(value)} disabled={!value}>کپی شماره</Button>
+            </div>
+          </div>
+        );
+      },
     },
   ];
 
@@ -125,72 +99,9 @@ export function createAdminP2PAllocationsListConfig(): ServerTableViewProps<P2PA
           { label: "منقضی", value: "EXPIRED" },
         ],
       },
-      {
-        type: "status",
-        key: "method",
-        label: "روش پرداخت",
-        options: [
-          { label: "کارت به کارت", value: "CARD_TO_CARD" },
-          { label: "ساتنا", value: "SATNA" },
-          { label: "پایا", value: "PAYA" },
-          { label: "انتقال", value: "TRANSFER" },
-          { label: "نامشخص", value: "UNKNOWN" },
-        ],
-      },
-      ...(supportsBooleanQuery
-        ? [
-            {
-              type: "status" as const,
-              key: "hasProof",
-              label: "دارای رسید",
-              options: [
-                { label: "بله", value: "true" },
-                { label: "خیر", value: "false" },
-              ],
-            },
-            {
-              type: "status" as const,
-              key: "receiverConfirmed",
-              label: "تایید گیرنده",
-              options: [
-                { label: "بله", value: "true" },
-                { label: "خیر", value: "false" },
-              ],
-            },
-            {
-              type: "status" as const,
-              key: "adminVerified",
-              label: "تایید ادمین",
-              options: [
-                { label: "بله", value: "true" },
-                { label: "خیر", value: "false" },
-              ],
-            },
-            {
-              type: "status" as const,
-              key: "expired",
-              label: "منقضی",
-              options: [
-                { label: "بله", value: "true" },
-                { label: "خیر", value: "false" },
-              ],
-            },
-          ]
-        : []),
-      {
-        type: "status",
-        key: "expiresSoonMinutes",
-        label: "نزدیک به انقضا",
-        options: [
-          { label: "۳۰ دقیقه", value: "30" },
-          { label: "۶۰ دقیقه", value: "60" },
-        ],
-      },
-      // TODO: backend DTO needs amountMin/amountMax support before enabling amount range filters.
+      ...(supportsBooleanQuery ? [{ type: "status" as const, key: "hasProof", label: "دارای رسید", options: [{ label: "بله", value: "true" }, { label: "خیر", value: "false" }] }] : []),
       { type: "dateRange", key: "createdFrom", label: "از تاریخ ایجاد" },
       { type: "dateRange", key: "createdTo", label: "تا تاریخ ایجاد" },
-      { type: "dateRange", key: "paidFrom", label: "از تاریخ پرداخت" },
-      { type: "dateRange", key: "paidTo", label: "تا تاریخ پرداخت" },
     ],
   };
 }

@@ -9,6 +9,7 @@ import { AttachmentViewer } from "@/components/kit/files/attachment-viewer";
 import { StickyFormFooter } from "@/components/kit/forms/sticky-form-footer";
 import { ServerTableView } from "@/components/kit/table/server-table-view";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ConfirmActionDialog } from "@/components/kit/dialogs/confirm-action-dialog";
 import { confirmAllocationReceipt, listMyAllocationsAsReceiver } from "@/lib/api/p2p";
 import type { P2PAllocation } from "@/lib/contracts/p2p";
 import { formatMoney } from "@/lib/format/money";
@@ -32,6 +33,7 @@ export default function TraderReceiverPage() {
   const [selected, setSelected] = useState<P2PAllocation | null>(null);
   const [decision, setDecision] = useState<"confirm" | "dispute">("confirm");
   const [reason, setReason] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const columns: ColumnDef<P2PAllocation>[] = useMemo(
     () => [
@@ -89,12 +91,16 @@ export default function TraderReceiverPage() {
               <div className="rounded-2xl border p-4">
                 <p>وضعیت: {selected.status}</p>
                 <p>مبلغ: {formatMoney(selected.amount)}</p>
+                <p>پرداخت‌کننده: {selected.payer?.displayName ?? selected.payerName ?? "-"} - {selected.payer?.mobile ?? selected.payerMobile ?? "-"}</p>
                 <p>تاریخ پرداخت: {formatPersianDateTime(selected.payment?.paidAt ?? selected.paidAt)}</p>
                 <p>شناسه پیگیری: {selected.payment?.bankRef ?? selected.bankRef ?? "-"}</p>
                 <p>روش: {selected.payment?.method ?? selected.paymentMethod ?? "-"}</p>
               </div>
 
               <AttachmentViewer files={selected.attachments ?? []} />
+              <p className="text-xs text-muted-foreground">
+                در صورت صحیح بودن اطلاعات پرداخت، گزینه تأیید را بزنید. در غیر این صورت اعتراض ثبت کنید.
+              </p>
 
               <div className="flex flex-wrap gap-2">
                 <Button variant={decision === "confirm" ? "default" : "outline"} onClick={() => setDecision("confirm")}>
@@ -117,13 +123,22 @@ export default function TraderReceiverPage() {
 
           <StickyFormFooter className="-mx-6">
             <div className="flex justify-end">
-              <Button onClick={submit} disabled={decision === "dispute" && reason.trim().length < 10}>
+              <Button onClick={() => setConfirmOpen(true)} disabled={decision === "dispute" && reason.trim().length < 10}>
                 ثبت
               </Button>
             </div>
           </StickyFormFooter>
         </SheetContent>
       </Sheet>
+
+      <ConfirmActionDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={decision === "confirm" ? "تأیید دریافت" : "ثبت اعتراض"}
+        description={decision === "confirm" ? "آیا دریافت پرداخت را تأیید می‌کنید؟" : "آیا از ثبت اعتراض مطمئن هستید؟"}
+        onConfirm={submit}
+      />
+
     </div>
   );
 }

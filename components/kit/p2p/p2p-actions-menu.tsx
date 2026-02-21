@@ -10,6 +10,7 @@ export type ActionItem = {
   onClick: () => void;
   destructive?: boolean;
   disabled?: boolean;
+  disabledReason?: string;
 };
 
 export function P2PActionsMenu({ actions }: { actions: ActionItem[] }) {
@@ -25,9 +26,14 @@ export function P2PActionsMenu({ actions }: { actions: ActionItem[] }) {
       <DropdownMenuContent align="end">
         {actions.map((item, index) => (
           <div key={item.key}>
-            {index > 0 ? <DropdownMenuSeparator /> : null}
-            <DropdownMenuItem onClick={item.onClick} destructive={item.destructive} disabled={item.disabled}>
-              {item.label}
+            {index > 0 ? <DropdownMenuSeparator key={`${item.key}-sep`} /> : null}
+            <DropdownMenuItem
+              onClick={item.onClick}
+              destructive={item.destructive}
+              disabled={item.disabled}
+              title={item.disabled ? item.disabledReason : undefined}
+            >
+              {item.disabled && item.disabledReason ? `${item.label} — ${item.disabledReason}` : item.label}
             </DropdownMenuItem>
           </div>
         ))}

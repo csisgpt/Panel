@@ -372,6 +372,7 @@ export interface FileLink {
   id: string;
   previewUrl?: string;
   downloadUrl?: string;
+  method?: "presigned" | "raw";
   expiresInSeconds: number;
 }
 

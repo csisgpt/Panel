@@ -13,8 +13,23 @@ import { PdfViewer } from "./viewers/pdf-viewer";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/kit/common/ErrorState";
 import { EmptyState } from "@/components/kit/common/EmptyState";
+import { LoadingState } from "@/components/kit/common/LoadingState";
+import { useFileObjectUrl } from "./data/use-file-object-url";
+import { apiGetBlob } from "@/lib/api/client";
+import { toast } from "@/hooks/use-toast";
 import "swiper/css";
 import "swiper/css/thumbs";
+
+function triggerDownload(blob: Blob, fileName: string) {
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(objectUrl);
+}
 
 /**
  * Attachment gallery with navigation, keyboard controls, and retry handling.
@@ -39,6 +54,7 @@ export function AttachmentGalleryModal({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [retryCounts, setRetryCounts] = useState<Record<string, number>>({});
   const [thumbsSwiper, setThumbsSwiper] = useState<SwiperClass | null>(null);
+  const [downloading, setDownloading] = useState(false);
   const touchStartX = useRef<number | null>(null);
   const mainSwiperRef = useRef<SwiperClass | null>(null);
 
@@ -51,6 +67,15 @@ export function AttachmentGalleryModal({
     () => resolvedLinks.find((link: FileLink) => link.id === activeFile?.id),
     [resolvedLinks, activeFile]
   );
+
+  const shouldUseDirectPreview = activeLink?.method === "presigned";
+  const activeObjectPreview = useFileObjectUrl({
+    url: activeLink?.previewUrl,
+    enabled: Boolean(open && activeFile && activeLink?.previewUrl && !shouldUseDirectPreview),
+    cacheKey: activeFile?.id ?? "",
+  });
+
+  const activePreviewSrc = shouldUseDirectPreview ? activeLink?.previewUrl : activeObjectPreview.objectUrl;
 
   const hasPrev = activeIndex > 0;
   const hasNext = activeIndex < files.length - 1;
@@ -91,7 +116,11 @@ export function AttachmentGalleryModal({
     const count = retryCounts[activeFile.id] ?? 0;
     if (count < 1) {
       setRetryCounts((prev) => ({ ...prev, [activeFile.id]: count + 1 }));
-      refetch();
+      if (!shouldUseDirectPreview) {
+        activeObjectPreview.refetch();
+      } else {
+        refetch();
+      }
       return;
     }
     setLoadError("لینک پیش‌نمایش منقضی شده است.");
@@ -116,6 +145,24 @@ export function AttachmentGalleryModal({
     touchStartX.current = null;
   };
 
+  const handleDownload = async () => {
+    if (!activeFile || !activeLink?.downloadUrl) return;
+    try {
+      setDownloading(true);
+      if (activeLink.method === "presigned") {
+        window.open(activeLink.downloadUrl, "_blank", "noopener,noreferrer");
+      } else {
+        const blob = await apiGetBlob(activeLink.downloadUrl);
+        triggerDownload(blob, activeFile.fileName);
+      }
+      toast({ title: "دانلود فایل انجام شد", variant: "success" } as any);
+    } catch {
+      toast({ title: "خطا در دانلود فایل", variant: "destructive" } as any);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const canZoomIn = zoom < 3;
   const canZoomOut = zoom > 1;
 
@@ -129,11 +176,9 @@ export function AttachmentGalleryModal({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="space-y-1">
               <p className="text-sm font-medium">{activeFile?.fileName ?? "فایل"}</p>
-              {activeLink?.downloadUrl ? (
-                <a className="text-xs text-primary underline" href={activeLink.downloadUrl} target="_blank" rel="noreferrer">
-                  دانلود فایل
-                </a>
-              ) : null}
+              <Button size="sm" variant="outline" onClick={handleDownload} disabled={!activeLink?.downloadUrl || downloading}>
+                {downloading ? "در حال دانلود..." : "دانلود فایل"}
+              </Button>
             </div>
             <div className="flex items-center gap-2">
               {activeFile?.mimeType?.startsWith("image/") ? (
@@ -162,14 +207,12 @@ export function AttachmentGalleryModal({
           </div>
 
           {isLoading && !links ? <p className="text-sm text-muted-foreground">در حال دریافت لینک‌ها...</p> : null}
-          {isFetching && !isLoading ? (
-            <p className="text-xs text-muted-foreground">در حال تازه‌سازی لینک‌ها...</p>
-          ) : null}
+          {isFetching && !isLoading ? <p className="text-xs text-muted-foreground">در حال تازه‌سازی لینک‌ها...</p> : null}
 
           {files.length === 0 ? (
             <EmptyState description="فایلی برای نمایش وجود ندارد." />
           ) : loadError ? (
-            <ErrorState description={loadError} onAction={() => refetch()} />
+            <ErrorState description={loadError} onAction={() => (shouldUseDirectPreview ? refetch() : activeObjectPreview.refetch())} />
           ) : (
             <div className="space-y-3">
               <Swiper
@@ -183,16 +226,30 @@ export function AttachmentGalleryModal({
                 onTouchEnd={handleTouchEnd}
                 className="rounded-md"
               >
-                {files.map((file) => {
+                {files.map((file, index) => {
                   const link = resolvedLinks.find((item: FileLink) => item.id === file.id);
                   const isImage = file.mimeType?.startsWith("image/");
                   const isPdf = file.mimeType === "application/pdf";
+                  const isActiveSlide = index === activeIndex;
+                  const slideSrc = isActiveSlide
+                    ? activePreviewSrc
+                    : link?.method === "presigned"
+                      ? link.previewUrl
+                      : undefined;
+
                   return (
                     <SwiperSlide key={file.id} className="rounded-md">
-                      {link?.previewUrl ? (
+                      {isActiveSlide && activeObjectPreview.isLoading && !shouldUseDirectPreview ? (
+                        <div>
+                          <p className="mb-2 text-sm text-muted-foreground">در حال دریافت فایل…</p>
+                          <LoadingState lines={4} />
+                        </div>
+                      ) : activeObjectPreview.error && isActiveSlide ? (
+                        <ErrorState description={activeObjectPreview.error} onAction={activeObjectPreview.refetch} actionLabel="تلاش مجدد" />
+                      ) : slideSrc ? (
                         isImage ? (
                           <ImageViewer
-                            src={link.previewUrl}
+                            src={slideSrc}
                             alt={file.fileName}
                             fit={fit}
                             zoom={zoom}
@@ -200,14 +257,12 @@ export function AttachmentGalleryModal({
                             onLoad={handlePreviewLoad}
                           />
                         ) : isPdf ? (
-                          <PdfViewer src={link.previewUrl} fit={fit} onError={handlePreviewError} onLoad={handlePreviewLoad} />
+                          <PdfViewer src={slideSrc} fit={fit} onError={handlePreviewError} onLoad={handlePreviewLoad} />
                         ) : (
-                          <a className="text-sm text-primary underline" href={link.previewUrl}>
-                            مشاهده فایل
-                          </a>
+                          <Button variant="outline" onClick={handleDownload}>دانلود / مشاهده فایل</Button>
                         )
                       ) : (
-                        <EmptyState description="لینکی برای نمایش موجود نیست." />
+                        <EmptyState description="در حال دریافت فایل…" />
                       )}
                     </SwiperSlide>
                   );

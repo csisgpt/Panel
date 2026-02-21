@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { FormSection } from "@/components/kit/forms/form-section";
@@ -8,6 +9,8 @@ import { AttachmentViewer } from "@/components/kit/files/attachment-viewer";
 import { DestinationCard } from "@/components/kit/p2p/destination-card";
 import { P2PStatusBadge } from "@/components/kit/p2p/p2p-status-badge";
 import { P2PTimeline } from "@/components/kit/p2p/p2p-timeline";
+import { LoadingState } from "@/components/kit/common/LoadingState";
+import { ErrorState } from "@/components/kit/common/ErrorState";
 import type { P2PAllocation } from "@/lib/contracts/p2p";
 import { formatMoney } from "@/lib/format/money";
 import { useQuery } from "@tanstack/react-query";
@@ -36,6 +39,11 @@ export function AdminAllocationDetailsSheet({
 
   const detail = detailQuery.data ?? allocation;
 
+  const actionReason = useMemo(
+    () => (key: string) => detail?.allowedActions?.find((a) => a.key === key)?.reasonDisabled,
+    [detail?.allowedActions]
+  );
+
   if (!detail) return null;
 
   return (
@@ -45,17 +53,18 @@ export function AdminAllocationDetailsSheet({
           <SheetTitle>جزئیات تخصیص</SheetTitle>
         </SheetHeader>
 
+        {detailQuery.isLoading && !detailQuery.data ? <LoadingState /> : null}
+        {detailQuery.isError ? <ErrorState error={detailQuery.error as any} onAction={detailQuery.refetch} /> : null}
+
         <div className="space-y-4 pb-20">
           <FormSection title="خلاصه">
             <div className="grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
               <p>شناسه: {detail.id}</p>
               <p>مبلغ: {formatMoney(detail.amount)}</p>
-              <p>پرداخت‌کننده: {detail.payerName ?? "-"}</p>
-              <p>دریافت‌کننده: {detail.receiverName ?? "سیستمی"}</p>
+              <p>پرداخت‌کننده: {detail.payer?.displayName ?? detail.payerName ?? "-"} - {detail.payer?.mobile ?? detail.payerMobile ?? "-"}</p>
+              <p>دریافت‌کننده: {detail.receiver?.displayName ?? detail.receiverName ?? "سیستمی"} - {detail.receiver?.mobile ?? detail.receiverMobile ?? "-"}</p>
               <p>کد تخصیص: {detail.paymentCode ?? "-"}</p>
-              <div>
-                وضعیت: <P2PStatusBadge status={detail.status} />
-              </div>
+              <div>وضعیت: <P2PStatusBadge status={detail.status} /></div>
             </div>
           </FormSection>
 
@@ -78,6 +87,11 @@ export function AdminAllocationDetailsSheet({
 
           <FormSection title="پیوست‌ها">
             <AttachmentViewer files={detail.attachments ?? []} />
+            <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+              {(detail.attachments ?? []).map((file) => (
+                <p key={file.id}>{file.fileName} | {file.mimeType} | {file.sizeBytes} bytes</p>
+              ))}
+            </div>
           </FormSection>
 
           <FormSection title="تایم‌لاین">
@@ -95,9 +109,9 @@ export function AdminAllocationDetailsSheet({
 
         <StickyFormFooter className="-mx-6">
           <div className="flex flex-wrap justify-end gap-2">
-            {detail.actions?.canAdminVerify ? <Button onClick={onVerify}>بررسی</Button> : null}
-            {detail.actions?.canFinalize ? <Button variant="outline" onClick={onFinalize}>نهایی‌سازی</Button> : null}
-            {detail.actions?.canCancel ? <Button variant="destructive" onClick={onCancel}>لغو</Button> : null}
+            <Button onClick={onVerify} disabled={!detail.actions?.canAdminVerify} title={actionReason("ADMIN_VERIFY")}>بررسی</Button>
+            <Button variant="outline" onClick={onFinalize} disabled={!detail.actions?.canFinalize} title={actionReason("FINALIZE")}>نهایی‌سازی</Button>
+            <Button variant="destructive" onClick={onCancel} disabled={!detail.actions?.canCancel} title={actionReason("CANCEL")}>لغو</Button>
             <Button variant="outline" onClick={() => onOpenChange(false)}>بستن</Button>
           </div>
         </StickyFormFooter>

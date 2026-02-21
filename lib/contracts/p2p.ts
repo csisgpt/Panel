@@ -19,16 +19,63 @@ export interface P2PWithdrawal {
   updatedAt?: string;
   amount: string;
   remainingToAssign: string;
+  totals?: {
+    assigned: string;
+    settled: string;
+    remainingToAssign: string;
+    remainingToSettle: string;
+  };
   status: string;
   purpose?: string;
   channel?: string | null;
   userMobile?: string | null;
+  withdrawer?: P2PUserSummary | null;
+  destination?: WithdrawalDestination | null;
   destinationSummary?: string | null;
   hasProof?: boolean;
   hasDispute?: boolean;
   hasExpiringAllocations?: boolean;
   isUrgent?: boolean;
   actions?: WithdrawalActions;
+  allowedActions?: Array<{ key: "ASSIGN" | "CANCEL" | string; enabled: boolean; reasonDisabled?: string }>;
+  riskFlags?: string[];
+  allocations?: P2PAllocation[];
+  raw?: unknown;
+}
+
+export interface P2PUserSummary {
+  userId: string;
+  mobile?: string;
+  displayName?: string;
+  userStatus?: string;
+  kycLevel?: string;
+  kycStatus?: string;
+}
+
+export interface WithdrawalDestination {
+  type?: "IBAN" | "CARD" | "ACCOUNT";
+  masked?: string;
+  fullValue?: string;
+  title?: string;
+  bankName?: string;
+  ownerName?: string;
+  copyText?: string;
+}
+
+export interface DepositCandidate {
+  id: string;
+  requestedAmount: string;
+  remainingAmount: string;
+  status: string;
+  isFullyAvailable: boolean;
+  isExpiring: boolean;
+  createdAt: string;
+  updatedAt: string;
+  payer?: P2PUserSummary | null;
+  actions: {
+    canCancel: boolean;
+    canBeAssigned: boolean;
+  };
   raw?: unknown;
 }
 
@@ -42,8 +89,10 @@ export interface P2PAllocation {
   expiresAt?: string | null;
   payerName?: string | null;
   payerMobile?: string | null;
+  payer?: P2PUserSummary | null;
   receiverName?: string | null;
   receiverMobile?: string | null;
+  receiver?: P2PUserSummary | null;
   paymentMethod?: PaymentMethod | string | null;
   bankRef?: string | null;
   paidAt?: string | null;
@@ -76,6 +125,7 @@ export interface P2PAllocation {
   hasProof?: boolean;
   isFinalizable?: boolean;
   actions?: AllocationActions;
+  allowedActions?: Array<{ key: string; enabled: boolean; reasonDisabled?: string }>;
   raw?: unknown;
 }
 
@@ -108,10 +158,17 @@ export interface P2PSystemDestinationVm {
   id: string;
   title?: string | null;
   type: "IBAN" | "CARD" | "ACCOUNT";
+  fullValue?: string | null;
   maskedValue: string;
+  ownerName?: string | null;
+  copyText?: string | null;
   bankName?: string | null;
   isActive: boolean;
   createdAt?: string | null;
+  updatedAt?: string | null;
+  deletedAt?: string | null;
+  lastUsedAt?: string | null;
+  allocationCount?: number;
   status?: "ACTIVE" | "PENDING_VERIFY" | "DISABLED";
 }
 

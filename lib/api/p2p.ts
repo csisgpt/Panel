@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from "./client";
+import { apiDelete, apiGet, apiPatch, apiPost } from "./client";
 import { isMockMode } from "./config";
 import type { ListParams } from "@/lib/querykit/schemas";
 import {
@@ -13,6 +13,7 @@ import { normalizeListResponse } from "@/lib/contracts/list";
 import type {
   AllocationProofDto,
   AllocationReceiverConfirmDto,
+  DepositCandidate,
   P2PAllocation,
   P2POpsSummary,
   P2PSystemDestinationVm,
@@ -28,7 +29,6 @@ import {
 } from "@/lib/adapters/p2p-vm-mappers";
 import { adaptOpsSummary, type BackendOpsSummaryDto } from "@/lib/adapters/p2p-ops-summary-adapter";
 import { buildApiError } from "@/lib/api/http";
-import type { PaymentDestinationView } from "@/lib/types/backend";
 import {
   getMockOpsSummary,
   getMockP2PAllocationsEnvelope,
@@ -47,7 +47,7 @@ export type AssignToWithdrawalRequest =
     // Mirrors backend AssignWithdrawalDto (gold-nest: assign-withdrawal.dto.ts)
     mode: "SYSTEM_DESTINATION";
     destinationId: string;
-    amount: number;
+    items: Array<{ amount: number; depositId?: string; candidateId?: string }>;
   };
 
 type AllocationPaymentMethod = AllocationVmDto["payment"] extends { method: infer M } ? M : never;
@@ -156,6 +156,7 @@ function buildMockDepositVm(candidate: { id: string; name: string; mobile: strin
     requestedAmount: "1500000",
     status: "PENDING",
     totals: { assigned: "0", settled: "0", remaining: "1500000" },
+    payer: { userId: candidate.id, mobile: candidate.mobile, displayName: candidate.name },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     actions: { canCancel: false, canBeAssigned: true },
@@ -209,7 +210,7 @@ export async function listAdminP2PAllocations(params: ListParams) {
   return { items: items.map(mapP2PAllocationVm), meta: adaptP2PMeta(meta as any) };
 }
 
-export async function listWithdrawalCandidates(withdrawalId: string, params: ListParams) {
+export async function listWithdrawalCandidates(withdrawalId: string, params: ListParams): Promise<{ items: DepositCandidate[]; meta: ReturnType<typeof adaptP2PMeta> }> {
   if (isMockMode()) {
     const data = (await getMockP2PCandidates()).map((candidate) => mapP2PCandidateDepositVm(buildMockDepositVm(candidate)));
     const { meta } = adaptListResponse({
@@ -228,7 +229,7 @@ export async function assignToWithdrawal(withdrawalId: string, payload: AssignTo
   if (payload.mode === "CANDIDATES" && payload.items.some((item) => !item.amount || item.amount <= 0)) {
     throw buildApiError({ message: "مبلغ تخصیص برای هر آیتم اجباری است", code: "validation_failed" });
   }
-  if (payload.mode === "SYSTEM_DESTINATION" && (!payload.destinationId || payload.amount <= 0)) {
+  if (payload.mode === "SYSTEM_DESTINATION" && (!payload.destinationId || !payload.items.length || payload.items.some((item) => !item.amount || item.amount <= 0))) {
     throw buildApiError({ message: "مقصد سیستمی و مبلغ تخصیص اجباری است", code: "validation_failed" });
   }
 
@@ -241,7 +242,7 @@ export async function assignToWithdrawal(withdrawalId: string, payload: AssignTo
     const remaining = Number(withdrawal.remainingToAssign ?? 0);
     const totalAssigned = payload.mode === "CANDIDATES"
       ? payload.items.reduce((sum, item) => sum + Number(item.amount), 0)
-      : Number(payload.amount);
+      : payload.items.reduce((sum, item) => sum + Number(item.amount), 0);
     if (totalAssigned > remaining) {
       throw buildApiError({
         message: "مجموع تخصیص از باقی‌مانده بیشتر است",
@@ -368,9 +369,23 @@ export async function getAdminP2PAllocationDetail(allocationId: string): Promise
   return mapP2PAllocationVm(response);
 }
 
-type P2PSystemDestinationDto = PaymentDestinationView & {
+export type P2PSystemDestinationDto = {
+  id: string;
+  title?: string | null;
+  bankName?: string | null;
+  ownerName?: string | null;
+  type: "IBAN" | "CARD" | "ACCOUNT";
+  fullValue?: string | null;
+  masked?: string | null;
+  maskedValue?: string | null;
+  copyText?: string | null;
   isActive?: boolean;
+  allocationCount?: number;
   createdAt?: string | null;
+  updatedAt?: string | null;
+  deletedAt?: string | null;
+  lastUsedAt?: string | null;
+  status?: "ACTIVE" | "PENDING_VERIFY" | "DISABLED";
 };
 
 function mapSystemDestination(dto: P2PSystemDestinationDto): P2PSystemDestinationVm {
@@ -380,10 +395,17 @@ function mapSystemDestination(dto: P2PSystemDestinationDto): P2PSystemDestinatio
     id: dto.id,
     title: dto.title,
     type: dto.type,
-    maskedValue: dto.maskedValue,
+    fullValue: dto.fullValue ?? null,
+    maskedValue: dto.fullValue ?? dto.copyText ?? dto.masked ?? dto.maskedValue ?? "-",
     bankName: dto.bankName,
+    ownerName: dto.ownerName ?? null,
+    copyText: dto.copyText ?? null,
     isActive: dto.isActive ?? resolvedStatus === "ACTIVE",
     createdAt: dto.createdAt ?? null,
+    updatedAt: dto.updatedAt ?? null,
+    deletedAt: dto.deletedAt ?? null,
+    lastUsedAt: dto.lastUsedAt ?? null,
+    allocationCount: dto.allocationCount,
     status: resolvedStatus,
   };
 }
@@ -398,7 +420,6 @@ export async function listAdminP2PSystemDestinations(): Promise<P2PSystemDestina
         maskedValue: item.label ?? item.id,
         title: item.label ?? item.id,
         bankName: "-",
-        isDefault: false,
         status: "ACTIVE",
         lastUsedAt: null,
         isActive: true,
@@ -417,3 +438,39 @@ export async function listAdminP2PSystemDestinations(): Promise<P2PSystemDestina
 
   return items.map(mapSystemDestination);
 }
+
+export async function adminCreateSystemDestination(payload: {
+  title: string;
+  type: "IBAN" | "CARD" | "ACCOUNT";
+  value: string;
+  bankName?: string;
+  ownerName?: string;
+  isActive?: boolean;
+}) {
+  const response = await apiPost<P2PSystemDestinationDto, typeof payload>("/admin/p2p/system-destinations", payload);
+  return mapSystemDestination(response);
+}
+
+export async function adminUpdateSystemDestination(id: string, payload: Partial<{
+  title: string;
+  type: "IBAN" | "CARD" | "ACCOUNT";
+  value: string;
+  bankName: string;
+  ownerName: string;
+  isActive: boolean;
+}>) {
+  const response = await apiPatch<P2PSystemDestinationDto, typeof payload>(`/admin/p2p/system-destinations/${id}`, payload);
+  return mapSystemDestination(response);
+}
+
+export async function adminSetSystemDestinationStatus(id: string, isActive: boolean) {
+  const response = await apiPatch<P2PSystemDestinationDto, { isActive: boolean }>(`/admin/p2p/system-destinations/${id}/status`, { isActive });
+  return mapSystemDestination(response);
+}
+
+export async function adminDeleteSystemDestination(id: string) {
+  await apiDelete(`/admin/p2p/system-destinations/${id}`);
+}
+
+
+export const adminListSystemDestinations = listAdminP2PSystemDestinations;
